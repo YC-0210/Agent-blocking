@@ -1,0 +1,331 @@
+import FamilyControls
+import SwiftData
+import SwiftUI
+
+struct HomeView: View {
+  @Environment(\.modelContext) private var context
+  @Environment(\.openURL) var openURL
+
+  @Environment(\.scenePhase) private var scenePhase
+
+  @EnvironmentObject var requestAuthorizer: RequestAuthorizer
+  @EnvironmentObject var strategyManager: StrategyManager
+  @EnvironmentObject var navigationManager: NavigationManager
+  @EnvironmentObject var ratingManager: RatingManager
+  @EnvironmentObject var onboardingManager: OnboardingManager
+
+  // Profile management
+  @Query(sort: [
+    SortDescriptor(\BlockedProfiles.order, order: .forward),
+    SortDescriptor(\BlockedProfiles.createdAt, order: .reverse),
+  ]) private
+    var profiles: [BlockedProfiles]
+  @State private var isProfileListPresent = false
+
+  // New profile view
+  @State private var showNewProfileView = false
+
+  // Edit profile
+  @State private var profileToEdit: BlockedProfiles? = nil
+
+  // Stats sheet
+  @State private var profileToShowStats: BlockedProfiles? = nil
+
+  // Settings View
+  @State private var showSettingsView = false
+
+  // Emergency View
+  @State private var showEmergencyView = false
+
+  // Navigate to profile
+  @State private var navigateToProfileId: UUID? = nil
+
+  // Activity sessions
+  @Query(sort: \BlockedProfileSession.startTime, order: .reverse) private
+    var sessions: [BlockedProfileSession]
+  @Query(
+    filter: #Predicate<BlockedProfileSession> { $0.endTime != nil },
+    sort: \BlockedProfileSession.endTime,
+    order: .reverse
+  ) private var recentCompletedSessions: [BlockedProfileSession]
+
+  // Alerts
+  @State private var showingAlert = false
+  @State private var alertTitle = ""
+  @State private var alertMessage = ""
+
+  // Intro sheet
+  @AppStorage("showIntroScreen") private var showIntroScreen = true
+
+  // Onboarding sheet
+  @State private var showOnboardingSetup = false
+
+  // UI States
+  @State private var opacityValue = 1.0
+
+  var isBlocking: Bool {
+    return strategyManager.isBlocking
+  }
+
+  var activeSessionProfileId: UUID? {
+    return strategyManager.activeSession?.blockedProfile.id
+  }
+
+  var isBreakAvailable: Bool {
+    return strategyManager.isBreakAvailable
+  }
+
+  var isBreakActive: Bool {
+    return strategyManager.isBreakActive
+  }
+
+  var body: some View {
+    ZStack {
+      ScrollView(showsIndicators: false) {
+        VStack(alignment: .leading, spacing: 30) {
+        HStack(alignment: .center) {
+          AppTitle()
+          Spacer()
+          RoundedButton(
+            "",
+            action: {
+              showSettingsView = true
+            }, iconName: "gear")
+        }
+        .padding(.trailing, 16)
+        .padding(.top, 16)
+
+        AuthorizationCallout(
+          authorizationStatus: requestAuthorizer.getAuthorizationStatus(),
+          onAuthorizationHandler: {
+            requestAuthorizer.requestAuthorization()
+          }
+        )
+        .padding(.horizontal, 16)
+
+        if profiles.isEmpty {
+          Welcome(onTap: {
+            showNewProfileView = true
+          })
+          .padding(.horizontal, 16)
+        }
+
+        if !profiles.isEmpty {
+          BlockedProfileCarousel(
+            profiles: profiles,
+            isBlocking: isBlocking,
+            isBreakAvailable: isBreakAvailable,
+            isBreakActive: isBreakActive,
+            activeSessionProfileId: activeSessionProfileId,
+            elapsedTime: strategyManager.elapsedTime,
+            startingProfileId: navigateToProfileId,
+            onStartTapped: { profile in
+              strategyButtonPress(profile)
+            },
+            onStopTapped: { profile in
+              strategyButtonPress(profile)
+            },
+            onEditTapped: { profile in
+              profileToEdit = profile
+            },
+            onStatsTapped: { profile in
+              profileToShowStats = profile
+            },
+            onBreakTapped: { _ in
+              strategyManager.toggleBreak(context: context)
+            },
+            onManageTapped: {
+              isProfileListPresent = true
+            },
+            onEmergencyTapped: {
+              showEmergencyView = true
+            },
+          )
+
+          BlockedSessionsHabitTracker(
+            sessions: recentCompletedSessions
+          )
+          .padding(.horizontal, 16)
+        }
+      }
+    }
+    .refreshable {
+      loadApp()
+    }
+    .padding(.top, 1)
+    }
+    .sheet(
+      isPresented: $isProfileListPresent,
+    ) {
+      BlockedProfileListView()
+    }
+    .frame(
+      minWidth: 0,
+      maxWidth: .infinity,
+      minHeight: 0,
+      maxHeight: .infinity,
+      alignment: .topLeading
+    )
+    .onChange(of: navigationManager.profileId) { _, newValue in
+      if let profileId = newValue, let url = navigationManager.link {
+        toggleSessionFromDeeplink(profileId, link: url)
+        navigationManager.clearNavigation()
+      }
+    }
+    .onChange(of: navigationManager.navigateToProfileId) { _, newValue in
+      if let profileId = newValue {
+        navigateToProfileId = UUID(uuidString: profileId)
+        navigationManager.clearNavigation()
+      }
+    }
+    .onChange(of: requestAuthorizer.isAuthorized) { _, newValue in
+      if newValue {
+        showIntroScreen = false
+        // Trigger onboarding after permission is granted
+        // This supports both first-time users (no profiles) and replay tutorial (has profiles)
+        if onboardingManager.shouldShowOnboarding {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            showOnboardingSetup = true
+          }
+        }
+      } else {
+        showIntroScreen = true
+      }
+    }
+    .onChange(of: profiles) { oldValue, newValue in
+      if !newValue.isEmpty {
+        loadApp()
+      }
+    }
+    .onChange(of: scenePhase) { oldPhase, newPhase in
+      if newPhase == .active {
+        loadApp()
+      } else if newPhase == .background {
+        unloadApp()
+      }
+    }
+    .onReceive(strategyManager.$errorMessage) { errorMessage in
+      if let message = errorMessage {
+        showErrorAlert(message: message)
+      }
+    }
+    .onReceive(onboardingManager.objectWillChange) { _ in
+      // Trigger onboarding when it's reset (from Settings > Replay Tutorial)
+      let isAuthorized = requestAuthorizer.getAuthorizationStatus() == .approved
+      if isAuthorized && onboardingManager.shouldShowOnboarding && !showIntroScreen && !showOnboardingSetup {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+          showOnboardingSetup = true
+        }
+      }
+    }
+    .onAppear {
+      onAppearApp()
+    }
+    .fullScreenCover(isPresented: $showIntroScreen) {
+      IntroView {
+        requestAuthorizer.requestAuthorization()
+      }.interactiveDismissDisabled()
+    }
+    .sheet(item: $profileToEdit) { profile in
+      BlockedProfileView(profile: profile)
+    }
+    .sheet(item: $profileToShowStats) { profile in
+      ProfileInsightsView(profile: profile)
+    }
+    .sheet(
+      isPresented: $showNewProfileView,
+    ) {
+      BlockedProfileView(profile: nil)
+    }
+    .sheet(isPresented: $strategyManager.showCustomStrategyView) {
+      BlockingStrategyActionView(
+        customView: strategyManager.customStrategyView
+      )
+      .presentationDetents([.medium])
+    }
+    .sheet(isPresented: $showSettingsView) {
+      SettingsView()
+    }
+    .sheet(isPresented: $showEmergencyView) {
+      EmergencyView()
+        .presentationDetents([.height(350)])
+    }
+    .fullScreenCover(isPresented: $showOnboardingSetup) {
+      OnboardingProfileSetupView { _ in
+        // Profile was created or onboarding was skipped
+      }
+      .interactiveDismissDisabled()
+    }
+    .alert(alertTitle, isPresented: $showingAlert) {
+      Button(String(localized: "OK"), role: .cancel) { dismissAlert() }
+    } message: {
+      Text(alertMessage)
+    }
+  }
+
+  private func toggleSessionFromDeeplink(_ profileId: String, link: URL) {
+    strategyManager
+      .toggleSessionFromDeeplink(profileId, url: link, context: context)
+  }
+
+  private func strategyButtonPress(_ profile: BlockedProfiles) {
+    strategyManager
+      .toggleBlocking(context: context, activeProfile: profile)
+
+    ratingManager.incrementLaunchCount()
+  }
+
+  private func loadApp() {
+    strategyManager.loadActiveSession(context: context)
+  }
+
+  private func onAppearApp() {
+    strategyManager.loadActiveSession(context: context)
+    strategyManager.cleanUpGhostSchedules(context: context)
+
+    // Check if onboarding should be shown
+    checkAndShowOnboarding()
+  }
+
+  private func checkAndShowOnboarding() {
+    // Show onboarding if: user is authorized and onboarding not completed/skipped
+    // This supports both first-time users (no profiles) and replay tutorial (has profiles)
+    let isAuthorized = requestAuthorizer.getAuthorizationStatus() == .approved
+    if isAuthorized && onboardingManager.shouldShowOnboarding && !showIntroScreen {
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+        showOnboardingSetup = true
+      }
+    }
+  }
+
+  private func unloadApp() {
+    strategyManager.stopTimer()
+  }
+
+  private func showErrorAlert(message: String) {
+    alertTitle = String(localized: "Whoops")
+    alertMessage = message
+    showingAlert = true
+  }
+
+  private func dismissAlert() {
+    showingAlert = false
+  }
+}
+
+#Preview {
+  HomeView()
+    .environmentObject(RequestAuthorizer())
+    .environmentObject(NavigationManager())
+    .environmentObject(StrategyManager())
+    .environmentObject(OnboardingManager.shared)
+    .environmentObject(ThemeManager.shared)
+    .environmentObject(RatingManager())
+    .defaultAppStorage(UserDefaults(suiteName: "preview")!)
+    .onAppear {
+      UserDefaults(suiteName: "preview")!.set(
+        false,
+        forKey: "showIntroScreen"
+      )
+    }
+}
