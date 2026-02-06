@@ -9,11 +9,11 @@
 <h1 align="center"><a href="https://apps.apple.com/ca/app/foqos/id6736793117">Foqos</a></h1>
 
 <p align="center">
-  <strong>Focus, the physical way</strong>
+  <strong>DO, the physical way</strong>
 </p>
 
 <p align="center">
-  Foqos helps you put your most distracting apps behind a quick tap — using NFC tags or QR codes — so you can stay in the zone and build better digital habits. It’s free, open source, and an alternative to Brick, Bloom, Unpluq, Blok, and more.
+  DO helps you put your most distracting apps behind a quick tap — using NFC tags or QR codes — so you can stay in the zone and build better digital habits. It’s free, open source, and an alternative to Brick, Bloom, Unpluq, Blok, and more.
 </p>
 
 ---
