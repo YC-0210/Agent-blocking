@@ -28,7 +28,8 @@ class NFCTimerBlockingStrategy: BlockingStrategy {
   ) -> (any View)? {
     return TimerDurationView(
       profileName: profile.name,
-      onDurationSelected: { duration in
+      onDurationSelected: { [weak self] duration in
+        guard let self else { return }
         if let strategyTimerData = StrategyTimerData.toData(from: duration) {
           // Store the timer data so that its selected for the next time the profile is started
           // This is also useful if the profile is started from the background like a shortcut or intent
@@ -59,7 +60,8 @@ class NFCTimerBlockingStrategy: BlockingStrategy {
     context: ModelContext,
     session: BlockedProfileSession
   ) -> (any View)? {
-    nfcScanner.onTagScanned = { tag in
+    nfcScanner.onTagScanned = { [weak self] tag in
+      guard let self else { return }
       let tag = tag.url ?? tag.id
 
       if let physicalUnblockNFCTagId = session.blockedProfile.physicalUnblockNFCTagId,

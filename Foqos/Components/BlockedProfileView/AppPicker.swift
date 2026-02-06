@@ -2,7 +2,7 @@ import FamilyControls
 import SwiftUI
 
 struct AppPicker: View {
-  let stateUpdateTimer = Timer.publish(every: 1, on: .main, in: .common)
+  private let stateUpdateTimer = Timer.publish(every: 1, on: .main, in: .common)
     .autoconnect()
 
   @Binding var selection: FamilyActivitySelection

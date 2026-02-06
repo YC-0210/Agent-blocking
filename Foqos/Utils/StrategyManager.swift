@@ -91,8 +91,8 @@ class StrategyManager: ObservableObject {
   func startTimer() {
     // Invalidate any existing timer before creating a new one to prevent accumulation
     timer?.invalidate()
-    timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-      guard let session = self.activeSession else { return }
+    timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+      guard let self, let session = self.activeSession else { return }
 
       if session.isBreakActive {
         // Calculate break time remaining (countdown)
@@ -413,7 +413,8 @@ class StrategyManager: ObservableObject {
   func getStrategy(id: String) -> BlockingStrategy {
     var strategy = StrategyManager.getStrategyFromId(id: id)
 
-    strategy.onSessionCreation = { session in
+    strategy.onSessionCreation = { [weak self] session in
+      guard let self else { return }
       self.dismissView()
 
       // Remove any timers and notifications that were scheduled
@@ -452,7 +453,8 @@ class StrategyManager: ObservableObject {
       }
     }
 
-    strategy.onErrorMessage = { message in
+    strategy.onErrorMessage = { [weak self] message in
+      guard let self else { return }
       self.dismissView()
 
       self.errorMessage = message

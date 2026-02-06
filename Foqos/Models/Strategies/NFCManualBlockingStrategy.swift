@@ -47,7 +47,8 @@ class NFCManualBlockingStrategy: BlockingStrategy {
     context: ModelContext,
     session: BlockedProfileSession
   ) -> (any View)? {
-    nfcScanner.onTagScanned = { tag in
+    nfcScanner.onTagScanned = { [weak self] tag in
+      guard let self else { return }
       let tag = tag.url ?? tag.id
 
       if let physicalUnblockNFCTagId = session.blockedProfile.physicalUnblockNFCTagId,
