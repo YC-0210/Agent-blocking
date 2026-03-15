@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 
 struct DomainsDebugCard: View {
@@ -37,3 +38,4 @@ struct DomainsDebugCard: View {
   DomainsDebugCard(domains: ["youtube.com"])
     .padding()
 }
+#endif

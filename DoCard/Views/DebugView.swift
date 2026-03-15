@@ -1,3 +1,4 @@
+#if DEBUG
 import DeviceActivity
 import FamilyControls
 import SwiftData
@@ -31,13 +32,6 @@ struct DebugView: View {
             // Active Session Section
             DebugSection(title: "Active Session") {
               SessionDebugCard(session: session)
-            }
-
-            // Schedule Section
-            if let schedule = profile.schedule {
-              DebugSection(title: "Schedule") {
-                ScheduleDebugCard(schedule: schedule)
-              }
             }
 
             // Strategy Manager Section
@@ -140,8 +134,6 @@ struct DebugView: View {
     markdown += "- **Allow Mode Domains:** \(profile.enableAllowModeDomains ? "Yes" : "No")\n"
     markdown += "- **Live Activity:** \(profile.enableLiveActivity ? "Enabled" : "Disabled")\n"
     markdown += "- **Breaks:** \(profile.enableBreaks ? "Enabled" : "Disabled")\n"
-    markdown += "- **Strict Mode:** \(profile.enableStrictMode ? "Enabled" : "Disabled")\n"
-    markdown += "- **Disable Background Stops:** \(profile.disableBackgroundStops ? "Yes" : "No")\n"
 
     if let reminderTime = profile.reminderTimeInSeconds {
       markdown += "- **Reminder Time:** \(reminderTime / 60) minutes\n"
@@ -151,8 +143,8 @@ struct DebugView: View {
       markdown += "- **Custom Reminder Message:** \(customMessage)\n"
     }
 
-    if let nfcTagId = profile.physicalUnblockNFCTagId {
-      markdown += "- **Physical Unlock NFC Tag ID:** \(nfcTagId)\n"
+    if let nfcTagIds = profile.physicalUnblockNFCTagIds, !nfcTagIds.isEmpty {
+      markdown += "- **Physical Unlock NFC Tag IDs:** \(nfcTagIds.joined(separator: ", "))\n"
     }
 
     markdown += "- **Total Sessions:** \(profile.sessions.count)\n"
@@ -185,25 +177,6 @@ struct DebugView: View {
     markdown += "- **Duration:** \(DateFormatters.formatDuration(session.duration))\n"
 
     markdown += "\n"
-
-    // Schedule Section
-    if let schedule = profile.schedule {
-      markdown += "## Schedule\n\n"
-
-      if schedule.days.isEmpty {
-        markdown += "- **Days:** All days\n"
-      } else {
-        let dayNames = schedule.days.sorted(by: { $0.rawValue < $1.rawValue }).map { $0.name }
-          .joined(separator: ", ")
-        markdown += "- **Days:** \(dayNames)\n"
-      }
-
-      markdown +=
-        "- **Start Time:** \(String(format: "%02d:%02d", schedule.startHour, schedule.startMinute))\n"
-      markdown +=
-        "- **End Time:** \(String(format: "%02d:%02d", schedule.endHour, schedule.endMinute))\n"
-      markdown += "- **Updated At:** \(DateFormatters.formatDate(schedule.updatedAt))\n\n"
-    }
 
     // Strategy Manager Section
     markdown += "## Strategy Manager\n\n"
@@ -285,3 +258,4 @@ struct DebugView: View {
   DebugView()
     .environmentObject(StrategyManager.shared)
 }
+#endif

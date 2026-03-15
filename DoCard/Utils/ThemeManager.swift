@@ -29,7 +29,7 @@ class ThemeManager: ObservableObject {
   private static let defaultColorName = "DO Orange"
 
   @AppStorage(
-    "foqosThemeColorName", store: UserDefaults(suiteName: "group.DO.version3"))
+    "doCardThemeColorName", store: UserDefaults(suiteName: "group.DO.version3"))
   private var themeColorName: String = defaultColorName
 
   var selectedColorName: String {

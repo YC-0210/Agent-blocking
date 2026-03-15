@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 
 struct DebugEmptyState: View {
@@ -23,3 +24,4 @@ struct DebugEmptyState: View {
 #Preview {
   DebugEmptyState()
 }
+#endif

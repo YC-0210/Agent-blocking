@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 
 struct StrategyManagerDebugCard: View {
@@ -83,3 +84,4 @@ struct StrategyManagerDebugCard: View {
   return StrategyManagerDebugCard(strategyManager: strategyManager)
     .padding()
 }
+#endif

@@ -1,5 +1,8 @@
 import Foundation
+import OSLog
 import SwiftData
+
+private let logger = Logger(subsystem: "app.docard", category: "BlockedProfileSession")
 
 @Model
 class BlockedProfileSession {
@@ -140,7 +143,11 @@ class BlockedProfileSession {
       existingSession.forceStarted = snapshot.forceStarted
 
       // manually save to ensure changes are persisted
-      try? context.save()
+      do {
+        try context.save()
+      } catch {
+        logger.error("Failed to save updated session from snapshot: \(error.localizedDescription)")
+      }
       return
     }
 

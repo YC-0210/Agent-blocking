@@ -1,83 +1,97 @@
 import SwiftUI
 
-/// Manages the state and persistence of the first-time user onboarding flow
 class OnboardingManager: ObservableObject {
-    static let shared = OnboardingManager()
+  static let shared = OnboardingManager()
 
-    /// Key for storing onboarding completion status
-    private static let onboardingCompletedKey = "foqosOnboardingCompleted"
-    private static let onboardingSkippedKey = "foqosOnboardingSkipped"
-    private static let currentOnboardingStepKey = "foqosCurrentOnboardingStep"
+  private static let defaults = UserDefaults(suiteName: "group.DO.version3")!
 
-    /// Whether the onboarding has been completed
-    @AppStorage(onboardingCompletedKey, store: UserDefaults(suiteName: "group.DO.version3"))
-    var isOnboardingCompleted: Bool = false
+  @AppStorage("onboardingCompleted", store: UserDefaults(suiteName: "group.DO.version3"))
+  var isOnboardingCompleted: Bool = false
 
-    /// Whether the onboarding was skipped
-    @AppStorage(onboardingSkippedKey, store: UserDefaults(suiteName: "group.DO.version3"))
-    var isOnboardingSkipped: Bool = false
+  @AppStorage("tutorialCompleted", store: UserDefaults(suiteName: "group.DO.version3"))
+  var isTutorialCompleted: Bool = false
 
-    /// Current step in the onboarding process (persisted for resuming)
-    @AppStorage(currentOnboardingStepKey, store: UserDefaults(suiteName: "group.DO.version3"))
-    var currentStep: Int = 0
+  @Published var showOnboarding: Bool = false
+  @Published var tutorialStep: Int = 0
 
-    /// Whether to show the onboarding overlay
-    @Published var showOnboarding: Bool = false
+  // MARK: - DO Card Pairing (supports up to 5 cards)
 
-    /// Total number of onboarding steps
-    let totalSteps = 4
+  static let maxPairedCards = 5
 
-    /// Whether onboarding should be shown (not completed and not skipped)
-    var shouldShowOnboarding: Bool {
-        return !isOnboardingCompleted && !isOnboardingSkipped
+  var pairedDOCardTagIds: [String] {
+    get { Self.defaults.stringArray(forKey: "pairedDOCardTagIds") ?? [] }
+    set { Self.defaults.set(newValue, forKey: "pairedDOCardTagIds") }
+  }
+
+  var pairedDOCardCount: Int {
+    pairedDOCardTagIds.count
+  }
+
+  var isDOCardPaired: Bool {
+    !pairedDOCardTagIds.isEmpty
+  }
+
+  var canPairMoreCards: Bool {
+    pairedDOCardTagIds.count < Self.maxPairedCards
+  }
+
+  /// Add a new DO Card. Returns false if already paired or at max capacity.
+  @discardableResult
+  func pairDOCard(tagId: String) -> Bool {
+    var ids = pairedDOCardTagIds
+    // Don't add duplicate
+    if ids.contains(tagId) { return false }
+    // Don't exceed max
+    if ids.count >= Self.maxPairedCards { return false }
+    ids.append(tagId)
+    pairedDOCardTagIds = ids
+    objectWillChange.send()
+    return true
+  }
+
+  func unpairAllDOCards() {
+    pairedDOCardTagIds = []
+    objectWillChange.send()
+  }
+
+  func isTagIdPaired(_ tagId: String) -> Bool {
+    pairedDOCardTagIds.contains(tagId)
+  }
+
+  var shouldShowOnboarding: Bool {
+    return !isOnboardingCompleted
+  }
+
+  var shouldShowTutorial: Bool {
+    return isOnboardingCompleted && !isTutorialCompleted
+  }
+
+  func completeOnboarding() {
+    isOnboardingCompleted = true
+    showOnboarding = false
+  }
+
+  func resetOnboarding() {
+    isOnboardingCompleted = false
+    isTutorialCompleted = false
+    showOnboarding = true
+    tutorialStep = 0
+  }
+
+  func startTutorial() {
+    tutorialStep = 1
+  }
+
+  func advanceTutorial() {
+    if tutorialStep >= 5 {
+      completeTutorial()
+    } else {
+      tutorialStep += 1
     }
+  }
 
-    /// Start the onboarding flow
-    func startOnboarding() {
-        guard shouldShowOnboarding else { return }
-        currentStep = 0
-        showOnboarding = true
-        objectWillChange.send()
-    }
-
-    /// Advance to the next step
-    func nextStep() {
-        if currentStep < totalSteps - 1 {
-            currentStep += 1
-            objectWillChange.send()
-        } else {
-            completeOnboarding()
-        }
-    }
-
-    /// Go back to the previous step
-    func previousStep() {
-        if currentStep > 0 {
-            currentStep -= 1
-            objectWillChange.send()
-        }
-    }
-
-    /// Skip the onboarding flow
-    func skipOnboarding() {
-        isOnboardingSkipped = true
-        showOnboarding = false
-        objectWillChange.send()
-    }
-
-    /// Complete the onboarding flow
-    func completeOnboarding() {
-        isOnboardingCompleted = true
-        showOnboarding = false
-        currentStep = 0
-        objectWillChange.send()
-    }
-
-    /// Reset onboarding (for re-activation from settings)
-    func resetOnboarding() {
-        isOnboardingCompleted = false
-        isOnboardingSkipped = false
-        currentStep = 0
-        objectWillChange.send()
-    }
+  func completeTutorial() {
+    isTutorialCompleted = true
+    tutorialStep = 0
+  }
 }

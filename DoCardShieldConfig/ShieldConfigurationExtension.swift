@@ -1,6 +1,6 @@
 //
 //  ShieldConfigurationExtension.swift
-//  FoqosShieldConfig
+//  DoCardShieldConfig
 //
 //  Created by Ali Waseem on 2025-08-11.
 //
@@ -39,18 +39,18 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
   private func createCustomShieldConfiguration(for type: BlockedContentType, title: String)
     -> ShieldConfiguration
   {
-    // Get user's selected theme color
+    // Use user's selected theme color for the button
     let brandColor = UIColor(ThemeManager.shared.themeColor)
 
     // Get random fun message
     let randomMessage = getFunBlockMessage(for: type, title: title)
 
-    // Emoji “icon” (rendered to an image so it works with ShieldConfiguration.icon)
+    // Emoji "icon" (rendered to an image so it works with ShieldConfiguration.icon)
     let emojiIcon = makeEmojiIcon(randomMessage.emoji, size: 96)
 
     return ShieldConfiguration(
       backgroundBlurStyle: .dark,
-      backgroundColor: brandColor,
+      backgroundColor: .black,
       icon: emojiIcon,
       title: ShieldConfiguration.Label(
         text: randomMessage.title,
@@ -62,9 +62,9 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
       ),
       primaryButtonLabel: ShieldConfiguration.Label(
         text: randomMessage.buttonText,
-        color: .black
+        color: .white
       ),
-      primaryButtonBackgroundColor: .white,
+      primaryButtonBackgroundColor: brandColor,
       secondaryButtonLabel: nil
     )
   }

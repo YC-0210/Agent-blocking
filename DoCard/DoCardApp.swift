@@ -1,6 +1,6 @@
 //
-//  foqosApp.swift
-//  foqos
+//  DoCardApp.swift
+//  DoCard
 //
 //  Created by Ali Waseem on 2024-10-06.
 //
@@ -22,7 +22,7 @@ private let container: ModelContainer = {
 }()
 
 @main
-struct foqosApp: App {
+struct DoCardApp: App {
   @StateObject private var requestAuthorizer = RequestAuthorizer()
   @StateObject private var navigationManager = NavigationManager()
   @StateObject private var nfcWriter = NFCWriter()
@@ -49,27 +49,32 @@ struct foqosApp: App {
 
   var body: some Scene {
     WindowGroup {
-      HomeView()
-        .onOpenURL { url in
-          handleUniversalLink(url)
+      Group {
+        if onboardingManager.shouldShowOnboarding {
+          OnboardingView()
+        } else {
+          HomeView()
+            .onOpenURL { url in
+              handleUniversalLink(url)
+            }
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) {
+              userActivity in
+              guard let url = userActivity.webpageURL else {
+                return
+              }
+              handleUniversalLink(url)
+            }
         }
-        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) {
-          userActivity in
-          guard let url = userActivity.webpageURL else {
-            return
-          }
-          handleUniversalLink(url)
-
-        }
-        .environmentObject(requestAuthorizer)
-        .environmentObject(startegyManager)
-        .environmentObject(navigationManager)
-        .environmentObject(nfcWriter)
-        .environmentObject(ratingManager)
-        .environmentObject(liveActivityManager)
-        .environmentObject(themeManager)
-        .environmentObject(onboardingManager)
-        .preferredColorScheme(.dark)
+      }
+      .environmentObject(requestAuthorizer)
+      .environmentObject(startegyManager)
+      .environmentObject(navigationManager)
+      .environmentObject(nfcWriter)
+      .environmentObject(ratingManager)
+      .environmentObject(liveActivityManager)
+      .environmentObject(themeManager)
+      .environmentObject(onboardingManager)
+      .preferredColorScheme(.dark)
     }
     .modelContainer(container)
   }

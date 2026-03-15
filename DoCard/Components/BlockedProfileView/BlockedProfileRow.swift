@@ -10,8 +10,8 @@ struct ProfileRow: View {
     return formatter.localizedString(for: profile.updatedAt, relativeTo: Date())
   }
 
-  var selectedItemsCount: Int {
-    FamilyActivityUtil.countSelectedActivities(profile.selectedActivity)
+  var selectedItemsText: String {
+    FamilyActivityUtil.formatAppCount(profile.selectedActivity)
   }
 
   var body: some View {
@@ -32,7 +32,7 @@ struct ProfileRow: View {
 
       HStack(spacing: 4) {
         Image(systemName: "list.bullet.circle.fill")
-        Text("\(selectedItemsCount) items")
+        Text(selectedItemsText)
       }
       .foregroundStyle(.secondary)
       .font(.subheadline)

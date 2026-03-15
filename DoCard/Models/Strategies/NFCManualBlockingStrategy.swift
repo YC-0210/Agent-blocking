@@ -1,5 +1,8 @@
+import OSLog
 import SwiftData
 import SwiftUI
+
+private let logger = Logger(subsystem: "app.docard", category: "NFCManualBlockingStrategy")
 
 class NFCManualBlockingStrategy: BlockingStrategy {
   static var id: String = "NFCManualBlockingStrategy"
@@ -47,27 +50,32 @@ class NFCManualBlockingStrategy: BlockingStrategy {
     context: ModelContext,
     session: BlockedProfileSession
   ) -> (any View)? {
-    nfcScanner.onTagScanned = { [weak self] tag in
+    nfcScanner.onTagScanned = { [weak self] scannedTag in
       guard let self else { return }
-      let tag = tag.url ?? tag.id
-
-      if let physicalUnblockNFCTagId = session.blockedProfile.physicalUnblockNFCTagId,
-        physicalUnblockNFCTagId != tag
-      {
-        self.onErrorMessage?(
-          "This NFC tag is not allowed to unblock this profile. Physical unblock setting is on for this profile"
-        )
-        return
-      }
 
       session.endSession()
-      try? context.save()
+      do {
+        try context.save()
+      } catch {
+        logger.error("Failed to save session after NFC manual unlock: \(error.localizedDescription)")
+        self.onErrorMessage?("Failed to save session: \(error.localizedDescription)")
+      }
       self.appBlocker.deactivateRestrictions()
 
       self.onSessionCreation?(.ended(session.blockedProfile))
     }
 
-    nfcScanner.scan(profileName: session.blockedProfile.name)
+    nfcScanner.onError = { [weak self] message in
+      self?.onErrorMessage?(message)
+    }
+
+    nfcScanner.onCancel = { [weak self] in
+      self?.onErrorMessage?("")
+    }
+
+    // Set expected tag IDs so the scanner validates at the NFC dialog level
+    nfcScanner.expectedTagIds = session.blockedProfile.physicalUnblockNFCTagIds
+    nfcScanner.scan(profileName: session.blockedProfile.name, isUnlocking: true)
 
     return nil
   }

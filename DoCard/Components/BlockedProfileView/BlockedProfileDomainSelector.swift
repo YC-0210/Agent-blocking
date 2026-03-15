@@ -20,7 +20,7 @@ struct BlockedProfileDomainSelector: View {
   private var buttonText: String {
     return allowMode
       ? String(localized: "Select Domains to Allow")
-      : String(localized: "Select Domains to Restrict")
+      : String(localized: "Select Domains to Temporarily Limit")
   }
 
   var body: some View {

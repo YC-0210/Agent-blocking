@@ -1,14 +1,14 @@
 import AppIntents
 import SwiftData
 
-struct BlockedProfileEntity: AppEntity, Identifiable {
+struct BlockedProfileEntity: AppEntity, Identifiable, @unchecked Sendable {
   let profile: BlockedProfiles
 
   var id: UUID { profile.id }
   var name: String { profile.name }
 
   static var typeDisplayRepresentation = TypeDisplayRepresentation(
-    name: "Profile"
+    name: "Mode"
   )
 
   static var defaultQuery = BlockedProfilesQuery()

@@ -3,18 +3,21 @@
 <plist version="1.0">
 <dict>
 	<key>NSNFCReaderUsageDescription</key>
-	<string>DO uses NFC to read and write your DO Card for locking and unlocking apps.</string>
+	<string>DO uses NFC to pair and identify your DO Card. When you tap your card, DO reads its unique identifier to verify it matches your paired card and unlock your blocked apps.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
-		<string>com.foqos.backgroundprocessing</string>
+		<string>com.docard.backgroundprocessing</string>
 	</array>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>Supported</key>
 	<false/>
+	<key>UIRequiredDeviceCapabilities</key>
+	<array>
+		<string>nfc</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
-		<string>fetch</string>
 		<string>processing</string>
 	</array>
 </dict>

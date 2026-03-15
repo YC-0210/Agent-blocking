@@ -25,7 +25,7 @@ struct BlockedProfileListView: View {
           EmptyView(
             iconName: "person.crop.circle.badge.plus",
             headingText:
-              "Group and switch between sets of blocked restrictions with customizable profiles"
+              String(localized: "透過自訂模式來分組和切換不同的封鎖限制")
           )
         } else {
           List {
@@ -44,7 +44,7 @@ struct BlockedProfileListView: View {
           .environment(\.editMode, $editMode)
         }
       }
-      .navigationTitle(String(localized: "Profiles"))
+      .navigationTitle(String(localized: "模式"))
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {
           Button(action: { dismiss() }) {
@@ -63,13 +63,13 @@ struct BlockedProfileListView: View {
               Button {
                 editMode = .active
               } label: {
-                Label(String(localized: "Edit/Move"), systemImage: "pencil")
+                Label(String(localized: "編輯／移動"), systemImage: "pencil")
               }
 
               Button {
                 showingDataExport = true
               } label: {
-                Label(String(localized: "Export Data"), systemImage: "square.and.arrow.up")
+                Label(String(localized: "匯出資料"), systemImage: "square.and.arrow.up")
               }
             } label: {
               Image(systemName: "ellipsis.circle")
@@ -90,13 +90,13 @@ struct BlockedProfileListView: View {
         BlockedProfileDataExportView()
       }
       .alert(
-        String(localized: "Cannot Delete Active Profile"),
+        String(localized: "無法刪除使用中的模式"),
         isPresented: $showErrorAlert
       ) {
-        Button(String(localized: "OK"), role: .cancel) {}
+        Button(String(localized: "好"), role: .cancel) {}
       } message: {
         Text(String(localized:
-          "You cannot delete a profile that is currently active. Please switch to a different profile first."
+          "無法刪除目前使用中的模式，請先切換至其他模式。"
         ))
       }
     }

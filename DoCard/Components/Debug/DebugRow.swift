@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftUI
 
 struct DebugRow: View {
@@ -41,3 +42,4 @@ struct DebugRow: View {
   }
   .padding()
 }
+#endif

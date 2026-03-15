@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftData
 import SwiftUI
 
@@ -22,15 +23,10 @@ struct ProfileDebugCard: View {
         DebugRow(label: "Strategy ID", value: profile.blockingStrategyId ?? "nil")
         DebugRow(label: "Enable Live Activity", value: "\(profile.enableLiveActivity)")
         DebugRow(label: "Enable Breaks", value: "\(profile.enableBreaks)")
-        DebugRow(label: "Enable Strict Mode", value: "\(profile.enableStrictMode)")
         DebugRow(label: "Enable Allow Mode", value: "\(profile.enableAllowMode)")
         DebugRow(
           label: "Enable Allow Mode Domains",
           value: "\(profile.enableAllowModeDomains)"
-        )
-        DebugRow(
-          label: "Disable Background Stops",
-          value: "\(profile.disableBackgroundStops)"
         )
       }
 
@@ -52,7 +48,7 @@ struct ProfileDebugCard: View {
 
       // Physical Unlock
       Group {
-        DebugRow(label: "NFC Tag ID", value: profile.physicalUnblockNFCTagId ?? "nil")
+        DebugRow(label: "NFC Tag IDs", value: profile.physicalUnblockNFCTagIds?.joined(separator: ", ") ?? "nil")
       }
 
       Divider()
@@ -77,7 +73,6 @@ struct ProfileDebugCard: View {
     reminderTimeInSeconds: 3600,
     customReminderMessage: "Time to focus!",
     enableBreaks: true,
-    enableStrictMode: false,
     enableAllowMode: false,
     order: 0
   )
@@ -93,9 +88,8 @@ struct ProfileDebugCard: View {
     blockingStrategyId: NFCBlockingStrategy.id,
     enableLiveActivity: false,
     enableBreaks: false,
-    enableStrictMode: true,
     order: 1,
-    physicalUnblockNFCTagId: "ABC123DEF456"
+    physicalUnblockNFCTagIds: ["ABC123DEF456"]
   )
 
   return ProfileDebugCard(profile: profile)
@@ -118,11 +112,11 @@ struct ProfileDebugCard: View {
     enableLiveActivity: true,
     enableBreaks: true,
     order: 2,
-    schedule: schedule,
-    disableBackgroundStops: true
+    schedule: schedule
   )
 
   return ProfileDebugCard(profile: profile)
     .padding()
     .modelContainer(for: [BlockedProfiles.self, BlockedProfileSession.self])
 }
+#endif

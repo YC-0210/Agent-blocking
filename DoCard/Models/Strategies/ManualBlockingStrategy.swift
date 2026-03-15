@@ -1,5 +1,8 @@
+import OSLog
 import SwiftData
 import SwiftUI
+
+private let logger = Logger(subsystem: "app.docard", category: "ManualBlockingStrategy")
 
 class ManualBlockingStrategy: BlockingStrategy {
   static var id: String = "ManualBlockingStrategy"
@@ -48,7 +51,12 @@ class ManualBlockingStrategy: BlockingStrategy {
     session: BlockedProfileSession
   ) -> (any View)? {
     session.endSession()
-    try? context.save()
+    do {
+      try context.save()
+    } catch {
+      logger.error("Failed to save session after manual stop: \(error.localizedDescription)")
+      self.onErrorMessage?("Failed to save session: \(error.localizedDescription)")
+    }
     self.appBlocker.deactivateRestrictions()
 
     self.onSessionCreation?(.ended(session.blockedProfile))

@@ -27,7 +27,7 @@ class NFCWriter: NSObject, ObservableObject {
   }
 
   func resultFromURL(_ url: String) -> NFCResult {
-    return NFCResult(id: url, url: url, DateScanned: Date())
+    return NFCResult(id: url, payload: url, DateScanned: Date())
   }
 
   func writeURL(_ url: String) {

@@ -28,142 +28,93 @@ struct HomeView: View {
   // Edit profile
   @State private var profileToEdit: BlockedProfiles? = nil
 
-  // Stats sheet
-  @State private var profileToShowStats: BlockedProfiles? = nil
-
-  // Settings View
-  @State private var showSettingsView = false
-
   // Emergency View
   @State private var showEmergencyView = false
 
   // Navigate to profile
   @State private var navigateToProfileId: UUID? = nil
 
-  // Activity sessions
-  @Query(
-    filter: #Predicate<BlockedProfileSession> { $0.endTime != nil },
-    sort: \BlockedProfileSession.endTime,
-    order: .reverse
-  ) private var recentCompletedSessions: [BlockedProfileSession]
-
   // Alerts
   @State private var showingAlert = false
   @State private var alertTitle = ""
   @State private var alertMessage = ""
 
-  // Intro sheet
-  @AppStorage("showIntroScreen") private var showIntroScreen = true
+  // Confetti celebration state
+  @State private var showConfetti = false
+  @State private var wasBlocking = false
 
-  // Onboarding sheet
-  @State private var showOnboardingSetup = false
+  // Tab selection
+  @State private var selectedTab: Tab = .doMain
 
-  // UI States
-  @State private var opacityValue = 1.0
+  enum Tab: Hashable {
+    case doMain
+    case schedule
+    case activity
+    case settings
+  }
 
   var isBlocking: Bool {
     return strategyManager.isBlocking
   }
 
-  var activeSessionProfileId: UUID? {
-    return strategyManager.activeSession?.blockedProfile.id
-  }
-
-  var isBreakAvailable: Bool {
-    return strategyManager.isBreakAvailable
-  }
-
-  var isBreakActive: Bool {
-    return strategyManager.isBreakActive
-  }
-
   var body: some View {
     ZStack {
-      ScrollView(showsIndicators: false) {
-        VStack(alignment: .leading, spacing: 30) {
-        HStack(alignment: .center) {
-          AppTitle()
-          Spacer()
-          RoundedButton(
-            "",
-            action: {
-              showSettingsView = true
-            }, iconName: "gear")
-        }
-        .padding(.trailing, 16)
-        .padding(.top, 16)
-
-        AuthorizationCallout(
-          authorizationStatus: requestAuthorizer.getAuthorizationStatus(),
-          onAuthorizationHandler: {
-            requestAuthorizer.requestAuthorization()
-          }
-        )
-        .padding(.horizontal, 16)
-
-        if profiles.isEmpty {
-          Welcome(onTap: {
+      TabView(selection: $selectedTab) {
+        // Tab 1: DO Main
+        DOMainTabView(
+          onEditProfile: { profile in
+            profileToEdit = profile
+          },
+          onManageProfiles: {
+            isProfileListPresent = true
+          },
+          onNewProfile: {
             showNewProfileView = true
-          })
-          .padding(.horizontal, 16)
+          },
+          navigateToProfileId: navigateToProfileId
+        )
+        .tabItem {
+          Label("DO", systemImage: "shield.fill")
         }
+        .tag(Tab.doMain)
 
-        if !profiles.isEmpty {
-          BlockedProfileCarousel(
-            profiles: profiles,
-            isBlocking: isBlocking,
-            isBreakAvailable: isBreakAvailable,
-            isBreakActive: isBreakActive,
-            activeSessionProfileId: activeSessionProfileId,
-            elapsedTime: strategyManager.elapsedTime,
-            startingProfileId: navigateToProfileId,
-            onStartTapped: { profile in
-              strategyButtonPress(profile)
-            },
-            onStopTapped: { profile in
-              strategyButtonPress(profile)
-            },
-            onEditTapped: { profile in
-              profileToEdit = profile
-            },
-            onStatsTapped: { profile in
-              profileToShowStats = profile
-            },
-            onBreakTapped: { _ in
-              strategyManager.toggleBreak(context: context)
-            },
-            onManageTapped: {
-              isProfileListPresent = true
-            },
-            onEmergencyTapped: {
-              showEmergencyView = true
-            },
-          )
+        // Tab 2: Schedule
+        ScheduleTabView()
+          .tabItem {
+            Label(String(localized: "排程"), systemImage: "calendar.badge.clock")
+          }
+          .tag(Tab.schedule)
 
-          BlockedSessionsHabitTracker(
-            sessions: recentCompletedSessions
-          )
-          .padding(.horizontal, 16)
-        }
+        // Tab 3: Activity
+        ActivityTabView()
+          .tabItem {
+            Label(String(localized: "活動"), systemImage: "chart.bar.fill")
+          }
+          .tag(Tab.activity)
+
+        // Tab 4: Settings
+        SettingsTabView(onEmergencyTapped: {
+          showEmergencyView = true
+        })
+          .tabItem {
+            Label(String(localized: "設定"), systemImage: "gear")
+          }
+          .tag(Tab.settings)
       }
-    }
-    .refreshable {
-      loadApp()
-    }
-    .padding(.top, 1)
+      .tint(ThemeManager.shared.themeColor)
+
+      // Confetti overlay on session completion
+      ConfettiView(
+        isActive: $showConfetti,
+        themeColor: ThemeManager.shared.themeColor
+      )
+      .allowsHitTesting(false)
     }
     .sheet(
-      isPresented: $isProfileListPresent,
+      isPresented: $isProfileListPresent
     ) {
       BlockedProfileListView()
     }
-    .frame(
-      minWidth: 0,
-      maxWidth: .infinity,
-      minHeight: 0,
-      maxHeight: .infinity,
-      alignment: .topLeading
-    )
     .onChange(of: navigationManager.profileId) { _, newValue in
       if let profileId = newValue, let url = navigationManager.link {
         toggleSessionFromDeeplink(profileId, link: url)
@@ -173,21 +124,8 @@ struct HomeView: View {
     .onChange(of: navigationManager.navigateToProfileId) { _, newValue in
       if let profileId = newValue {
         navigateToProfileId = UUID(uuidString: profileId)
+        selectedTab = .doMain
         navigationManager.clearNavigation()
-      }
-    }
-    .onChange(of: requestAuthorizer.isAuthorized) { _, newValue in
-      if newValue {
-        showIntroScreen = false
-        // Trigger onboarding after permission is granted
-        // This supports both first-time users (no profiles) and replay tutorial (has profiles)
-        if onboardingManager.shouldShowOnboarding {
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            showOnboardingSetup = true
-          }
-        }
-      } else {
-        showIntroScreen = true
       }
     }
     .onChange(of: profiles) { oldValue, newValue in
@@ -207,33 +145,41 @@ struct HomeView: View {
         showErrorAlert(message: message)
       }
     }
-    .onReceive(onboardingManager.objectWillChange) { _ in
-      // Trigger onboarding when it's reset (from Settings > Replay Tutorial)
-      let isAuthorized = requestAuthorizer.getAuthorizationStatus() == .approved
-      if isAuthorized && onboardingManager.shouldShowOnboarding && !showIntroScreen && !showOnboardingSetup {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-          showOnboardingSetup = true
-        }
+    .onChange(of: isBlocking) { _, newValue in
+      if !newValue && wasBlocking {
+        // Session just ended — celebrate!
+        showConfetti = true
       }
+      wasBlocking = newValue
     }
     .onAppear {
+      wasBlocking = isBlocking
       onAppearApp()
-    }
-    .fullScreenCover(isPresented: $showIntroScreen) {
-      IntroView {
-        requestAuthorizer.requestAuthorization()
-      }.interactiveDismissDisabled()
+      if onboardingManager.shouldShowTutorial && onboardingManager.tutorialStep == 0 {
+        onboardingManager.startTutorial()
+      }
     }
     .sheet(item: $profileToEdit) { profile in
       BlockedProfileView(profile: profile)
     }
-    .sheet(item: $profileToShowStats) { profile in
-      ProfileInsightsView(profile: profile)
-    }
     .sheet(
       isPresented: $showNewProfileView,
+      onDismiss: {
+        // When new profile sheet dismisses during tutorial, advance to step 5
+        if onboardingManager.shouldShowTutorial,
+           onboardingManager.tutorialStep >= 2,
+           onboardingManager.tutorialStep <= 4
+        {
+          // Use a longer delay to ensure @Query picks up the new profile
+          // and DOFocusButton has rendered before showing the step 5 overlay
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+            onboardingManager.tutorialStep = 5
+          }
+        }
+      }
     ) {
       BlockedProfileView(profile: nil)
+        .environmentObject(onboardingManager)
     }
     .sheet(isPresented: $strategyManager.showCustomStrategyView) {
       BlockingStrategyActionView(
@@ -241,18 +187,9 @@ struct HomeView: View {
       )
       .presentationDetents([.medium])
     }
-    .sheet(isPresented: $showSettingsView) {
-      SettingsView()
-    }
     .sheet(isPresented: $showEmergencyView) {
       EmergencyView()
         .presentationDetents([.height(350)])
-    }
-    .fullScreenCover(isPresented: $showOnboardingSetup) {
-      OnboardingProfileSetupView { _ in
-        // Profile was created or onboarding was skipped
-      }
-      .interactiveDismissDisabled()
     }
     .alert(alertTitle, isPresented: $showingAlert) {
       Button(String(localized: "OK"), role: .cancel) { dismissAlert() }
@@ -266,13 +203,6 @@ struct HomeView: View {
       .toggleSessionFromDeeplink(profileId, url: link, context: context)
   }
 
-  private func strategyButtonPress(_ profile: BlockedProfiles) {
-    strategyManager
-      .toggleBlocking(context: context, activeProfile: profile)
-
-    ratingManager.incrementLaunchCount()
-  }
-
   private func loadApp() {
     strategyManager.loadActiveSession(context: context)
   }
@@ -280,20 +210,6 @@ struct HomeView: View {
   private func onAppearApp() {
     strategyManager.loadActiveSession(context: context)
     strategyManager.cleanUpGhostSchedules(context: context)
-
-    // Check if onboarding should be shown
-    checkAndShowOnboarding()
-  }
-
-  private func checkAndShowOnboarding() {
-    // Show onboarding if: user is authorized and onboarding not completed/skipped
-    // This supports both first-time users (no profiles) and replay tutorial (has profiles)
-    let isAuthorized = requestAuthorizer.getAuthorizationStatus() == .approved
-    if isAuthorized && onboardingManager.shouldShowOnboarding && !showIntroScreen {
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-        showOnboardingSetup = true
-      }
-    }
   }
 
   private func unloadApp() {
@@ -316,14 +232,8 @@ struct HomeView: View {
     .environmentObject(RequestAuthorizer())
     .environmentObject(NavigationManager())
     .environmentObject(StrategyManager())
-    .environmentObject(OnboardingManager.shared)
     .environmentObject(ThemeManager.shared)
     .environmentObject(RatingManager())
+    .environmentObject(OnboardingManager.shared)
     .defaultAppStorage(UserDefaults(suiteName: "preview")!)
-    .onAppear {
-      UserDefaults(suiteName: "preview")!.set(
-        false,
-        forKey: "showIntroScreen"
-      )
-    }
 }

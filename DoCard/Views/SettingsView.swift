@@ -1,53 +1,27 @@
-import SwiftData
 import SwiftUI
 
 struct SettingsView: View {
   @Environment(\.dismiss) private var dismiss
-  @Environment(\.modelContext) private var context
   @EnvironmentObject var themeManager: ThemeManager
-  @EnvironmentObject var strategyManager: StrategyManager
-  @EnvironmentObject var onboardingManager: OnboardingManager
 
-  @Query private var profiles: [BlockedProfiles]
-
-  @State private var showResetBlockingStateAlert = false
-  @State private var showResetOnboardingAlert = false
-  @State private var showProfilesExistAlert = false
+  @AppStorage("globalEnableLiveActivity") private var enableLiveActivity: Bool = false
+  @AppStorage("globalEnableReminder") private var enableReminder: Bool = false
 
   var body: some View {
     NavigationStack {
       Form {
-        Section(String(localized: "Troubleshooting")) {
-          Button {
-            showResetBlockingStateAlert = true
-          } label: {
-            Text(String(localized: "Reset Blocking State"))
-              .foregroundColor(themeManager.themeColor)
-          }
-          .disabled(strategyManager.isBlocking)
+        Section {
+          CustomToggle(
+            title: String(localized: "Live Activity"),
+            description: String(localized: "Shows a live activity on your lock screen with some inspirational quote"),
+            isOn: $enableLiveActivity
+          )
 
-          Button {
-            if profiles.isEmpty {
-              showResetOnboardingAlert = true
-            } else {
-              showProfilesExistAlert = true
-            }
-          } label: {
-            HStack {
-              Text(String(localized: "Replay Tutorial"))
-                .foregroundColor(themeManager.themeColor)
-              Spacer()
-              if onboardingManager.isOnboardingCompleted {
-                Text(String(localized: "Completed"))
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              } else if onboardingManager.isOnboardingSkipped {
-                Text(String(localized: "Skipped"))
-                  .font(.caption)
-                  .foregroundColor(.secondary)
-              }
-            }
-          }
+          CustomToggle(
+            title: String(localized: "Reminder"),
+            description: String(localized: "Sends a reminder to start this profile when its ended"),
+            isOn: $enableReminder
+          )
         }
 
         if let doCardURL = URL(string: "https://www.do-card.online/") {
@@ -76,6 +50,18 @@ struct SettingsView: View {
             }
           }
         }
+
+        Section {
+          NavigationLink {
+            LicensesView()
+          } label: {
+            HStack {
+              Image(systemName: "doc.text")
+                .foregroundStyle(.secondary)
+              Text(String(localized: "Licenses"))
+            }
+          }
+        }
       }
       .navigationTitle(String(localized: "Settings"))
       .toolbar {
@@ -86,47 +72,11 @@ struct SettingsView: View {
           .accessibilityLabel(String(localized: "Close"))
         }
       }
-      .alert(String(localized: "Reset Blocking State"), isPresented: $showResetBlockingStateAlert) {
-        Button(String(localized: "Cancel"), role: .cancel) { }
-        Button(String(localized: "Reset"), role: .destructive) {
-          strategyManager.resetBlockingState(context: context)
-        }
-      } message: {
-        Text(String(localized: "This will clear all app restrictions and remove any ghost schedules. Only use this if you're locked out and no profile is active."))
-      }
-      .alert(String(localized: "Replay Tutorial"), isPresented: $showResetOnboardingAlert) {
-        Button(String(localized: "Cancel"), role: .cancel) { }
-        Button(String(localized: "Reset")) {
-          onboardingManager.resetOnboarding()
-          dismiss()
-        }
-      } message: {
-        Text(String(localized: "This will reset the onboarding tutorial. You'll see the setup guide again the next time you create a profile."))
-      }
-      .alert(String(localized: "Replay Tutorial"), isPresented: $showProfilesExistAlert) {
-        Button(String(localized: "Cancel"), role: .cancel) { }
-        Button(String(localized: "Delete All & Replay"), role: .destructive) {
-          deleteAllProfilesAndResetOnboarding()
-        }
-      } message: {
-        Text(String(localized: "Replaying the tutorial requires deleting all existing profiles. Do you want to continue?"))
-      }
     }
-  }
-
-  private func deleteAllProfilesAndResetOnboarding() {
-    for profile in profiles {
-      try? BlockedProfiles.deleteProfile(profile, in: context)
-    }
-    try? context.save()
-    onboardingManager.resetOnboarding()
-    dismiss()
   }
 }
 
 #Preview {
   SettingsView()
     .environmentObject(ThemeManager.shared)
-    .environmentObject(StrategyManager.shared)
-    .environmentObject(OnboardingManager.shared)
 }

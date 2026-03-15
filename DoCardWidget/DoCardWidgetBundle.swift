@@ -1,6 +1,6 @@
 //
-//  FoqosWidgetBundle.swift
-//  FoqosWidget
+//  DoCardWidgetBundle.swift
+//  DoCardWidget
 //
 //  Created by Ali Waseem on 2025-03-11.
 //
@@ -9,9 +9,9 @@ import SwiftUI
 import WidgetKit
 
 @main
-struct FoqosWidgetBundle: WidgetBundle {
+struct DoCardWidgetBundle: WidgetBundle {
   var body: some Widget {
     ProfileControlWidget()
-    FoqosWidgetLiveActivity()
+    DoCardWidgetLiveActivity()
   }
 }

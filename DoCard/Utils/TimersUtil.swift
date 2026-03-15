@@ -25,8 +25,8 @@ enum NotificationResult {
 class TimersUtil {
   // Constants for background task identifiers
   static let backgroundProcessingTaskIdentifier =
-    "com.foqos.backgroundprocessing"
-  static let backgroundTaskUserDefaultsKey = "com.foqos.backgroundtasks"
+    "com.docard.backgroundprocessing"
+  static let backgroundTaskUserDefaultsKey = "com.docard.backgroundtasks"
 
   private var backgroundTasks: [String: [String: Any]] {
     get {

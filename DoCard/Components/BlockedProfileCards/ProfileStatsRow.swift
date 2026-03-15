@@ -14,9 +14,7 @@ struct ProfileStatsRow: View {
           .font(.caption)
           .foregroundColor(.secondary)
 
-        Text(
-          "\(FamilyActivityUtil.countSelectedActivities(selectedActivity))"
-        )
+        Text(FamilyActivityUtil.formatAppCount(selectedActivity))
         .font(.subheadline)
         .fontWeight(.semibold)
       }

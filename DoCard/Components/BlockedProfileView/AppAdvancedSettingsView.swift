@@ -23,7 +23,7 @@ struct AppAdvancedSettingsView: View {
         Section {
           CustomToggle(
             title: String(localized: "Block Safari"),
-            description: String(localized: "Block Safari websites that are selected in the app selector above. When disabled, Safari will remain unrestricted regardless of the websites you pick."),
+            description: String(localized: "Block Safari websites that are selected in the app selector above. When disabled, Safari will not be limited regardless of the websites you pick."),
             isOn: $enableSafariBlocking,
             isDisabled: isDisabled
           )

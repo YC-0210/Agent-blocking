@@ -1,6 +1,6 @@
 //
 //  ProfileControlWidget.swift
-//  FoqosWidget
+//  DoCardWidget
 //
 //  Created by Ali Waseem on 2025-03-11.
 //
@@ -30,7 +30,7 @@ struct ProfileControlWidget: Widget {
         }
     }
     .configurationDisplayName(String(localized: "DO Profile"))
-    .description(String(localized: "Monitor and control your selected focus profile"))
+    .description(String(localized: "View and manage your selected focus profile"))
     .supportedFamilies([.systemSmall])
   }
 }

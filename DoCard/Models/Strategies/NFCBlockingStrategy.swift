@@ -1,11 +1,14 @@
+import OSLog
 import SwiftData
 import SwiftUI
+
+private let logger = Logger(subsystem: "app.docard", category: "NFCBlockingStrategy")
 
 class NFCBlockingStrategy: BlockingStrategy {
   static var id: String = "NFCBlockingStrategy"
 
-  var name: String = String(localized: "DO Card Lock/Unlock")
-  var description: String = String(localized: "Tap your DO Card to lock apps, tap again to unlock")
+  var name: String = String(localized: "Classic Mode")
+  var description: String = String(localized: "Tap to lock apps, tap your DO Card to unlock")
   var iconType: String = "wave.3.right.circle.fill"
   var color: Color = Color(red: 1.0, green: 0.42, blue: 0.21)
 
@@ -26,23 +29,18 @@ class NFCBlockingStrategy: BlockingStrategy {
     profile: BlockedProfiles,
     forceStart: Bool?
   ) -> (any View)? {
-    nfcScanner.onTagScanned = { [weak self] tag in
-      guard let self else { return }
-      self.appBlocker.activateRestrictions(for: BlockedProfiles.getSnapshot(for: profile))
+    // Start blocking directly without requiring NFC tap
+    self.appBlocker.activateRestrictions(for: BlockedProfiles.getSnapshot(for: profile))
 
-      let tag = tag.url ?? tag.id
-      let activeSession =
-        BlockedProfileSession
-        .createSession(
-          in: context,
-          withTag: tag,
-          withProfile: profile,
-          forceStart: forceStart ?? false
-        )
-      self.onSessionCreation?(.started(activeSession))
-    }
-
-    nfcScanner.scan(profileName: profile.name)
+    let activeSession =
+      BlockedProfileSession
+      .createSession(
+        in: context,
+        withTag: NFCBlockingStrategy.id,
+        withProfile: profile,
+        forceStart: forceStart ?? false
+      )
+    self.onSessionCreation?(.started(activeSession))
 
     return nil
   }
@@ -51,34 +49,34 @@ class NFCBlockingStrategy: BlockingStrategy {
     context: ModelContext,
     session: BlockedProfileSession
   ) -> (any View)? {
-    nfcScanner.onTagScanned = { [weak self] tag in
+    nfcScanner.onTagScanned = { [weak self] scannedTag in
       guard let self else { return }
-      let tag = tag.url ?? tag.id
-
-      if let physicalUnblockNFCTagId = session.blockedProfile.physicalUnblockNFCTagId {
-        // Physical unblock tag is set - only this specific tag can unblock
-        if physicalUnblockNFCTagId != tag {
-          self.onErrorMessage?(
-            String(localized: "This NFC tag is not allowed to unblock this profile. Physical unblock setting is on for this profile")
-          )
-          return
-        }
-      } else if !session.forceStarted && session.tag != tag {
-        // No physical unblock tag - must use original session tag (unless force started)
-        self.onErrorMessage?(
-          String(localized: "You must scan the original tag to stop focus")
-        )
-        return
-      }
 
       session.endSession()
-      try? context.save()
+      do {
+        try context.save()
+      } catch {
+        logger.error("Failed to save session after NFC unlock: \(error.localizedDescription)")
+        self.onErrorMessage?("Failed to save session: \(error.localizedDescription)")
+      }
       self.appBlocker.deactivateRestrictions()
 
       self.onSessionCreation?(.ended(session.blockedProfile))
     }
 
-    nfcScanner.scan(profileName: session.blockedProfile.name)
+    nfcScanner.onError = { [weak self] message in
+      self?.onErrorMessage?(message)
+    }
+
+    nfcScanner.onCancel = { [weak self] in
+      // User dismissed the NFC dialog — notify as empty error
+      // so the strategy manager can reset its processing guard.
+      self?.onErrorMessage?("")
+    }
+
+    // Set expected tag IDs so the scanner validates at the NFC dialog level
+    nfcScanner.expectedTagIds = session.blockedProfile.physicalUnblockNFCTagIds
+    nfcScanner.scan(profileName: session.blockedProfile.name, isUnlocking: true)
 
     return nil
   }

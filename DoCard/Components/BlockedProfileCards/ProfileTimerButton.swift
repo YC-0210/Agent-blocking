@@ -17,8 +17,11 @@ struct ProfileTimerButton: View {
 
   let onBreakTapped: () -> Void
 
+  // Breathing glow state
+  @State private var glowIntensity: Double = 0.3
+
   var breakMessage: String {
-    return "Hold to" + (isBreakActive ? " Stop Break" : " Start Break")
+    return isBreakActive ? String(localized: "Hold to Stop Break") : String(localized: "Hold to Start Break")
   }
 
   var breakColor: Color? {
@@ -29,7 +32,7 @@ struct ProfileTimerButton: View {
     VStack(spacing: 8) {
       HStack(spacing: 8) {
         if isActive, let elapsedTimeVal = elapsedTime {
-          // Timer
+          // Timer with breathing glow
           HStack(spacing: 8) {
             Text(timeString(from: elapsedTimeVal))
               .foregroundColor(.primary)
@@ -41,33 +44,51 @@ struct ProfileTimerButton: View {
           .padding(.horizontal, 12)
           .frame(minWidth: 0, maxWidth: .infinity)
           .background(
-            RoundedRectangle(cornerRadius: 16)
-              .fill(.thinMaterial)
-              .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                  .stroke(
-                    themeManager.themeColor.opacity(0.2),
-                    lineWidth: 1
-                  )
-              )
+            ZStack {
+              RoundedRectangle(cornerRadius: 16)
+                .fill(.thinMaterial)
+
+              // Breathing glow overlay
+              RoundedRectangle(cornerRadius: 16)
+                .fill(themeManager.themeColor.opacity(glowIntensity * 0.15))
+
+              RoundedRectangle(cornerRadius: 16)
+                .stroke(
+                  themeManager.themeColor.opacity(glowIntensity),
+                  lineWidth: 1.5
+                )
+            }
           )
+          .shadow(
+            color: themeManager.themeColor.opacity(glowIntensity * 0.4),
+            radius: 8, x: 0, y: 0
+          )
+          .onAppear {
+            withAnimation(
+              .easeInOut(duration: 1.5)
+                .repeatForever(autoreverses: true)
+            ) {
+              glowIntensity = 0.7
+            }
+          }
 
           // Stop button (shown when showStopButton is true)
           if showStopButton {
             GlassButton(
-              title: "Stop",
+              title: String(localized: "Stop"),
               icon: "stop.fill",
               fullWidth: false,
               equalWidth: true
             ) {
-              UIImpactFeedbackGenerator(style: .light).impactOccurred()
+              // Strong haptic for stop
+              UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
               onStopTapped()
             }
           }
         } else {
-          // Start button (full width when no timer is shown)
+          // Start button (no ripple in inactive state — ripple is only for active timer)
           GlassButton(
-            title: "Hold to Start",
+            title: String(localized: "Hold to Start"),
             icon: "play.fill",
             fullWidth: true,
             longPressEnabled: true
@@ -87,6 +108,12 @@ struct ProfileTimerButton: View {
         ) {
           onBreakTapped()
         }
+      }
+    }
+    .onChange(of: isActive) { _, newValue in
+      if !newValue {
+        // Reset glow when deactivated
+        glowIntensity = 0.3
       }
     }
   }

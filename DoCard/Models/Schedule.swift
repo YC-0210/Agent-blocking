@@ -32,15 +32,35 @@ enum Weekday: Int, CaseIterable, Codable, Equatable {
     case .saturday: return "Sa"
     }
   }
+
+  var chineseShortLabel: String {
+    switch self {
+    case .sunday: return String(localized: "日")
+    case .monday: return String(localized: "一")
+    case .tuesday: return String(localized: "二")
+    case .wednesday: return String(localized: "三")
+    case .thursday: return String(localized: "四")
+    case .friday: return String(localized: "五")
+    case .saturday: return String(localized: "六")
+    }
+  }
+}
+
+enum ScheduleEndType: String, Codable, Equatable {
+  case cardTap = "cardTap"
+  case specificTime = "specificTime"
 }
 
 struct BlockedProfileSchedule: Codable, Equatable {
+  var name: String = ""
   var days: [Weekday]
 
   var startHour: Int
   var startMinute: Int
   var endHour: Int
   var endMinute: Int
+
+  var endType: ScheduleEndType = .cardTap
 
   var updatedAt: Date = Date()
 
@@ -72,6 +92,20 @@ struct BlockedProfileSchedule: Codable, Equatable {
     let currentWeekdayRaw = calendar.component(.weekday, from: now)
     guard let today = Weekday(rawValue: currentWeekdayRaw) else { return false }
     return days.contains(today)
+  }
+
+  func isCurrentlyInWindow(now: Date = Date(), calendar: Calendar = .current) -> Bool {
+    guard isTodayScheduled(now: now, calendar: calendar) else { return false }
+
+    let currentComponents = calendar.dateComponents([.hour, .minute], from: now)
+    let currentHour = currentComponents.hour ?? 0
+    let currentMinute = currentComponents.minute ?? 0
+
+    let currentTotalMinutes = currentHour * 60 + currentMinute
+    let startTotalMinutes = startHour * 60 + startMinute
+    let endTotalMinutes = endHour * 60 + endMinute
+
+    return currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes
   }
 
   func olderThan15Minutes(now: Date = Date()) -> Bool {

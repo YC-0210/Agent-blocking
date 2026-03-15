@@ -1,3 +1,4 @@
+#if DEBUG
 import FamilyControls
 import SwiftUI
 
@@ -59,3 +60,4 @@ struct SelectedActivityDebugCard: View {
   SelectedActivityDebugCard(selection: FamilyActivitySelection())
     .padding()
 }
+#endif

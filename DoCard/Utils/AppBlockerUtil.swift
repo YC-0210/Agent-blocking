@@ -1,18 +1,26 @@
+import FamilyControls
 import ManagedSettings
 import SwiftUI
 
+/// Thread-safe utility for managing ManagedSettingsStore restrictions.
+/// NOT @MainActor because it is used from DeviceActivityMonitor extension callbacks
+/// which run on background threads. ManagedSettingsStore is thread-safe by design.
 class AppBlockerUtil {
   let store = ManagedSettingsStore(
-    named: ManagedSettingsStore.Name("foqosAppRestrictions")
+    named: ManagedSettingsStore.Name("doCardAppRestrictions")
   )
 
   func activateRestrictions(for profile: SharedData.ProfileSnapshot) {
+    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+      print("⚠️ Family Controls not authorized. Cannot activate restrictions.")
+      return
+    }
+
     print("Starting restrictions...")
 
     let selection = profile.selectedActivity
     let allowOnlyApps = profile.enableAllowMode
     let allowOnlyDomains = profile.enableAllowModeDomains
-    let strict = profile.enableStrictMode
     let enableSafariBlocking = profile.enableSafariBlocking
     let domains = getWebDomains(from: profile)
 
@@ -44,18 +52,22 @@ class AppBlockerUtil {
       store.webContent.blockedByFilter = .specific(domains)
     }
 
-    store.application.denyAppRemoval = strict
+    // Note: denyAppRemoval removed — not appropriate for .individual authorization.
+    // The NFC-card-to-unlock mechanism provides sufficient behavioral friction.
   }
 
   func deactivateRestrictions() {
-    print("Stoping restrictions...")
+    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+      print("⚠️ Family Controls not authorized. Cannot deactivate restrictions.")
+      return
+    }
+
+    print("Stopping restrictions...")
 
     store.shield.applications = nil
     store.shield.applicationCategories = nil
     store.shield.webDomains = nil
     store.shield.webDomainCategories = nil
-
-    store.application.denyAppRemoval = false
 
     store.webContent.blockedByFilter = nil
 

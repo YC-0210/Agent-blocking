@@ -15,7 +15,7 @@ struct ProfileInsightsView: View {
         VStack(alignment: .leading, spacing: 24) {
           VStack(alignment: .leading, spacing: 4) {
             Text(
-              "A snapshot of your focus habits, sessions, and breaks. Use these insights to understand patterns and improve productivity."
+              String(localized: "A snapshot of your focus habits, sessions, and breaks. Use these insights to understand patterns and improve productivity.")
             )
             .font(.subheadline)
             .foregroundColor(.secondary)
@@ -118,11 +118,11 @@ struct ProfileInsightsView: View {
           }
 
           VStack(alignment: .leading, spacing: 16) {
-            SectionTitle("Daily Patterns")
+            SectionTitle(String(localized: "Daily Patterns"))
 
             ChartCard(
-              title: "Sessions per Day",
-              subtitle: "Daily session count over the last 14 days"
+              title: String(localized: "Sessions per Day"),
+              subtitle: String(localized: "Daily session count over the last 14 days")
             ) {
               let data = viewModel.dailyAggregates(days: 14)
               SelectableChartFactory.dailyChart(
@@ -136,7 +136,7 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.blue)
               } annotationValue: { selectedData in
-                "\(selectedData?.sessionsCount ?? 0) sessions"
+                String(localized: "\(selectedData?.sessionsCount ?? 0) sessions")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 4)) { value in
@@ -151,9 +151,9 @@ struct ProfileInsightsView: View {
             }
 
             ChartCard(
-              title: "Focus Time Trend",
+              title: String(localized: "Focus Time Trend"),
               subtitle:
-                "Total minutes focused per day over 14 days"
+                String(localized: "Total minutes focused per day over 14 days")
             ) {
               let data = viewModel.dailyAggregates(days: 14)
               SelectableChartFactory.dailyChart(
@@ -172,7 +172,7 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.green.opacity(0.2))
               } annotationValue: { selectedData in
-                "\(Int(round((selectedData?.focusDuration ?? 0) / 60.0))) min"
+                String(localized: "\(Int(round((selectedData?.focusDuration ?? 0) / 60.0))) min")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 4)) { value in
@@ -188,11 +188,11 @@ struct ProfileInsightsView: View {
           }
 
           VStack(alignment: .leading, spacing: 16) {
-            SectionTitle("Break Analysis")
+            SectionTitle(String(localized: "Break Analysis"))
 
             ChartCard(
-              title: "Break Usage Over Time",
-              subtitle: "Number of breaks taken daily over 14 days"
+              title: String(localized: "Break Usage Over Time"),
+              subtitle: String(localized: "Number of breaks taken daily over 14 days")
             ) {
               let data = viewModel.breakDailyAggregates(days: 14)
               SelectableChartFactory.dailyChart(
@@ -211,7 +211,7 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.purple.opacity(0.2))
               } annotationValue: { selectedData in
-                "\(selectedData?.breaksCount ?? 0) breaks"
+                String(localized: "\(selectedData?.breaksCount ?? 0) breaks")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 4)) { value in
@@ -226,8 +226,8 @@ struct ProfileInsightsView: View {
             }
 
             ChartCard(
-              title: "Average Break Duration",
-              subtitle: "Mean break length in minutes per day over 14 days"
+              title: String(localized: "Average Break Duration Chart"),
+              subtitle: String(localized: "Mean break length in minutes per day over 14 days")
             ) {
               let data = viewModel.breakDailyAggregates(days: 14)
               SelectableChartFactory.dailyChart(
@@ -252,9 +252,9 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.purple.opacity(0.2))
               } annotationValue: { selectedData in
-                guard let data = selectedData, data.breaksCount > 0 else { return "0 min" }
+                guard let data = selectedData, data.breaksCount > 0 else { return String(localized: "0 min") }
                 let avgDuration = data.totalBreakDuration / Double(data.breaksCount) / 60.0
-                return "\(Int(round(avgDuration))) min avg"
+                return String(localized: "\(Int(round(avgDuration))) min avg")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 4)) { value in
@@ -269,9 +269,9 @@ struct ProfileInsightsView: View {
             }
 
             ChartCard(
-              title: "Break Start Times",
+              title: String(localized: "Break Start Times"),
               subtitle:
-                "When you typically start breaks by hour of day over 14 days"
+                String(localized: "When you typically start breaks by hour of day over 14 days")
             ) {
               let data = viewModel.breakStartHourlyAggregates(days: 14)
               SelectableChartFactory.hourlyChart(
@@ -285,7 +285,7 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.purple)
               } annotationValue: { selectedData in
-                "\(selectedData?.breaksStarted ?? 0) breaks started"
+                String(localized: "\(selectedData?.breaksStarted ?? 0) breaks started")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 6)) { value in
@@ -302,9 +302,9 @@ struct ProfileInsightsView: View {
             }
 
             ChartCard(
-              title: "Break End Times",
+              title: String(localized: "Break End Times"),
               subtitle:
-                "When you typically end breaks by hour of day over 14 days"
+                String(localized: "When you typically end breaks by hour of day over 14 days")
             ) {
               let data = viewModel.breakEndHourlyAggregates(days: 14)
               SelectableChartFactory.hourlyChart(
@@ -318,7 +318,7 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.purple.opacity(0.7))
               } annotationValue: { selectedData in
-                "\(selectedData?.breaksEnded ?? 0) breaks ended"
+                String(localized: "\(selectedData?.breaksEnded ?? 0) breaks ended")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 6)) { value in
@@ -336,12 +336,12 @@ struct ProfileInsightsView: View {
           }
 
           VStack(alignment: .leading, spacing: 16) {
-            SectionTitle("Time of Day")
+            SectionTitle(String(localized: "Time of Day"))
 
             ChartCard(
-              title: "Sessions Started by Hour",
+              title: String(localized: "Sessions Started by Hour"),
               subtitle:
-                "When you typically begin focus sessions by hour over 14 days"
+                String(localized: "When you typically begin focus sessions by hour over 14 days")
             ) {
               let data = viewModel.hourlyAggregates(days: 14)
               SelectableChartFactory.hourlyChart(
@@ -355,7 +355,7 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.blue)
               } annotationValue: { selectedData in
-                "\(selectedData?.sessionsStarted ?? 0) sessions"
+                String(localized: "\(selectedData?.sessionsStarted ?? 0) sessions started")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 6)) { value in
@@ -372,9 +372,9 @@ struct ProfileInsightsView: View {
             }
 
             ChartCard(
-              title: "Average Session by Hour",
+              title: String(localized: "Average Session by Hour"),
               subtitle:
-                "Mean session duration in minutes by hour over 14 days"
+                String(localized: "Mean session duration in minutes by hour over 14 days")
             ) {
               let data = viewModel.hourlyAggregates(days: 14)
               SelectableChartFactory.hourlyChart(
@@ -393,7 +393,7 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.green.opacity(0.2))
               } annotationValue: { selectedData in
-                "\(Int(round(((selectedData?.averageSessionDuration ?? 0) / 60.0)))) min"
+                String(localized: "\(Int(round(((selectedData?.averageSessionDuration ?? 0) / 60.0)))) min avg")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 6)) { value in
@@ -410,9 +410,9 @@ struct ProfileInsightsView: View {
             }
 
             ChartCard(
-              title: "Session End Times",
+              title: String(localized: "Session End Times"),
               subtitle:
-                "When you typically complete focus sessions by hour over 14 days"
+                String(localized: "When you typically complete focus sessions by hour over 14 days")
             ) {
               let data = viewModel.sessionEndHourlyAggregates(days: 14)
               SelectableChartFactory.hourlyChart(
@@ -426,7 +426,7 @@ struct ProfileInsightsView: View {
                 )
                 .foregroundStyle(.red)
               } annotationValue: { selectedData in
-                "\(selectedData?.sessionsEnded ?? 0) sessions ended"
+                String(localized: "\(selectedData?.sessionsEnded ?? 0) sessions ended")
               }
               .chartXAxis {
                 AxisMarks(values: .automatic(desiredCount: 6)) { value in
@@ -443,7 +443,7 @@ struct ProfileInsightsView: View {
             }
           }
           VStack(alignment: .leading, spacing: 8) {
-            SectionTitle("Details")
+            SectionTitle(String(localized: "Details"))
 
             MultiStatCard(
               stats: nerdStatsItems,
@@ -492,28 +492,28 @@ extension ProfileInsightsView {
 
     var items: [MultiStatCard.StatItem] = [
       .init(
-        title: "Profile ID", valueText: profileIdShort, systemImageName: "tag", iconColor: .gray),
+        title: String(localized: "模式 ID"), valueText: profileIdShort, systemImageName: "tag", iconColor: .gray),
       .init(
-        title: "Created", valueText: profile.createdAt.formatted(), systemImageName: "calendar",
+        title: String(localized: "Created"), valueText: profile.createdAt.formatted(), systemImageName: "calendar",
         iconColor: .gray),
       .init(
-        title: "Last Modified", valueText: profile.updatedAt.formatted(), systemImageName: "clock",
+        title: String(localized: "Last Modified"), valueText: profile.updatedAt.formatted(), systemImageName: "clock",
         iconColor: .gray),
       .init(
-        title: "Total Sessions", valueText: "\(profile.sessions.count)",
+        title: String(localized: "Details Total Sessions"), valueText: "\(profile.sessions.count)",
         systemImageName: "list.number", iconColor: .gray),
       .init(
-        title: "Categories Blocked", valueText: "\(profile.selectedActivity.categories.count)",
+        title: String(localized: "Categories Blocked"), valueText: "\(profile.selectedActivity.categories.count)",
         systemImageName: "square.grid.2x2", iconColor: .gray),
       .init(
-        title: "Apps Blocked", valueText: "\(profile.selectedActivity.applications.count)",
+        title: String(localized: "Apps Blocked"), valueText: "\(profile.selectedActivity.applications.count)",
         systemImageName: "app", iconColor: .gray),
     ]
 
     if let active = profile.activeScheduleTimerActivity {
       items.append(
         .init(
-          title: "Active Schedule Timer Activity", valueText: String(active.rawValue.prefix(8)),
+          title: String(localized: "Active Schedule Timer Activity"), valueText: String(active.rawValue.prefix(8)),
           systemImageName: "bolt.fill",
           iconColor: .gray))
     }

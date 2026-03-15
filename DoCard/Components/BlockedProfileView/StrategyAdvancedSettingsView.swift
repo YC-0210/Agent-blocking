@@ -4,24 +4,13 @@ struct StrategyAdvancedSettingsView: View {
   @Environment(\.dismiss) private var dismiss
   @EnvironmentObject var themeManager: ThemeManager
 
-  @Binding var schedule: BlockedProfileSchedule
   @Binding var enableBreaks: Bool
   @Binding var breakTimeInMinutes: Int
-  @Binding var disableBackgroundStops: Bool
   var isDisabled: Bool
-  var onShowSchedulePicker: () -> Void
 
   var body: some View {
     NavigationStack {
       Form {
-        Section(String(localized: "Schedule")) {
-          BlockedProfileScheduleSelector(
-            schedule: schedule,
-            buttonAction: onShowSchedulePicker,
-            disabled: isDisabled
-          )
-        }
-
         Section(String(localized: "Breaks")) {
           CustomToggle(
             title: String(localized: "Allow Timed Breaks"),
@@ -41,14 +30,6 @@ struct StrategyAdvancedSettingsView: View {
           }
         }
 
-        Section(String(localized: "Background")) {
-          CustomToggle(
-            title: String(localized: "Disable Background Stops"),
-            description: String(localized: "Disable the ability to stop a profile from the background, this includes shortcuts and scanning links from NFC tags."),
-            isOn: $disableBackgroundStops,
-            isDisabled: isDisabled
-          )
-        }
       }
       .navigationTitle(String(localized: "Advanced Settings"))
       .navigationBarTitleDisplayMode(.inline)
@@ -66,18 +47,8 @@ struct StrategyAdvancedSettingsView: View {
 
 #Preview {
   StrategyAdvancedSettingsView(
-    schedule: .constant(BlockedProfileSchedule(
-      days: [],
-      startHour: 9,
-      startMinute: 0,
-      endHour: 17,
-      endMinute: 0,
-      updatedAt: Date()
-    )),
     enableBreaks: .constant(false),
     breakTimeInMinutes: .constant(15),
-    disableBackgroundStops: .constant(false),
-    isDisabled: false,
-    onShowSchedulePicker: {}
+    isDisabled: false
   )
 }

@@ -1,6 +1,6 @@
 //
 //  DeviceActivityMonitorExtension.swift
-//  FoqosDeviceMonitor
+//  DoCardDeviceMonitor
 //
 //  Created by Ali Waseem on 2025-05-27.
 //
@@ -10,7 +10,7 @@ import ManagedSettings
 import OSLog
 
 private let log = Logger(
-  subsystem: "com.foqos.monitor",
+  subsystem: "app.docard.monitor",
   category: "DeviceActivity"
 )
 

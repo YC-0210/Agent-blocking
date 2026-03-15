@@ -30,7 +30,7 @@ struct AuthorizationCallout: View {
                 .font(.headline)
                 .foregroundStyle(.primary)
 
-              Text(String(localized: "Authorize Family Controls to enable blocking."))
+              Text(String(localized: "Authorize Screen Time to enable blocking."))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
@@ -55,7 +55,7 @@ struct AuthorizationCallout: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("Authorization required")
-        .accessibilityHint("Tap to authorize Family Controls")
+        .accessibilityHint("Tap to authorize Screen Time")
       }
     }
   }

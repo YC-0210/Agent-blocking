@@ -1,6 +1,6 @@
 //
 //  ProfileWidgetEntry.swift
-//  FoqosWidget
+//  DoCardWidget
 //
 //  Created by Ali Waseem on 2025-03-11.
 //

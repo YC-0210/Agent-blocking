@@ -10,14 +10,14 @@ struct StartProfileIntent: AppIntent {
     return modelContainer.mainContext
   }
 
-  @Parameter(title: "Profile") var profile: BlockedProfileEntity
+  @Parameter(title: "Mode") var profile: BlockedProfileEntity
 
   @Parameter(title: "Duration minutes (Optional)") var durationInMinutes: Int?
 
-  static var title: LocalizedStringResource = "Start DO Profile"
+  static var title: LocalizedStringResource = "Start DO Mode"
 
   static var description = IntentDescription(
-    "Start a DO blocking profile. Optionally specify a timer duration in minutes (15-1440)."
+    "Start a DO blocking mode. Optionally specify a timer duration in minutes (15-1440)."
   )
 
   @MainActor

@@ -17,6 +17,7 @@ struct BlockedProfileCarousel: View {
   var onBreakTapped: (BlockedProfiles) -> Void
   var onManageTapped: () -> Void
   var onEmergencyTapped: () -> Void
+  var onCurrentProfileChanged: ((BlockedProfiles) -> Void)?
 
   // State for tracking current profile index and drag gesture
   @State private var currentIndex: Int = 0
@@ -30,7 +31,7 @@ struct BlockedProfileCarousel: View {
   private var cardHeight: CGFloat = 340
 
   private var titleMessage: String {
-    return isBlocking ? String(localized: "Active Profile") : String(localized: "Profile")
+    return isBlocking ? String(localized: "使用中的模式") : String(localized: "模式")
   }
 
   private var actionButtonText: String {
@@ -59,7 +60,8 @@ struct BlockedProfileCarousel: View {
     onStatsTapped: @escaping (BlockedProfiles) -> Void,
     onBreakTapped: @escaping (BlockedProfiles) -> Void,
     onManageTapped: @escaping () -> Void,
-    onEmergencyTapped: @escaping () -> Void
+    onEmergencyTapped: @escaping () -> Void,
+    onCurrentProfileChanged: ((BlockedProfiles) -> Void)? = nil
   ) {
     self.profiles = profiles
     self.isBlocking = isBlocking
@@ -75,6 +77,7 @@ struct BlockedProfileCarousel: View {
     self.onBreakTapped = onBreakTapped
     self.onManageTapped = onManageTapped
     self.onEmergencyTapped = onEmergencyTapped
+    self.onCurrentProfileChanged = onCurrentProfileChanged
   }
 
   // Initialize current index based on active profile or starting profile
@@ -199,18 +202,24 @@ struct BlockedProfileCarousel: View {
         .frame(height: cardHeight)
         .padding(.bottom, 10)
 
-        // Page indicator dots
-        HStack(spacing: 8) {
+        // Page indicator dots — active dot morphs into a capsule
+        HStack(spacing: 6) {
           if !isBlocking && profiles.count > 1 {
             ForEach(0..<profiles.count, id: \.self) { index in
-              Circle()
+              Capsule()
                 .fill(
                   index == currentIndex
                     ? Color.primary
                     : Color.secondary.opacity(0.3)
                 )
-                .frame(width: 8, height: 8)
-                .animation(.easeInOut, value: currentIndex)
+                .frame(
+                  width: index == currentIndex ? 20 : 8,
+                  height: 8
+                )
+                .animation(
+                  .spring(response: 0.35, dampingFraction: 0.75),
+                  value: currentIndex
+                )
             }
           }
         }
@@ -221,6 +230,7 @@ struct BlockedProfileCarousel: View {
     }
     .onAppear {
       initialSetup()
+      notifyCurrentProfile()
     }
     .onChange(of: activeSessionProfileId) { _, _ in
       initialSetup()
@@ -231,6 +241,14 @@ struct BlockedProfileCarousel: View {
     .onChange(of: startingProfileId) { _, _ in
       initialSetup()
     }
+    .onChange(of: currentIndex) { _, _ in
+      notifyCurrentProfile()
+    }
+  }
+
+  private func notifyCurrentProfile() {
+    guard currentIndex >= 0, currentIndex < profiles.count else { return }
+    onCurrentProfileChanged?(profiles[currentIndex])
   }
 
   // Calculate the offset based on current index and drag

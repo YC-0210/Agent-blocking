@@ -10,11 +10,11 @@ struct CheckProfileStatusIntent: AppIntent {
     return modelContainer.mainContext
   }
 
-  @Parameter(title: "Profile") var profile: BlockedProfileEntity
+  @Parameter(title: "Mode") var profile: BlockedProfileEntity
 
-  static var title: LocalizedStringResource = "DO Profile Status"
+  static var title: LocalizedStringResource = "DO Mode Status"
   static var description = IntentDescription(
-    "Check if a DO profile is currently active and return the status as a boolean value.")
+    "Check if a DO mode is currently active and return the status as a boolean value.")
 
   @MainActor
   func perform() async throws -> some IntentResult & ReturnsValue<Bool> & ProvidesDialog {

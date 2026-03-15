@@ -27,15 +27,15 @@ struct BlockedProfileDataExportView: View {
 
   private var defaultFilename: String {
     let timestamp = Int(Date().timeIntervalSince1970)
-    return "foqos_sessions_\(timestamp)"
+    return "docard_sessions_\(timestamp)"
   }
 
   var body: some View {
     NavigationStack {
       Form {
-        Section(header: Text(String(localized: "Profiles"))) {
+        Section(header: Text(String(localized: "模式"))) {
           if profiles.isEmpty {
-            Text(String(localized: "No profiles yet"))
+            Text(String(localized: "尚無模式"))
               .foregroundStyle(.secondary)
           } else {
             ForEach(profiles) { profile in

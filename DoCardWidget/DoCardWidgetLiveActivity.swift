@@ -5,7 +5,7 @@ import WidgetKit
 // DO Orange accent color
 private let doOrangeColor = Color(red: 1.0, green: 0.42, blue: 0.21)
 
-struct FoqosWidgetAttributes: ActivityAttributes {
+struct DoCardWidgetAttributes: ActivityAttributes {
   public struct ContentState: Codable, Hashable {
     var startTime: Date
     var isBreakActive: Bool = false
@@ -42,9 +42,9 @@ struct FoqosWidgetAttributes: ActivityAttributes {
   var message: String
 }
 
-struct FoqosWidgetLiveActivity: Widget {
+struct DoCardWidgetLiveActivity: Widget {
   var body: some WidgetConfiguration {
-    ActivityConfiguration(for: FoqosWidgetAttributes.self) { context in
+    ActivityConfiguration(for: DoCardWidgetAttributes.self) { context in
       // Lock screen/banner UI goes here
       HStack(alignment: .center, spacing: 16) {
         // Left side - App info
@@ -163,17 +163,17 @@ struct FoqosWidgetLiveActivity: Widget {
   }
 }
 
-extension FoqosWidgetAttributes {
-  fileprivate static var preview: FoqosWidgetAttributes {
-    FoqosWidgetAttributes(
+extension DoCardWidgetAttributes {
+  fileprivate static var preview: DoCardWidgetAttributes {
+    DoCardWidgetAttributes(
       name: "Focus Session",
       message: "Stay focused and avoid distractions")
   }
 }
 
-extension FoqosWidgetAttributes.ContentState {
-  fileprivate static var shortTime: FoqosWidgetAttributes.ContentState {
-    FoqosWidgetAttributes
+extension DoCardWidgetAttributes.ContentState {
+  fileprivate static var shortTime: DoCardWidgetAttributes.ContentState {
+    DoCardWidgetAttributes
       .ContentState(
         startTime: Date(timeInterval: 60, since: Date.now),
         isBreakActive: false,
@@ -182,8 +182,8 @@ extension FoqosWidgetAttributes.ContentState {
       )
   }
 
-  fileprivate static var longTime: FoqosWidgetAttributes.ContentState {
-    FoqosWidgetAttributes.ContentState(
+  fileprivate static var longTime: DoCardWidgetAttributes.ContentState {
+    DoCardWidgetAttributes.ContentState(
       startTime: Date(timeInterval: 60, since: Date.now),
       isBreakActive: false,
       breakStartTime: nil,
@@ -191,8 +191,8 @@ extension FoqosWidgetAttributes.ContentState {
     )
   }
 
-  fileprivate static var breakActive: FoqosWidgetAttributes.ContentState {
-    FoqosWidgetAttributes.ContentState(
+  fileprivate static var breakActive: DoCardWidgetAttributes.ContentState {
+    DoCardWidgetAttributes.ContentState(
       startTime: Date(timeInterval: 60, since: Date.now),
       isBreakActive: true,
       breakStartTime: Date.now,
@@ -201,10 +201,10 @@ extension FoqosWidgetAttributes.ContentState {
   }
 }
 
-#Preview("Notification", as: .content, using: FoqosWidgetAttributes.preview) {
-  FoqosWidgetLiveActivity()
+#Preview("Notification", as: .content, using: DoCardWidgetAttributes.preview) {
+  DoCardWidgetLiveActivity()
 } contentStates: {
-  FoqosWidgetAttributes.ContentState.shortTime
-  FoqosWidgetAttributes.ContentState.longTime
-  FoqosWidgetAttributes.ContentState.breakActive
+  DoCardWidgetAttributes.ContentState.shortTime
+  DoCardWidgetAttributes.ContentState.longTime
+  DoCardWidgetAttributes.ContentState.breakActive
 }

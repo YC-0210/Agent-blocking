@@ -6,91 +6,93 @@ struct DomainPicker: View {
   @Binding var domains: [String]
   @Binding var isPresented: Bool
 
-  var allowMode: Bool = false
-
-  @State private var newDomain: String = ""
+  @State private var searchText: String = ""
   @State private var showingError: Bool = false
   @State private var errorMessage: String = ""
 
   private let maxDomains = 50
 
-  private var message: String {
-    return allowMode
-      ? String(localized: "Apple limits this to 50 domains. Add domains that you want to remain accessible during sessions.")
-      : String(localized: "Apple limits this to 50 domains. Add domains that you want to restrict during sessions.")
+  private let popularDomains: [String] = [
+    "amazon.com",
+    "facebook.com",
+    "instagram.com",
+    "reddit.com",
+    "tiktok.com",
+    "youtube.com",
+    "x.com",
+  ]
+
+  // MARK: - Computed Properties
+
+  private var filteredPopularDomains: [String] {
+    if searchText.isEmpty { return popularDomains }
+    let query = searchText.lowercased()
+    return popularDomains.filter { $0.localizedCaseInsensitiveContains(query) }
   }
+
+  private var customDomains: [String] {
+    domains.filter { !popularDomains.contains($0) }
+  }
+
+  private var filteredCustomDomains: [String] {
+    if searchText.isEmpty { return customDomains }
+    let query = searchText.lowercased()
+    return customDomains.filter { $0.localizedCaseInsensitiveContains(query) }
+  }
+
+  private var canAddCustomDomain: Bool {
+    let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+    guard !trimmed.isEmpty else { return false }
+    guard isValidDomain(trimmed) else { return false }
+    guard !domains.contains(trimmed) else { return false }
+    guard !popularDomains.contains(trimmed) else { return false }
+    guard domains.count < maxDomains else { return false }
+    return true
+  }
+
+  // MARK: - Body
 
   var body: some View {
     NavigationStack {
-      Form {
-        Section {
-          HStack {
-            TextField(String(localized: "Enter domain (e.g., example.com)"), text: $newDomain)
-              .autocapitalization(.none)
-              .keyboardType(.URL)
-              .textContentType(.URL)
-              .onSubmit {
-                addDomain()
+      VStack(spacing: 0) {
+        searchBar
+
+        ScrollView {
+          VStack(alignment: .leading, spacing: 0) {
+            if canAddCustomDomain {
+              addCustomDomainRow
+            }
+
+            if !filteredPopularDomains.isEmpty {
+              sectionHeader(String(localized: "熱門網站"))
+
+              ForEach(filteredPopularDomains, id: \.self) { domain in
+                domainRow(domain: domain)
               }
-
-            Button(action: addDomain) {
-              Image(systemName: "plus.circle.fill")
-                .foregroundStyle(themeManager.themeColor)
-                .font(.title2)
             }
-            .disabled(newDomain.isEmpty || domains.count >= maxDomains)
-          }
-        } header: {
-          Text(String(localized: "Add Domain"))
-        } footer: {
-          Text(
-            allowMode
-              ? String(localized: "Enter a domain (e.g., reddit.com, facebook.com, instagram.com). This will also allow all subpaths (e.g., reddit.com/r/popular) automatically.")
-              : String(localized: "Enter a domain (e.g., reddit.com, facebook.com, instagram.com). This will also block all subpaths (e.g., reddit.com/r/popular) automatically.")
-          )
-          .font(.caption)
-        }
 
-        Section {
-          ForEach(domains, id: \.self) { domain in
-            Text(domain)
-              .font(.subheadline)
-          }
-          .onDelete(perform: deleteDomains)
+            if !filteredCustomDomains.isEmpty {
+              sectionHeader(String(localized: "已新增的網站"))
 
-          if domains.isEmpty {
-            Text(String(localized: "No domains added"))
-              .foregroundStyle(.secondary)
-              .font(.subheadline)
-          }
-        } header: {
-          HStack {
-            Text(allowMode ? String(localized: "Allowed Domains") : String(localized: "Blocked Domains"))
-            Spacer()
-            Text("\(domains.count)/\(maxDomains)")
-              .foregroundStyle(.secondary)
-          }
-        } footer: {
-          VStack(alignment: .leading, spacing: 4) {
-            Text(message)
-              .font(.caption)
-
-            if domains.count >= maxDomains {
-              Text(String(localized: "⚠️ Maximum of 50 domains reached (Apple's limit)"))
-                .font(.caption)
-                .foregroundStyle(.orange)
+              ForEach(filteredCustomDomains, id: \.self) { domain in
+                domainRow(domain: domain)
+              }
             }
           }
+          .padding(.bottom, 20)
         }
+
+        doneButton
       }
-      .navigationTitle(allowMode ? String(localized: "Allow Domains") : String(localized: "Block Domains"))
+      .background(Color(.systemBackground))
+      .navigationTitle(String(localized: "封鎖網站"))
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
-        ToolbarItem(placement: .topBarTrailing) {
+        ToolbarItem(placement: .topBarLeading) {
           Button(action: { isPresented = false }) {
-            Image(systemName: "checkmark")
+            Image(systemName: "chevron.left")
+              .fontWeight(.medium)
           }
-          .accessibilityLabel(String(localized: "Done"))
         }
       }
       .alert(String(localized: "Error"), isPresented: $showingError) {
@@ -101,37 +103,165 @@ struct DomainPicker: View {
     }
   }
 
-  private func addDomain() {
-    let trimmedDomain = newDomain.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+  // MARK: - Search Bar
 
-    guard !trimmedDomain.isEmpty else {
-      showError(String(localized: "Please enter a domain"))
-      return
+  private var searchBar: some View {
+    HStack(spacing: 8) {
+      Image(systemName: "magnifyingglass")
+        .foregroundColor(.gray)
+
+      TextField(String(localized: "搜尋網站"), text: $searchText)
+        .autocapitalization(.none)
+        .keyboardType(.URL)
+        .textContentType(.URL)
+        .onSubmit {
+          addCustomDomainFromSearch()
+        }
+
+      if !searchText.isEmpty {
+        Button(action: { searchText = "" }) {
+          Image(systemName: "xmark.circle.fill")
+            .foregroundColor(.gray)
+        }
+      }
     }
+    .padding(12)
+    .background(
+      RoundedRectangle(cornerRadius: 12)
+        .fill(Color(.secondarySystemBackground))
+    )
+    .padding(.horizontal, 16)
+    .padding(.top, 12)
+    .padding(.bottom, 8)
+  }
+
+  // MARK: - Add Custom Domain Row
+
+  private var addCustomDomainRow: some View {
+    let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+    return Button(action: { addCustomDomainFromSearch() }) {
+      HStack {
+        Image(systemName: "plus.circle.fill")
+          .foregroundColor(themeManager.themeColor)
+          .font(.title3)
+
+        Text(String(localized: "新增 \"\(trimmed)\""))
+          .foregroundColor(.primary)
+
+        Spacer()
+      }
+      .padding(.horizontal, 20)
+      .padding(.vertical, 14)
+      .background(
+        RoundedRectangle(cornerRadius: 12)
+          .fill(Color(.secondarySystemBackground))
+      )
+      .padding(.horizontal, 16)
+      .padding(.top, 8)
+    }
+    .buttonStyle(.plain)
+  }
+
+  // MARK: - Section Header
+
+  private func sectionHeader(_ title: String) -> some View {
+    Text(title)
+      .font(.subheadline)
+      .foregroundColor(.secondary)
+      .padding(.horizontal, 20)
+      .padding(.top, 20)
+      .padding(.bottom, 8)
+  }
+
+  // MARK: - Domain Row
+
+  private func domainRow(domain: String) -> some View {
+    let isSelected = domains.contains(domain)
+
+    return Button(action: { toggleDomain(domain) }) {
+      HStack {
+        Text(domain)
+          .foregroundColor(.primary)
+          .font(.body)
+
+        Spacer()
+
+        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+          .foregroundColor(isSelected ? themeManager.themeColor : Color(.tertiaryLabel))
+          .font(.title3)
+      }
+      .padding(.horizontal, 20)
+      .padding(.vertical, 14)
+      .background(
+        RoundedRectangle(cornerRadius: 12)
+          .fill(Color(.secondarySystemBackground))
+      )
+      .padding(.horizontal, 16)
+      .padding(.vertical, 3)
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+  }
+
+  // MARK: - Done Button
+
+  private var doneButton: some View {
+    Button(action: { isPresented = false }) {
+      Text(String(localized: "完成"))
+        .font(.system(size: 17, weight: .semibold))
+        .foregroundColor(domains.isEmpty ? .white : .black)
+        .frame(maxWidth: .infinity)
+        .frame(height: 56)
+        .background(
+          Capsule()
+            .fill(domains.isEmpty ? Color(.systemGray2) : themeManager.themeColor)
+        )
+    }
+    .padding(.horizontal, 20)
+    .padding(.bottom, 30)
+    .padding(.top, 8)
+    .animation(.easeInOut(duration: 0.25), value: domains.isEmpty)
+  }
+
+  // MARK: - Actions
+
+  private func toggleDomain(_ domain: String) {
+    if let index = domains.firstIndex(of: domain) {
+      domains.remove(at: index)
+    } else {
+      guard domains.count < maxDomains else {
+        showError(String(localized: "Maximum number of domains (50) reached"))
+        return
+      }
+      domains.append(domain)
+    }
+  }
+
+  private func addCustomDomainFromSearch() {
+    let trimmed = searchText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+    guard !trimmed.isEmpty else { return }
 
     guard domains.count < maxDomains else {
       showError(String(localized: "Maximum number of domains (50) reached"))
       return
     }
 
-    guard !domains.contains(trimmedDomain) else {
+    guard !domains.contains(trimmed) else {
       showError(String(localized: "Domain already exists"))
       return
     }
 
-    guard isValidDomain(trimmedDomain) else {
+    guard isValidDomain(trimmed) else {
       showError(String(localized:
         "Enter a valid domain without https:// or www. (e.g., google.com, reddit.com, facebook.com)"
       ))
       return
     }
 
-    domains.append(trimmedDomain)
-    newDomain = ""
-  }
-
-  private func deleteDomains(at offsets: IndexSet) {
-    domains.remove(atOffsets: offsets)
+    domains.append(trimmed)
+    searchText = ""
   }
 
   private func showError(_ message: String) {
@@ -156,18 +286,11 @@ struct DomainPicker: View {
 }
 
 #Preview {
-  @Previewable @State var domains: [String] = ["example.com", "test.org"]
+  @Previewable @State var domains: [String] = ["example.com", "reddit.com", "youtube.com"]
 
-  VStack(spacing: 20) {
-    DomainPicker(
-      domains: $domains,
-      isPresented: .constant(true)
-    )
-
-    DomainPicker(
-      domains: $domains,
-      isPresented: .constant(true),
-      allowMode: true
-    )
-  }
+  DomainPicker(
+    domains: $domains,
+    isPresented: .constant(true)
+  )
+  .environmentObject(ThemeManager.shared)
 }

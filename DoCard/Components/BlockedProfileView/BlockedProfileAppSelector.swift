@@ -29,7 +29,7 @@ struct BlockedProfileAppSelector: View {
   private var buttonText: String {
     return allowMode
       ? String(localized: "Select Apps to Allow")
-      : String(localized: "Select Apps to Restrict")
+      : String(localized: "Select Apps to Temporarily Limit")
   }
 
   var body: some View {
@@ -39,6 +39,11 @@ struct BlockedProfileAppSelector: View {
         Text(buttonText)
           .foregroundStyle(themeManager.themeColor)
         Spacer()
+        if catAndAppCount > 0 {
+          Text(countDisplayText)
+            .font(.subheadline)
+            .foregroundStyle(.gray)
+        }
         Image(systemName: "chevron.right")
           .foregroundStyle(.gray)
       }
@@ -53,20 +58,11 @@ struct BlockedProfileAppSelector: View {
     } else if catAndAppCount == 0 {
       Text(String(localized: "No apps selected"))
         .foregroundStyle(.gray)
-    } else {
-      VStack(alignment: .leading, spacing: 4) {
-        Text("\(countDisplayText) \(String(localized: "selected"))")
-          .font(.footnote)
-          .foregroundStyle(.gray)
-
-        if shouldShowWarning {
-          Text(String(localized: "⚠️ Allow mode: Categories expand to individual apps (50 limit applies)"))
-            .font(.caption)
-            .foregroundColor(.orange)
-            .padding(.top, 4)
-        }
-      }
-      .padding(.top, 4)
+    } else if shouldShowWarning {
+      Text(String(localized: "⚠️ Allow mode: Categories expand to individual apps (50 limit applies)"))
+        .font(.caption)
+        .foregroundColor(.orange)
+        .padding(.top, 4)
     }
 
   }

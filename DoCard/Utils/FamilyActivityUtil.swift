@@ -29,9 +29,21 @@ struct FamilyActivityUtil {
   static func getCountDisplayText(_ selection: FamilyActivitySelection, allowMode: Bool = false)
     -> String
   {
-    let count = countSelectedActivities(selection, allowMode: allowMode)
+    let apps = selection.applications.count
+    let categories = selection.categories.count
+    let total = apps + categories + selection.webDomains.count
 
-    return "\(count) items"
+    return String(localized: "\(apps) 個 App、\(categories) 個類別")
+  }
+
+  /// Returns a compact formatted string showing separate app and category counts
+  /// - Parameter selection: The FamilyActivitySelection to format
+  /// - Returns: e.g. "3", "2 類別", "3 + 2 類別", or "無"
+  static func formatAppCount(_ selection: FamilyActivitySelection) -> String {
+    let apps = selection.applications.count
+    let categories = selection.categories.count
+
+    return String(localized: "\(apps) 個 App、\(categories) 個類別")
   }
 
   /// Determines if a warning should be shown for allow mode category selection

@@ -1,5 +1,8 @@
+import OSLog
 import SwiftData
 import SwiftUI
+
+private let logger = Logger(subsystem: "app.docard", category: "ShortcutTimerBlockingStrategy")
 
 class ShortcutTimerBlockingStrategy: BlockingStrategy {
   static var id: String = "ShortcutTimerBlockingStrategy"
@@ -30,6 +33,9 @@ class ShortcutTimerBlockingStrategy: BlockingStrategy {
       return nil
     }
 
+    // Activate restrictions before creating the session
+    self.appBlocker.activateRestrictions(for: BlockedProfiles.getSnapshot(for: profile))
+
     let activeSession = BlockedProfileSession.createSession(
       in: context,
       withTag: profile.blockingStrategyId ?? "ManualBlockingStrategy",
@@ -49,7 +55,12 @@ class ShortcutTimerBlockingStrategy: BlockingStrategy {
     session: BlockedProfileSession
   ) -> (any View)? {
     session.endSession()
-    try? context.save()
+    do {
+      try context.save()
+    } catch {
+      logger.error("Failed to save session after shortcut timer stop: \(error.localizedDescription)")
+      self.onErrorMessage?("Failed to save session: \(error.localizedDescription)")
+    }
     self.appBlocker.deactivateRestrictions()
 
     self.onSessionCreation?(.ended(session.blockedProfile))

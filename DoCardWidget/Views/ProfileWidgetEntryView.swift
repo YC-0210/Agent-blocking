@@ -1,6 +1,6 @@
 //
 //  ProfileWidgetEntryView.swift
-//  FoqosWidget
+//  DoCardWidget
 //
 //  Created by Ali Waseem on 2025-03-11.
 //
@@ -176,13 +176,10 @@ struct ProfileWidgetEntryView: View {
     var count = 0
     if profile.enableLiveActivity { count += 1 }
     if profile.enableBreaks { count += 1 }
-    if profile.enableStrictMode { count += 1 }
     if profile.enableAllowMode { count += 1 }
     if profile.enableAllowModeDomains { count += 1 }
     if profile.reminderTimeInSeconds != nil { count += 1 }
-    if profile.physicalUnblockNFCTagId != nil { count += 1 }
-    if profile.schedule != nil { count += 1 }
-    if profile.disableBackgroundStops == true { count += 1 }
+    if profile.physicalUnblockNFCTagIds != nil { count += 1 }
     return count
   }
 }
@@ -212,14 +209,12 @@ struct ProfileWidgetEntryView: View {
       reminderTimeInSeconds: nil,
       customReminderMessage: nil,
       enableBreaks: true,
-      enableStrictMode: true,
       enableAllowMode: true,
       enableAllowModeDomains: true,
       enableSafariBlocking: true,
       domains: ["facebook.com", "twitter.com", "instagram.com"],
-      physicalUnblockNFCTagId: nil,
-      schedule: nil,
-      disableBackgroundStops: nil
+      physicalUnblockNFCTagIds: nil,
+      schedule: nil
     ),
     deepLinkURL: URL(string: "https://do.app/profile/test-id"),
     focusMessage: "Stay focused and avoid distractions",
@@ -254,14 +249,12 @@ struct ProfileWidgetEntryView: View {
       reminderTimeInSeconds: nil,
       customReminderMessage: nil,
       enableBreaks: true,
-      enableStrictMode: false,
       enableAllowMode: true,
       enableAllowModeDomains: true,
       enableSafariBlocking: true,
       domains: ["youtube.com", "reddit.com"],
-      physicalUnblockNFCTagId: nil,
-      schedule: nil,
-      disableBackgroundStops: nil
+      physicalUnblockNFCTagIds: nil,
+      schedule: nil
     ),
     deepLinkURL: URL(string: "https://do.app/profile/\(activeProfileId.uuidString)"),
     focusMessage: "Deep focus time",
@@ -296,14 +289,12 @@ struct ProfileWidgetEntryView: View {
       reminderTimeInSeconds: nil,
       customReminderMessage: nil,
       enableBreaks: true,
-      enableStrictMode: true,
       enableAllowMode: false,
       enableAllowModeDomains: false,
       enableSafariBlocking: true,
       domains: ["tiktok.com", "instagram.com", "snapchat.com"],
-      physicalUnblockNFCTagId: nil,
-      schedule: nil,
-      disableBackgroundStops: nil
+      physicalUnblockNFCTagIds: nil,
+      schedule: nil
     ),
     deepLinkURL: URL(string: "https://do.app/profile/\(breakProfileId.uuidString)"),
     focusMessage: "Take a well-deserved break",
@@ -350,14 +341,12 @@ struct ProfileWidgetEntryView: View {
       reminderTimeInSeconds: nil,
       customReminderMessage: nil,
       enableBreaks: true,
-      enableStrictMode: true,
       enableAllowMode: false,
       enableAllowModeDomains: false,
       enableSafariBlocking: true,
       domains: ["linkedin.com", "slack.com"],
-      physicalUnblockNFCTagId: nil,
-      schedule: nil,
-      disableBackgroundStops: nil
+      physicalUnblockNFCTagIds: nil,
+      schedule: nil
     ),
     deepLinkURL: URL(string: "https://do.app/profile/\(unavailableProfileId.uuidString)"),
     focusMessage: "Different profile is currently active",

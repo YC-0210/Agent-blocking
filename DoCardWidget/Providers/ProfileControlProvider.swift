@@ -1,6 +1,6 @@
 //
 //  ProfileControlProvider.swift
-//  FoqosWidget
+//  DoCardWidget
 //
 //  Created by Ali Waseem on 2025-03-11.
 //
@@ -95,13 +95,15 @@ struct ProfileControlProvider: AppIntentTimelineProvider {
       }
     }
 
-    // Create deep link URL based on configuration
+    // SECURITY (V-11): Use opaque tokens instead of raw UUIDs in widget deep links.
+    // This prevents profile UUIDs from being visible on the lock screen.
     var deepLinkURL: URL?
     if let profileId = targetProfileId {
+      let token = SharedData.opaqueToken(for: profileId)
       if let useProfileURL = configuration.useProfileURL, useProfileURL == true {
-        deepLinkURL = URL(string: "https://do.app/profile/\(profileId)")
+        deepLinkURL = URL(string: "https://do.app/profile/\(token)")
       } else {
-        deepLinkURL = URL(string: "https://do.app/navigate/\(profileId)")
+        deepLinkURL = URL(string: "https://do.app/navigate/\(token)")
       }
     } else {
       deepLinkURL = URL(string: "do://")

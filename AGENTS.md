@@ -1,26 +1,26 @@
-# Foqos Developer Guidelines
+# DoCard Developer Guidelines
 
-This file provides guidelines for agentic coding assistants working on the Foqos iOS app codebase.
+This file provides guidelines for agentic coding assistants working on the DoCard iOS app codebase.
 
 ## Build & Test Commands
 
 ### Building
 ```bash
 # Open in Xcode
-open foqos.xcodeproj
+open DoCard.xcodeproj
 
 # Build from command line
-xcodebuild -project foqos.xcodeproj -scheme foqos -configuration Debug build
+xcodebuild -project DoCard.xcodeproj -scheme DoCard -configuration Debug build
 ```
 
 ### Running Tests
 This project currently does not have unit tests. When adding tests, use:
 ```bash
 # Run all tests
-xcodebuild test -project foqos.xcodeproj -scheme foqos -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -project DoCard.xcodeproj -scheme DoCard -destination 'platform=iOS Simulator,name=iPhone 15'
 
 # Run a single test class
-xcodebuild test -project foqos.xcodeproj -scheme foqos -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:foqosTests/ClassName
+xcodebuild test -project DoCard.xcodeproj -scheme DoCard -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:DoCardTests/ClassName
 ```
 
 ### Code Formatting
@@ -30,7 +30,7 @@ The project uses swift-format to maintain consistent code style. Run format comm
 swift-format .
 
 # Format specific files or directories
-swift-format Foqos/Views/
+swift-format DoCard/Views/
 
 # Check formatting without making changes
 swift-format --dry-run .

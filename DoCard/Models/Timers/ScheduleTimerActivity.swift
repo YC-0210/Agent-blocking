@@ -1,7 +1,7 @@
 import DeviceActivity
 import OSLog
 
-private let log: Logger = Logger(subsystem: "com.foqos.monitor", category: ScheduleTimerActivity.id)
+private let log: Logger = Logger(subsystem: "app.docard.monitor", category: ScheduleTimerActivity.id)
 
 class ScheduleTimerActivity: TimerActivity {
   static var id: String = "ScheduleTimerActivity"
@@ -39,11 +39,6 @@ class ScheduleTimerActivity: TimerActivity {
     if !schedule.isTodayScheduled() {
       log.info(
         "Start schedule timer activity for \(profileId), schedule is not scheduled for today")
-      return
-    }
-
-    if !schedule.olderThan15Minutes() {
-      log.info("Start schedule timer activity for \(profileId), schedule is too new")
       return
     }
 
@@ -96,8 +91,10 @@ class ScheduleTimerActivity: TimerActivity {
   func getScheduleInterval(from schedule: BlockedProfileSchedule) -> (
     intervalStart: DateComponents, intervalEnd: DateComponents
   ) {
-    let intervalStart = DateComponents(hour: schedule.startHour, minute: schedule.startMinute)
-    let intervalEnd = DateComponents(hour: schedule.endHour, minute: schedule.endMinute)
+    var intervalStart = DateComponents(hour: schedule.startHour, minute: schedule.startMinute)
+    intervalStart.timeZone = .current
+    var intervalEnd = DateComponents(hour: schedule.endHour, minute: schedule.endMinute)
+    intervalEnd.timeZone = .current
     return (intervalStart: intervalStart, intervalEnd: intervalEnd)
   }
 }

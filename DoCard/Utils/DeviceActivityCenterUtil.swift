@@ -23,7 +23,7 @@ class DeviceActivityCenterUtil {
     let deviceActivitySchedule = DeviceActivitySchedule(
       intervalStart: intervalStart,
       intervalEnd: intervalEnd,
-      repeats: true,
+      repeats: true
     )
 
     do {
@@ -156,7 +156,8 @@ class DeviceActivityCenterUtil {
   private static func getTimeIntervalStartAndEnd(from minutes: Int) -> (
     intervalStart: DateComponents, intervalEnd: DateComponents
   ) {
-    let intervalStart = DateComponents(hour: 0, minute: 0)
+    var intervalStart = DateComponents(hour: 0, minute: 0)
+    intervalStart.timeZone = .current
 
     // Get current time
     let now = Date()
@@ -175,7 +176,8 @@ class DeviceActivityCenterUtil {
       endMinute = 59
     }
 
-    let intervalEnd = DateComponents(hour: endHour, minute: endMinute)
+    var intervalEnd = DateComponents(hour: endHour, minute: endMinute)
+    intervalEnd.timeZone = .current
     return (intervalStart: intervalStart, intervalEnd: intervalEnd)
   }
 }

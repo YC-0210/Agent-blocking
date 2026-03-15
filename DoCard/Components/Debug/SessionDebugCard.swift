@@ -1,3 +1,4 @@
+#if DEBUG
 import SwiftData
 import SwiftUI
 
@@ -92,3 +93,4 @@ struct SessionDebugCard: View {
     .padding()
     .modelContainer(for: [BlockedProfiles.self, BlockedProfileSession.self])
 }
+#endif

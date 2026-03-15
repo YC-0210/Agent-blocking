@@ -1,3 +1,4 @@
+#if DEBUG
 import DeviceActivity
 import SwiftUI
 
@@ -100,3 +101,4 @@ struct DeviceActivitiesDebugCard: View {
   )
   .padding()
 }
+#endif

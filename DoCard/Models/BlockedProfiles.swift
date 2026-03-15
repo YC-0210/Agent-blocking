@@ -19,18 +19,15 @@ class BlockedProfiles {
   var reminderTimeInSeconds: UInt32?
   var enableBreaks: Bool = false
   var breakTimeInMinutes: Int = 15
-  var enableStrictMode: Bool = false
   var enableAllowMode: Bool = false
   var enableAllowModeDomains: Bool = false
   var enableSafariBlocking: Bool = true
 
-  var physicalUnblockNFCTagId: String?
+  var physicalUnblockNFCTagIds: [String]? = nil
 
   var domains: [String]? = nil
 
   var schedule: BlockedProfileSchedule? = nil
-
-  var disableBackgroundStops: Bool = false
 
   var customReminderMessage: String?
 
@@ -58,15 +55,13 @@ class BlockedProfiles {
     customReminderMessage: String? = nil,
     enableBreaks: Bool = false,
     breakTimeInMinutes: Int = 15,
-    enableStrictMode: Bool = false,
     enableAllowMode: Bool = false,
     enableAllowModeDomains: Bool = false,
     enableSafariBlocking: Bool = true,
     order: Int = 0,
     domains: [String]? = nil,
-    physicalUnblockNFCTagId: String? = nil,
-    schedule: BlockedProfileSchedule? = nil,
-    disableBackgroundStops: Bool = false
+    physicalUnblockNFCTagIds: [String]? = nil,
+    schedule: BlockedProfileSchedule? = nil
   ) {
     self.id = id
     self.name = name
@@ -83,16 +78,13 @@ class BlockedProfiles {
     self.enableLiveActivity = enableLiveActivity
     self.enableBreaks = enableBreaks
     self.breakTimeInMinutes = breakTimeInMinutes
-    self.enableStrictMode = enableStrictMode
     self.enableAllowMode = enableAllowMode
     self.enableAllowModeDomains = enableAllowModeDomains
     self.enableSafariBlocking = enableSafariBlocking
     self.domains = domains
 
-    self.physicalUnblockNFCTagId = physicalUnblockNFCTagId
+    self.physicalUnblockNFCTagIds = physicalUnblockNFCTagIds
     self.schedule = schedule
-
-    self.disableBackgroundStops = disableBackgroundStops
   }
 
   func showStopButton(elapsedTime: TimeInterval) -> Bool {
@@ -137,6 +129,7 @@ class BlockedProfiles {
     return try context.fetch(descriptor).first
   }
 
+  @discardableResult
   static func updateProfile(
     _ profile: BlockedProfiles,
     in context: ModelContext,
@@ -149,15 +142,13 @@ class BlockedProfiles {
     customReminderMessage: String? = nil,
     enableBreaks: Bool? = nil,
     breakTimeInMinutes: Int? = nil,
-    enableStrictMode: Bool? = nil,
     enableAllowMode: Bool? = nil,
     enableAllowModeDomains: Bool? = nil,
     enableSafariBlocking: Bool? = nil,
     order: Int? = nil,
     domains: [String]? = nil,
-    physicalUnblockNFCTagId: String? = nil,
-    schedule: BlockedProfileSchedule? = nil,
-    disableBackgroundStops: Bool? = nil
+    physicalUnblockNFCTagIds: [String]? = nil,
+    schedule: BlockedProfileSchedule? = nil
   ) throws -> BlockedProfiles {
     if let newName = name {
       profile.name = newName
@@ -187,10 +178,6 @@ class BlockedProfiles {
       profile.breakTimeInMinutes = newBreakTimeInMinutes
     }
 
-    if let newEnableStrictMode = enableStrictMode {
-      profile.enableStrictMode = newEnableStrictMode
-    }
-
     if let newEnableAllowMode = enableAllowMode {
       profile.enableAllowMode = newEnableAllowMode
     }
@@ -215,12 +202,8 @@ class BlockedProfiles {
       profile.schedule = newSchedule
     }
 
-    if let newDisableBackgroundStops = disableBackgroundStops {
-      profile.disableBackgroundStops = newDisableBackgroundStops
-    }
-
     // Values can be nil when removed
-    profile.physicalUnblockNFCTagId = physicalUnblockNFCTagId
+    profile.physicalUnblockNFCTagIds = physicalUnblockNFCTagIds
 
     profile.reminderTimeInSeconds = reminderTime
     profile.customReminderMessage = customReminderMessage
@@ -262,7 +245,7 @@ class BlockedProfiles {
   }
 
   static func getProfileDeepLink(_ profile: BlockedProfiles) -> String {
-    return "https://foqos.app/profile/" + profile.id.uuidString
+    return "https://do-card.online/profile/" + profile.id.uuidString
   }
 
   static func getSnapshot(for profile: BlockedProfiles) -> SharedData.ProfileSnapshot {
@@ -280,14 +263,12 @@ class BlockedProfiles {
       customReminderMessage: profile.customReminderMessage,
       enableBreaks: profile.enableBreaks,
       breakTimeInMinutes: profile.breakTimeInMinutes,
-      enableStrictMode: profile.enableStrictMode,
       enableAllowMode: profile.enableAllowMode,
       enableAllowModeDomains: profile.enableAllowModeDomains,
       enableSafariBlocking: profile.enableSafariBlocking,
       domains: profile.domains,
-      physicalUnblockNFCTagId: profile.physicalUnblockNFCTagId,
-      schedule: profile.schedule,
-      disableBackgroundStops: profile.disableBackgroundStops
+      physicalUnblockNFCTagIds: profile.physicalUnblockNFCTagIds,
+      schedule: profile.schedule
     )
   }
 
@@ -332,14 +313,12 @@ class BlockedProfiles {
     customReminderMessage: String = "",
     enableBreaks: Bool = false,
     breakTimeInMinutes: Int = 15,
-    enableStrictMode: Bool = false,
     enableAllowMode: Bool = false,
     enableAllowModeDomains: Bool = false,
     enableSafariBlocking: Bool = true,
     domains: [String]? = nil,
-    physicalUnblockNFCTagId: String? = nil,
-    schedule: BlockedProfileSchedule? = nil,
-    disableBackgroundStops: Bool = false
+    physicalUnblockNFCTagIds: [String]? = nil,
+    schedule: BlockedProfileSchedule? = nil
   ) throws -> BlockedProfiles {
     let profileOrder = getNextOrder(in: context)
 
@@ -353,14 +332,12 @@ class BlockedProfiles {
       customReminderMessage: customReminderMessage,
       enableBreaks: enableBreaks,
       breakTimeInMinutes: breakTimeInMinutes,
-      enableStrictMode: enableStrictMode,
       enableAllowMode: enableAllowMode,
       enableAllowModeDomains: enableAllowModeDomains,
       enableSafariBlocking: enableSafariBlocking,
       order: profileOrder,
       domains: domains,
-      physicalUnblockNFCTagId: physicalUnblockNFCTagId,
-      disableBackgroundStops: disableBackgroundStops
+      physicalUnblockNFCTagIds: physicalUnblockNFCTagIds
     )
 
     if let schedule = schedule {
@@ -391,13 +368,12 @@ class BlockedProfiles {
       customReminderMessage: source.customReminderMessage,
       enableBreaks: source.enableBreaks,
       breakTimeInMinutes: source.breakTimeInMinutes,
-      enableStrictMode: source.enableStrictMode,
       enableAllowMode: source.enableAllowMode,
       enableAllowModeDomains: source.enableAllowModeDomains,
       enableSafariBlocking: source.enableSafariBlocking,
       order: nextOrder,
       domains: source.domains,
-      physicalUnblockNFCTagId: source.physicalUnblockNFCTagId,
+      physicalUnblockNFCTagIds: source.physicalUnblockNFCTagIds,
       schedule: source.schedule
     )
 

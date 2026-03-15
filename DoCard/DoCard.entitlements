@@ -4,7 +4,7 @@
 <dict>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:foqos.app</string>
+		<string>applinks:do-card.online</string>
 	</array>
 	<key>com.apple.developer.family-controls</key>
 	<true/>

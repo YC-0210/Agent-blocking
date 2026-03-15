@@ -27,20 +27,45 @@ struct GlassButton: View {
   }
 
   @State private var isPressed = false
+  @State private var holdProgress: CGFloat = 0
 
   private var longPressButton: some View {
-    buttonContent
-      .contentShape(Rectangle())
-      .frame(minWidth: 0, maxWidth: equalWidth ? .infinity : nil)
-      .scaleEffect(isPressed ? 0.96 : 1.0)
-      .animation(.spring(response: 0.3), value: isPressed)
-      .onLongPressGesture(
+    ZStack {
+      buttonContent
+        .overlay(
+          // Progress fill during long press
+          GeometryReader { geometry in
+            RoundedRectangle(cornerRadius: 16)
+              .fill((color ?? Color.primary).opacity(0.12))
+              .frame(width: geometry.size.width * holdProgress)
+              .animation(.linear(duration: longPressDuration), value: holdProgress)
+          }
+          .allowsHitTesting(false)
+          .clipShape(RoundedRectangle(cornerRadius: 16))
+        )
+    }
+    .contentShape(Rectangle())
+    .frame(minWidth: 0, maxWidth: equalWidth ? .infinity : nil)
+    .scaleEffect(isPressed ? 0.96 : 1.0)
+    .animation(.spring(response: 0.3), value: isPressed)
+    .onLongPressGesture(
         minimumDuration: longPressDuration,
         pressing: { pressing in
           isPressed = pressing
+          if pressing {
+            holdProgress = 1.0
+            UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.6)
+          } else {
+            holdProgress = 0
+          }
         },
         perform: {
-          UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+          holdProgress = 0
+          let generator = UIImpactFeedbackGenerator(style: .heavy)
+          generator.impactOccurred()
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            generator.impactOccurred(intensity: 0.7)
+          }
           action()
           isPressed = false
         }

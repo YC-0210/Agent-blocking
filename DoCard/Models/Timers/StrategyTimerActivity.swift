@@ -1,7 +1,7 @@
 import DeviceActivity
 import OSLog
 
-private let log: Logger = Logger(subsystem: "com.foqos.monitor", category: StrategyTimerActivity.id)
+private let log: Logger = Logger(subsystem: "app.docard.monitor", category: StrategyTimerActivity.id)
 
 class StrategyTimerActivity: TimerActivity {
   static var id: String = "StrategyTimerActivity"

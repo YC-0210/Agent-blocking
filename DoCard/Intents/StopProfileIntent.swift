@@ -10,9 +10,9 @@ struct StopProfileIntent: AppIntent {
     return modelContainer.mainContext
   }
 
-  @Parameter(title: "Profile") var profile: BlockedProfileEntity
+  @Parameter(title: "Mode") var profile: BlockedProfileEntity
 
-  static var title: LocalizedStringResource = "Stop DO Profile"
+  static var title: LocalizedStringResource = "Stop DO Mode"
 
   @MainActor
   func perform() async throws -> some IntentResult {

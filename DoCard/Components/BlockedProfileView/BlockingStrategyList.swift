@@ -39,7 +39,7 @@ struct BlockingStrategyList: View {
         Button(action: onAdvancedSettingsTapped) {
           HStack {
             Text(String(localized: "Advanced Settings"))
-              .foregroundStyle(themeManager.themeColor)
+              .foregroundStyle(.gray)
             Spacer()
             Image(systemName: "chevron.right")
               .foregroundStyle(.gray)

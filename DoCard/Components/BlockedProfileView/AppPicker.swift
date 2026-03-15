@@ -12,8 +12,8 @@ struct AppPicker: View {
 
   @State private var updateFlag: Bool = false
   @State private var refreshID: UUID = UUID()
-  @State private var isMessageExpanded: Bool = true  // Start expanded so users see the warning
   @State private var showLimitAlert: Bool = false
+  @State private var showClearConfirmation: Bool = false
 
   private var compactTitle: String {
     let displayText = FamilyActivityUtil.getCountDisplayText(selection, allowMode: allowMode)
@@ -21,29 +21,22 @@ struct AppPicker: View {
     return "\(displayText) \(action)"
   }
 
-  private var detailedMessage: String {
-    return allowMode
-      ? String(localized: "⚠️ Apple enforces a 50 app limit. In Allow mode, when you select a category (like 'Social Networking'), EVERY individual app in that category counts separately toward the 50 app limit. This means selecting just a few categories can quickly exceed the limit.")
-      : String(localized: "Apple enforces a 50 app limit. In Block mode, each category counts as only 1 item regardless of how many apps it contains. Individual apps also count as 1 item each.")
-  }
-
   private var shouldShowWarning: Bool {
     return FamilyActivityUtil.shouldShowAllowModeWarning(selection, allowMode: allowMode)
-  }
-
-  private var warningMessage: String {
-    return String(localized:
-      "You have selected categories in Allow mode. This will expand to individual apps and may exceed the 50 app limit. Consider selecting individual apps instead of categories, or switch to Block mode where categories count as just 1 item each.")
-  }
-
-  private var knownIssuesMessage: String {
-    return String(localized:
-      "Apple's app picker may occasionally crash. We apologize for the inconvenience and are waiting for an official fix.")
   }
 
   private var isOverLimit: Bool {
     let count = FamilyActivityUtil.countSelectedActivities(selection, allowMode: allowMode)
     return count > 50
+  }
+
+  private var hasSelection: Bool {
+    return FamilyActivityUtil.countSelectedActivities(selection, allowMode: allowMode) > 0
+  }
+
+  private func clearAll() {
+    selection = FamilyActivitySelection(includeEntireCategory: allowMode)
+    refreshID = UUID()
   }
 
   private func handleDone() {
@@ -67,87 +60,25 @@ struct AppPicker: View {
             .id(refreshID)
         }
 
-        // Compact info section
-        Button(action: {
-          withAnimation(.easeInOut(duration: 0.2)) {
-            isMessageExpanded.toggle()
+        // Count display
+        HStack {
+          Text(compactTitle)
+            .font(.subheadline)
+            .bold()
+            .foregroundColor(.primary)
+
+          Spacer()
+
+          if shouldShowWarning {
+            Image(systemName: "exclamationmark.triangle.fill")
+              .foregroundColor(.orange)
+              .font(.caption)
           }
-        }) {
-          VStack(alignment: .leading, spacing: 10) {
-            HStack {
-              VStack(alignment: .leading, spacing: 4) {
-                Text(compactTitle)
-                  .font(.subheadline)
-                  .bold()
-                  .foregroundColor(.primary)
-
-                if !isMessageExpanded {
-                  Text(String(localized: "Tap for details"))
-                    .font(.caption2)
-                    .foregroundColor(.secondary)
-                }
-              }
-
-              Spacer()
-
-              Image(systemName: isMessageExpanded ? "chevron.up.circle.fill" : "info.circle")
-                .font(.title3)
-                .foregroundColor(.secondary)
-            }
-
-            if isMessageExpanded {
-              VStack(alignment: .leading, spacing: 12) {
-                Divider()
-
-                VStack(alignment: .leading, spacing: 6) {
-                  Text(String(localized: "Apple's 50 App Limit"))
-                    .font(.caption)
-                    .bold()
-                    .foregroundColor(allowMode ? .orange : .secondary)
-
-                  Text(detailedMessage)
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-
-                if shouldShowWarning {
-                  VStack(alignment: .leading, spacing: 6) {
-                    Text(String(localized: "⚠️ Important"))
-                      .font(.caption)
-                      .bold()
-                      .foregroundColor(.orange)
-
-                    Text(warningMessage)
-                      .font(.caption)
-                      .foregroundColor(.orange)
-                      .fixedSize(horizontal: false, vertical: true)
-                  }
-                  .padding(12)
-                  .background(Color.orange.opacity(0.15))
-                  .cornerRadius(8)
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                  Text(String(localized: "Known Issues"))
-                    .font(.caption)
-                    .bold()
-                    .foregroundColor(.secondary)
-
-                  Text(knownIssuesMessage)
-                    .font(.caption)
-                    .foregroundColor(.primary)
-                    .fixedSize(horizontal: false, vertical: true)
-                }
-              }
-            }
-          }
-          .padding(12)
-          .background(Color(.systemGray6))
-          .cornerRadius(10)
-          .padding(.horizontal, 16)
         }
-        .buttonStyle(.plain)
+        .padding(12)
+        .background(Color(.systemGray6))
+        .cornerRadius(10)
+        .padding(.horizontal, 16)
       }
       .onReceive(stateUpdateTimer) { _ in
         updateFlag.toggle()
@@ -157,10 +88,11 @@ struct AppPicker: View {
       }
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {
-          Button(action: { refreshID = UUID() }) {
+          Button(action: { showClearConfirmation = true }) {
             Image(systemName: "arrow.clockwise")
           }
-          .accessibilityLabel(String(localized: "Refresh"))
+          .accessibilityLabel(String(localized: "Clear All"))
+          .disabled(!hasSelection)
         }
 
         ToolbarItem(placement: .topBarTrailing) {
@@ -169,6 +101,18 @@ struct AppPicker: View {
           }
           .accessibilityLabel(String(localized: "Done"))
         }
+      }
+      .confirmationDialog(
+        String(localized: "Clear All Selections"),
+        isPresented: $showClearConfirmation,
+        titleVisibility: .visible
+      ) {
+        Button(String(localized: "Clear All"), role: .destructive) {
+          clearAll()
+        }
+        Button(String(localized: "Cancel"), role: .cancel) {}
+      } message: {
+        Text(String(localized: "This will deselect all currently selected apps, categories, and web domains."))
       }
       .alert(String(localized: "Over 50 App Limit"), isPresented: $showLimitAlert) {
         Button(String(localized: "Cancel"), role: .cancel) {}
