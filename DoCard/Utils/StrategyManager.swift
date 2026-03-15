@@ -1,9 +1,13 @@
+import OSLog
 import SwiftData
 import SwiftUI
 import WidgetKit
 
+private let smLogger = Logger(subsystem: "app.docard", category: "StrategyManager")
+
+@MainActor
 class StrategyManager: ObservableObject {
-  static var shared = StrategyManager()
+  static let shared = StrategyManager()
 
   static let availableStrategies: [BlockingStrategy] = [
     NFCBlockingStrategy(),
@@ -19,16 +23,36 @@ class StrategyManager: ObservableObject {
 
   @Published var errorMessage: String?
 
-  @AppStorage("emergencyUnblocksRemaining") private var emergencyUnblocksRemaining: Int = 3
-  @AppStorage("emergencyUnblocksResetPeriodInWeeks") private
-    var emergencyUnblocksResetPeriodInWeeks: Int = 4
-  @AppStorage("lastEmergencyUnblocksResetDate") private var lastEmergencyUnblocksResetDateTimestamp:
-    Double = 0
+  // SECURITY: Emergency unlock counters stored in Keychain to resist
+  // tampering via backup restoration or jailbreak (V-06 fix).
+  private var emergencyUnblocksRemaining: Int {
+    get { KeychainHelper.load("emergencyUnblocksRemaining", defaultValue: 3) }
+    set { KeychainHelper.save("emergencyUnblocksRemaining", value: newValue) }
+  }
+  private var emergencyUnblocksResetPeriodInWeeks: Int {
+    get { KeychainHelper.load("emergencyUnblocksResetPeriodInWeeks", defaultValue: 2) }
+    set { KeychainHelper.save("emergencyUnblocksResetPeriodInWeeks", value: newValue) }
+  }
+  private var lastEmergencyUnblocksResetDateTimestamp: Double {
+    get { KeychainHelper.load("lastEmergencyUnblocksResetDate", defaultValue: 0) }
+    set { KeychainHelper.save("lastEmergencyUnblocksResetDate", value: newValue) }
+  }
 
   private let liveActivityManager = LiveActivityManager.shared
 
   private let timersUtil = TimersUtil()
   private let appBlocker = AppBlockerUtil()
+
+  /// Guard flag to prevent re-entrant calls to toggleBlocking.
+  /// Without this, rapid taps can trigger overlapping NFC sessions
+  /// that suppress each other's dialogs.
+  private var isToggling: Bool = false
+
+  /// Holds a strong reference to the active strategy while an NFC scan is in progress.
+  /// Without this, the strategy created in getStrategy() would be deallocated when
+  /// startBlocking()/stopBlocking() returns, causing NFC callbacks to silently no-op
+  /// because [weak self] in the closures would be nil.
+  private var activeStrategy: BlockingStrategy?
 
   var isBlocking: Bool {
     return activeSession?.isActive == true
@@ -42,6 +66,31 @@ class StrategyManager: ObservableObject {
     return activeSession?.isBreakAvailable ?? false
   }
 
+  // SECURITY: NFC strategy IDs that require physical card tap to unlock.
+  // Used to enforce the core promise: "Only the physical card can unlock."
+  private static let nfcStrategyIds: Set<String> = [
+    NFCBlockingStrategy.id,
+    NFCTimerBlockingStrategy.id,
+    NFCManualBlockingStrategy.id,
+  ]
+
+  /// Returns true if the given strategy ID requires an NFC card tap to stop.
+  func isNFCStrategy(_ strategyId: String) -> Bool {
+    return StrategyManager.nfcStrategyIds.contains(strategyId)
+  }
+
+  // Timer strategy IDs that use a duration-based timer.
+  // These conflict with schedules — only one time-based mechanism should be active.
+  private static let timerStrategyIds: Set<String> = [
+    NFCTimerBlockingStrategy.id,
+    ShortcutTimerBlockingStrategy.id,
+  ]
+
+  /// Returns true if the given strategy ID uses a duration-based timer.
+  static func isTimerStrategy(_ strategyId: String) -> Bool {
+    return timerStrategyIds.contains(strategyId)
+  }
+
   func defaultReminderMessage(forProfile profile: BlockedProfiles?) -> String {
     let baseMessage = "Get back to productivity"
     guard let profile else {
@@ -51,6 +100,7 @@ class StrategyManager: ObservableObject {
   }
 
   func loadActiveSession(context: ModelContext) {
+    let previousSession = activeSession
     activeSession = getActiveSession(context: context)
 
     if activeSession?.isActive == true {
@@ -62,22 +112,48 @@ class StrategyManager: ObservableObject {
         liveActivityManager.startSessionActivity(session: session)
       }
     } else {
-      // Close live activity if no session is active and a scheduled session might have ended
+      // Session ended while app was in background (e.g. strategy timer expired)
+      // Clean up all session state
+      activeSession = nil
+      stopTimer()
+      elapsedTime = 0
       liveActivityManager.endSessionActivity()
+
+      // Clean up device activity timers
+      DeviceActivityCenterUtil.removeAllBreakTimerActivities()
+      DeviceActivityCenterUtil.removeAllStrategyTimerActivities()
+
+      // Refresh widgets when session ends
+      WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+
+      // Schedule reminder if a session was previously active
+      if let endedProfile = previousSession?.blockedProfile {
+        scheduleReminder(profile: endedProfile)
+      }
     }
   }
 
   func toggleBlocking(context: ModelContext, activeProfile: BlockedProfiles?) {
+    guard !isToggling else { return }
+    isToggling = true
+
     if isBlocking {
       stopBlocking(context: context)
     } else {
       startBlocking(context: context, activeProfile: activeProfile)
     }
+
+    // Reset after a short delay to allow the NFC dialog to appear.
+    // For non-NFC strategies that complete synchronously, this is
+    // effectively immediate.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+      self?.isToggling = false
+    }
   }
 
   func toggleBreak(context: ModelContext) {
     guard let session = activeSession else {
-      print("active session does not exist")
+      smLogger.warning("active session does not exist")
       return
     }
 
@@ -152,30 +228,27 @@ class StrategyManager: ObservableObject {
         return
       }
 
-      let manualStrategy = getStrategy(id: ManualBlockingStrategy.id)
-
       if let localActiveSession = getActiveSession(context: context) {
-        if localActiveSession.blockedProfile.disableBackgroundStops {
-          print(
-            "profile: \(localActiveSession.blockedProfile.name) has disable background stops enabled, not stopping it"
-          )
-          self.errorMessage =
-            "profile: \(localActiveSession.blockedProfile.name) has disable background stops enabled, not stopping it"
+        // SECURITY (V-02): Check if the active session uses an NFC strategy.
+        // Deep links cannot trigger NFC scanning, so refuse to stop NFC sessions.
+        let strategyId =
+          localActiveSession.blockedProfile.blockingStrategyId ?? ManualBlockingStrategy.id
+        if isNFCStrategy(strategyId) {
+          self.errorMessage = String(
+            localized: "This mode requires your DO Card to unlock. Please tap your DO Card.")
           return
         }
 
-        _ =
-          manualStrategy
-          .stopBlocking(
-            context: context,
-            session: localActiveSession
-          )
+        let strategy = getStrategy(id: strategyId)
+        _ = strategy.stopBlocking(
+          context: context,
+          session: localActiveSession
+        )
 
         if localActiveSession.blockedProfile.id != profile.id {
-          print(
-            "User is switching sessions from deep link"
-          )
+          smLogger.info("User is switching sessions from deep link")
 
+          let manualStrategy = getStrategy(id: ManualBlockingStrategy.id)
           _ = manualStrategy.startBlocking(
             context: context,
             profile: profile,
@@ -183,6 +256,7 @@ class StrategyManager: ObservableObject {
           )
         }
       } else {
+        let manualStrategy = getStrategy(id: ManualBlockingStrategy.id)
         _ = manualStrategy.startBlocking(
           context: context,
           profile: profile,
@@ -212,9 +286,7 @@ class StrategyManager: ObservableObject {
       }
 
       if let localActiveSession = getActiveSession(context: context) {
-        print(
-          "session is already active for profile: \(localActiveSession.blockedProfile.name), not starting a new one"
-        )
+        smLogger.info("session is already active for profile: \(localActiveSession.blockedProfile.name, privacy: .private), not starting a new one")
         return
       }
 
@@ -268,34 +340,31 @@ class StrategyManager: ObservableObject {
         return
       }
 
-      let manualStrategy = getStrategy(id: ManualBlockingStrategy.id)
-
       guard let localActiveSession = getActiveSession(context: context) else {
-        print(
-          "session is not active for profile: \(profile.name), not stopping it"
-        )
+        smLogger.info("session is not active for profile: \(profile.name, privacy: .private), not stopping it")
         return
       }
 
       if localActiveSession.blockedProfile.id != profile.id {
-        print(
-          "session is not active for profile: \(profile.name), not stopping it"
-        )
+        smLogger.info("session is not active for profile: \(profile.name, privacy: .private), not stopping it")
         self.errorMessage =
           "session is not active for profile: \(profile.name), not stopping it"
         return
       }
 
-      if profile.disableBackgroundStops {
-        print(
-          "profile: \(profile.name) has disable background stops enabled, not stopping it"
-        )
-        self.errorMessage =
-          "profile: \(profile.name) has disable background stops enabled, not stopping it"
+      // SECURITY (V-01): Check if the active session uses an NFC strategy.
+      // Background contexts (Siri Shortcuts, Intents) cannot trigger NFC UI,
+      // so refuse to stop NFC-based sessions from background.
+      let strategyId =
+        localActiveSession.blockedProfile.blockingStrategyId ?? ManualBlockingStrategy.id
+      if isNFCStrategy(strategyId) {
+        self.errorMessage = String(
+          localized: "This mode requires your DO Card to unlock. Please tap your DO Card.")
         return
       }
 
-      let _ = manualStrategy.stopBlocking(
+      let strategy = getStrategy(id: strategyId)
+      let _ = strategy.stopBlocking(
         context: context,
         session: localActiveSession
       )
@@ -384,30 +453,29 @@ class StrategyManager: ObservableObject {
 
   func setResetPeriodInWeeks(_ weeks: Int) {
     emergencyUnblocksResetPeriodInWeeks = weeks
-    lastEmergencyUnblocksResetDateTimestamp = Date().timeIntervalSinceReferenceDate
+    // SECURITY (V-03b): Do NOT reset the timestamp when changing the period.
+    // Resetting the timestamp would allow users to manipulate the reset cycle
+    // by repeatedly changing the period to get fresh emergency unlocks sooner.
   }
 
-  // All strategies including hidden ones (not shown in UI but used programmatically)
-  private static let allStrategies: [BlockingStrategy] = [
-    NFCBlockingStrategy(),
-    NFCTimerBlockingStrategy(),
-    ManualBlockingStrategy(),
-    NFCManualBlockingStrategy(),
-    ShortcutTimerBlockingStrategy(),
-  ]
-
+  /// Creates a fresh strategy instance for the given ID.
+  /// Each call returns a new instance to avoid shared-state bugs where
+  /// callbacks on a singleton get overwritten by concurrent calls.
   static func getStrategyFromId(id: String) -> BlockingStrategy {
-    // Check all strategies (including hidden ones used for emergency unblock, shortcuts, etc.)
-    if let strategy = allStrategies.first(
-      where: {
-        $0.getIdentifier() == id
-      })
-    {
-      return strategy
+    switch id {
+    case NFCBlockingStrategy.id:
+      return NFCBlockingStrategy()
+    case NFCTimerBlockingStrategy.id:
+      return NFCTimerBlockingStrategy()
+    case ManualBlockingStrategy.id:
+      return ManualBlockingStrategy()
+    case NFCManualBlockingStrategy.id:
+      return NFCManualBlockingStrategy()
+    case ShortcutTimerBlockingStrategy.id:
+      return ShortcutTimerBlockingStrategy()
+    default:
+      return NFCBlockingStrategy()
     }
-
-    // Default fallback
-    return NFCBlockingStrategy()
   }
 
   func getStrategy(id: String) -> BlockingStrategy {
@@ -415,6 +483,8 @@ class StrategyManager: ObservableObject {
 
     strategy.onSessionCreation = { [weak self] session in
       guard let self else { return }
+      self.isToggling = false
+      self.activeStrategy = nil
       self.dismissView()
 
       // Remove any timers and notifications that were scheduled
@@ -455,26 +525,46 @@ class StrategyManager: ObservableObject {
 
     strategy.onErrorMessage = { [weak self] message in
       guard let self else { return }
+      self.isToggling = false
+      self.activeStrategy = nil
       self.dismissView()
 
-      self.errorMessage = message
+      // Empty message means user cancelled (e.g. dismissed NFC dialog) — don't show error
+      if !message.isEmpty {
+        self.errorMessage = message
+      }
     }
+
+    // Retain the strategy so it survives async NFC scanning
+    self.activeStrategy = strategy
 
     return strategy
   }
 
   private func startBreak(context: ModelContext) {
     guard let session = activeSession else {
-      print("Breaks only available in active session")
+      smLogger.warning("Breaks only available in active session")
       return
     }
 
     if !session.isBreakAvailable {
-      print("Breaks is not availble")
+      smLogger.warning("Breaks is not availble")
       return
     }
 
-    // Start the break timer activity
+    // Set break start time directly on the session and SharedData.
+    // The DeviceActivity monitor runs in a separate extension process and its
+    // intervalDidStart may not fire reliably (the schedule starts at 00:00,
+    // which has already passed), so we must set the state here.
+    session.startBreak()
+    appBlocker.deactivateRestrictions()
+    do {
+      try context.save()
+    } catch {
+      smLogger.error("Failed to save break start: \(error.localizedDescription)")
+    }
+
+    // Start the break timer activity (handles auto-ending the break when time expires)
     DeviceActivityCenterUtil.startBreakTimerActivity(for: session.blockedProfile)
 
     // Schedule a reminder to get back to the profile after the break
@@ -483,22 +573,30 @@ class StrategyManager: ObservableObject {
     // Refresh widgets when break starts
     WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
 
-    // Load the active session since the break start time was set in a different thread
-    loadActiveSession(context: context)
-
     // Update live activity to show break state
     liveActivityManager.updateBreakState(session: session)
   }
 
   private func stopBreak(context: ModelContext) {
     guard let session = activeSession else {
-      print("Breaks only available in active session")
+      smLogger.warning("Breaks only available in active session")
       return
     }
 
     if !session.isBreakAvailable {
-      print("Breaks is not availble")
+      smLogger.warning("Breaks is not availble")
       return
+    }
+
+    // End break directly on the session and re-activate restrictions.
+    // Same reasoning as startBreak — we cannot rely on the DeviceActivity
+    // monitor's intervalDidEnd to set state synchronously.
+    session.endBreak()
+    appBlocker.activateRestrictions(for: BlockedProfiles.getSnapshot(for: session.blockedProfile))
+    do {
+      try context.save()
+    } catch {
+      smLogger.error("Failed to save break end: \(error.localizedDescription)")
     }
 
     // Remove the break timer activity
@@ -509,9 +607,6 @@ class StrategyManager: ObservableObject {
 
     // Refresh widgets when break ends
     WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
-
-    // Load the active session since the break end time was set in a different thread
-    loadActiveSession(context: context)
 
     // Update live activity to show break has ended
     liveActivityManager.updateBreakState(session: session)
@@ -556,7 +651,7 @@ class StrategyManager: ObservableObject {
   }
 
   private func resultFromURL(_ url: String) -> NFCResult {
-    return NFCResult(id: url, url: url, DateScanned: Date())
+    return NFCResult(id: url, payload: url, DateScanned: Date())
   }
 
   private func startBlocking(
@@ -564,9 +659,7 @@ class StrategyManager: ObservableObject {
     activeProfile: BlockedProfiles?
   ) {
     guard let definedProfile = activeProfile else {
-      print(
-        "No active profile found, calling stop blocking with no session"
-      )
+      smLogger.warning("No active profile found, calling stop blocking with no session")
       return
     }
 
@@ -587,9 +680,7 @@ class StrategyManager: ObservableObject {
 
   private func stopBlocking(context: ModelContext) {
     guard let session = activeSession else {
-      print(
-        "No active session found, calling stop blocking with no session"
-      )
+      smLogger.warning("No active session found, calling stop blocking with no session")
       return
     }
 
@@ -639,49 +730,43 @@ class StrategyManager: ObservableObject {
     let scheduleActivities = scheduleTimerActivity.getAllScheduleTimerActivities(
       from: allActivities)
 
-    print(
-      "Found \(scheduleActivities.count) schedule timer activities out of \(allActivities.count) total activities"
-    )
+    smLogger.debug("Found \(scheduleActivities.count) schedule timer activities out of \(allActivities.count) total activities")
 
     for activity in scheduleActivities {
       let rawValue = activity.rawValue
       guard let profileId = UUID(uuidString: rawValue) else {
         // This shouldn't happen since we filtered above, but print just in case
-        print("Unexpected: failed to parse profile id from filtered activity: \(rawValue)")
+        smLogger.error("Unexpected: failed to parse profile id from filtered activity: \(rawValue, privacy: .private)")
         continue
       }
 
       do {
         if let profile = try BlockedProfiles.findProfile(byID: profileId, in: context) {
           if profile.schedule == nil {
-            print(
-              "Profile '\(profile.name)' has no schedule but has device activity registered. Removing ghost schedule..."
-            )
+            smLogger.warning("Profile '\(profile.name, privacy: .private)' has no schedule but has device activity registered. Removing ghost schedule...")
             DeviceActivityCenterUtil.removeScheduleTimerActivities(for: profile)
           } else {
-            print("Profile '\(profile.name)' has schedule - activity is valid ✅")
+            smLogger.debug("Profile '\(profile.name, privacy: .private)' has schedule - activity is valid")
           }
         } else {
           // Profile truly doesn't exist in database
-          print("No profile found for activity \(rawValue). Removing orphaned schedule...")
+          smLogger.warning("No profile found for activity \(rawValue, privacy: .private). Removing orphaned schedule...")
           DeviceActivityCenterUtil.removeScheduleTimerActivities(for: activity)
         }
       } catch {
         // Database error occurred - do NOT delete the schedule since we don't know the true state
-        print(
-          "Error fetching profile \(rawValue): \(error.localizedDescription). Skipping cleanup for safety."
-        )
+        smLogger.error("Error fetching profile \(rawValue, privacy: .private): \(error.localizedDescription). Skipping cleanup for safety.")
       }
     }
   }
 
   func resetBlockingState(context: ModelContext) {
     guard !isBlocking else {
-      print("Cannot reset blocking state while a profile is active")
+      smLogger.warning("Cannot reset blocking state while a profile is active")
       return
     }
 
-    print("Resetting blocking state...")
+    smLogger.info("Resetting blocking state...")
 
     // Clean up ghost schedules
     cleanUpGhostSchedules(context: context)
@@ -695,6 +780,6 @@ class StrategyManager: ObservableObject {
     // Remove all strategy timer activities
     DeviceActivityCenterUtil.removeAllStrategyTimerActivities()
 
-    print("Blocking state reset complete")
+    smLogger.info("Blocking state reset complete")
   }
 }
