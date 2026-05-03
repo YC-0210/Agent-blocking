@@ -150,6 +150,11 @@ enum MacExtensionSyncWriter {
     req.setValue(anonKey, forHTTPHeaderField: "apikey")
     req.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    // RLS identification — see MacSupabaseClient for full notes. Extension reads
+    // iphone_token from the App Group (same key the main app uses).
+    if let token = readIphoneToken(), !token.isEmpty {
+      req.setValue(token, forHTTPHeaderField: "X-Iphone-Token")
+    }
     req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
     req.timeoutInterval = requestTimeoutSeconds
 

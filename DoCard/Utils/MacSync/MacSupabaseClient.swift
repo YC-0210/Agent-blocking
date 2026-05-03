@@ -18,6 +18,14 @@ enum MacSupabaseClient {
   static let anonKey =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiaGljdXhidm5rZXRiZHF5d2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzOTM1MjksImV4cCI6MjA4NDk2OTUyOX0.WJv_uaZTyFkTFgHoKXh9-4rW5WJVancLTVI5n7o0It8"
 
+  /// Reads iphone_token directly from the App Group, mirroring the extension's
+  /// MacExtensionSyncWriter approach. Avoids crossing the @MainActor boundary
+  /// of `MacPairingService.iphoneToken` from this nonisolated async context.
+  private static func iphoneTokenForRLS() -> String? {
+    UserDefaults(suiteName: "group.DO.version3")?
+      .string(forKey: "macSync.iphoneToken")
+  }
+
   private static let session: URLSession = {
     let config = URLSessionConfiguration.default
     config.timeoutIntervalForRequest = 10
@@ -49,6 +57,13 @@ enum MacSupabaseClient {
     req.setValue(anonKey, forHTTPHeaderField: "apikey")
     req.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    // RLS identification: PostgREST surfaces this header to row-level policies
+    // via current_setting('request.headers'). Policies on mac_pairings and
+    // mac_sessions reject any request whose target row's iphone_token doesn't
+    // match this header.
+    if let token = iphoneTokenForRLS(), !token.isEmpty {
+      req.setValue(token, forHTTPHeaderField: "X-Iphone-Token")
+    }
     if let prefer = prefer {
       req.setValue(prefer, forHTTPHeaderField: "Prefer")
     }
