@@ -9,13 +9,13 @@ struct ProfileIndicators: View {
   var body: some View {
     HStack(spacing: 16) {
       if enableBreaks {
-        indicatorView(label: "Breaks")
+        indicatorView(label: String(localized: "Breaks"))
       }
       if enableLiveActivity {
-        indicatorView(label: "Live Activity")
+        indicatorView(label: String(localized: "Live Activity"))
       }
       if hasReminders {
-        indicatorView(label: "Reminders")
+        indicatorView(label: String(localized: "Reminders"))
       }
     }
   }

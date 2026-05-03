@@ -49,7 +49,7 @@ struct OnboardingWelcomePage: View {
       .padding(.bottom, 14)
 
       // Subtitle
-      Text(String(localized: "輕觸卡片，用儀式感為一天建立清晰節奏"))
+      Text(String(localized: "你應該有想完成的事情吧"))
         .font(.system(size: 16, weight: .regular))
         .foregroundColor(.white.opacity(0.5))
         .multilineTextAlignment(.center)

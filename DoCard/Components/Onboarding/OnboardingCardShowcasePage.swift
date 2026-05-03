@@ -15,7 +15,7 @@ struct OnboardingCardShowcasePage: View {
       Spacer()
 
       // Title — appears after delay
-      Text(String(localized: "所以我們設計了DO Card"))
+      Text(String(localized: "DO Card 可以幫你阻擋干擾\n讓你開始行動"))
         .font(.system(size: 28, weight: .bold))
         .foregroundColor(.white)
         .multilineTextAlignment(.center)
@@ -29,7 +29,6 @@ struct OnboardingCardShowcasePage: View {
         .resizable()
         .aspectRatio(1.585, contentMode: .fit)
         .frame(maxWidth: 300)
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: themeManager.themeColor.opacity(0.5), radius: 40, x: 0, y: 0)
         .shadow(color: themeManager.themeColor.opacity(0.35), radius: 20, x: 0, y: 0)
         .shadow(color: themeManager.themeColor.opacity(0.2), radius: 8, x: 0, y: 0)

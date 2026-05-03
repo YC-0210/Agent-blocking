@@ -13,8 +13,8 @@ struct AppAdvancedSettingsView: View {
       Form {
         Section {
           CustomToggle(
-            title: String(localized: "Apps Allow Mode"),
-            description: String(localized: "Pick apps to allow and block everything else. This will erase any other selection you've made."),
+            title: String(localized: "允許模式"),
+            description: String(localized: "選擇要允許的 App，其餘全部阻擋。這將清除你目前的所有選擇。"),
             isOn: $enableAllowMode,
             isDisabled: isDisabled
           )
@@ -22,19 +22,19 @@ struct AppAdvancedSettingsView: View {
 
         Section {
           CustomToggle(
-            title: String(localized: "Block Safari"),
-            description: String(localized: "Block Safari websites that are selected in the app selector above. When disabled, Safari will not be limited regardless of the websites you pick."),
+            title: String(localized: "阻擋 Safari"),
+            description: String(localized: "阻擋上方選擇的 Safari 網站。關閉後，無論選擇什麼網站都不會被阻擋。"),
             isOn: $enableSafariBlocking,
             isDisabled: isDisabled
           )
         }
       }
-      .navigationTitle(String(localized: "Advanced Settings"))
+      .navigationTitle(String(localized: "進階設定"))
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .topBarTrailing) {
           Button(action: { dismiss() }) {
-            Text(String(localized: "Done"))
+            Text(String(localized: "完成"))
               .foregroundStyle(themeManager.themeColor)
           }
         }

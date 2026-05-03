@@ -7,8 +7,8 @@ private let logger = Logger(subsystem: "app.docard", category: "NFCManualBlockin
 class NFCManualBlockingStrategy: BlockingStrategy {
   static var id: String = "NFCManualBlockingStrategy"
 
-  var name: String = "NFC + Manual"
-  var description: String = "Block manually, but unblock by using any NFC tag"
+  var name: String = "DO Card + Manual"
+  var description: String = "Block manually, but unblock by tapping your DO Card"
   var iconType: String = "badge.plus.radiowaves.forward"
   var color: Color = .yellow
 
@@ -16,6 +16,7 @@ class NFCManualBlockingStrategy: BlockingStrategy {
 
   var onSessionCreation: ((SessionStatus) -> Void)?
   var onErrorMessage: ((String) -> Void)?
+  var onCardNameScanned: ((String?) -> Void)?
 
   private let nfcScanner: NFCScannerUtil = NFCScannerUtil()
   private let appBlocker: AppBlockerUtil = AppBlockerUtil()
@@ -41,6 +42,12 @@ class NFCManualBlockingStrategy: BlockingStrategy {
         forceStart: forceStart ?? false
       )
 
+    context.insert(NFCTapEvent(
+      action: NFCTapEvent.actionStartBlock,
+      profileId: profile.id,
+      profileName: profile.name
+    ))
+
     self.onSessionCreation?(.started(activeSession))
 
     return nil
@@ -53,11 +60,15 @@ class NFCManualBlockingStrategy: BlockingStrategy {
     nfcScanner.onTagScanned = { [weak self] scannedTag in
       guard let self else { return }
 
-      session.endSession()
-      do {
-        try context.save()
-      } catch {
-        logger.error("Failed to save session after NFC manual unlock: \(error.localizedDescription)")
+      self.onCardNameScanned?(scannedTag.cardName)
+
+      context.insert(NFCTapEvent(
+        action: NFCTapEvent.actionEndBlock,
+        profileId: session.blockedProfile.id,
+        profileName: session.blockedProfile.name
+      ))
+
+      session.endSessionFully(in: context, endReason: "card_tap") { error in
         self.onErrorMessage?("Failed to save session: \(error.localizedDescription)")
       }
       self.appBlocker.deactivateRestrictions()

@@ -34,7 +34,7 @@ struct OnboardingGoodNewsPage: View {
       Spacer()
 
       // Top text
-      Text(String(localized: "好消息是\nDO Card 可以幫你省下"))
+      Text(String(localized: "好消息是\n你可以把這"))
         .font(.system(size: 20, weight: .medium))
         .foregroundColor(.white)
         .multilineTextAlignment(.center)
@@ -59,7 +59,7 @@ struct OnboardingGoodNewsPage: View {
         .contentTransition(.numericText())
 
       // Bottom text
-      Text(String(localized: "讓你可以專注在真正重要的事"))
+      Text(String(localized: "，用來完成你真正想做的事"))
         .font(.system(size: 18, weight: .medium))
         .foregroundColor(.white.opacity(0.7))
         .opacity(showContent ? 1.0 : 0)

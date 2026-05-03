@@ -17,6 +17,7 @@ struct DomainPicker: View {
     "facebook.com",
     "instagram.com",
     "reddit.com",
+    "threads.com",
     "tiktok.com",
     "youtube.com",
     "x.com",
@@ -85,7 +86,7 @@ struct DomainPicker: View {
         doneButton
       }
       .background(Color(.systemBackground))
-      .navigationTitle(String(localized: "封鎖網站"))
+      .navigationTitle(String(localized: "阻擋網站"))
       .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .topBarLeading) {

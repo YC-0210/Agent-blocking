@@ -80,7 +80,7 @@ struct OnboardingBadNewsPage: View {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         onContinue()
       }) {
-        Text(String(localized: "太恐怖啦"))
+        Text(String(localized: "我要改變"))
           .font(.system(size: 18, weight: .semibold))
           .foregroundColor(.black)
           .frame(maxWidth: .infinity)

@@ -74,7 +74,7 @@ struct BlockedProfileView: View {
   @State private var showingSessions = false
 
 
-  @State private var selectedActivity = FamilyActivitySelection()
+  @State private var selectedActivity = FamilyActivitySelection(includeEntireCategory: true)
   @State private var selectedStrategy: BlockingStrategy? = nil
 
   // Tutorial steps 3 & 4
@@ -93,11 +93,11 @@ struct BlockedProfileView: View {
     strategyManager.activeSession?.isActive ?? false
   }
 
-  init(profile: BlockedProfiles? = nil) {
+  init(profile: BlockedProfiles? = nil, initialName: String = "") {
     self.profile = profile
-    _name = State(initialValue: profile?.name ?? "")
+    _name = State(initialValue: profile?.name ?? initialName)
     _selectedActivity = State(
-      initialValue: profile?.selectedActivity ?? FamilyActivitySelection()
+      initialValue: profile?.selectedActivity ?? FamilyActivitySelection(includeEntireCategory: true)
     )
     _enableBreaks = State(
       initialValue: profile?.enableBreaks ?? false
@@ -145,7 +145,7 @@ struct BlockedProfileView: View {
 
   private var strategyDescription: String {
     if isClassicMode {
-      return String(localized: "無需DO Card 直接鎖定App 或網站，但需要DO Card 解鎖")
+      return String(localized: "直接開啟專注模式，需要靠卡才能停止")
     } else {
       return String(localized: "設定計時時間，輕觸 DO Card 提前解鎖或等待計時結束")
     }
@@ -239,7 +239,7 @@ struct BlockedProfileView: View {
         _,
         newValue in
         selectedActivity = FamilyActivitySelection(
-          includeEntireCategory: newValue
+          includeEntireCategory: true
         )
       }
       .navigationTitle(isEditing ? String(localized: "編輯模式") : String(localized: "新增模式"))
@@ -268,8 +268,6 @@ struct BlockedProfileView: View {
       }
       .sheet(isPresented: $showingStrategyAdvancedSettings) {
         StrategyAdvancedSettingsView(
-          enableBreaks: $enableBreaks,
-          breakTimeInMinutes: $breakTimeInMinutes,
           isDisabled: isBlocking
         )
       }
@@ -329,6 +327,7 @@ struct BlockedProfileView: View {
               dismiss()
               if let profileToDelete = profile {
                 do {
+                  strategyManager.handleProfileDeletion(profileToDelete, context: modelContext)
                   try BlockedProfiles.deleteProfile(profileToDelete, in: modelContext)
                 } catch {
                   showError(message: error.localizedDescription)
@@ -338,8 +337,8 @@ struct BlockedProfileView: View {
           )
         case .overwriteNFCWarning:
           return Alert(
-            title: Text(String(localized: "警告：NFC 標籤已設定")),
-            message: Text(String(localized: "寫入此 NFC 標籤將覆蓋其現有資料。如果這是您之前設定用於解鎖的標籤，將無法再使用它解鎖模式。是否繼續？")),
+            title: Text(String(localized: "警告：卡片標籤已設定")),
+            message: Text(String(localized: "寫入此標籤將覆蓋其現有資料。如果這是你之前設定用於解鎖的標籤，將無法再使用它解鎖模式。是否繼續？")),
             primaryButton: .cancel(),
             secondaryButton: .default(Text(String(localized: "繼續"))) {
               if let url = pendingNFCWriteURL {
@@ -435,7 +434,7 @@ struct BlockedProfileView: View {
       Text(String(localized: "選擇專注策略"))
         .font(.headline)
         .fontWeight(.bold)
-      Text(String(localized: "選擇在使用此模式時，如何限制存取"))
+      Text(String(localized: "選擇在這個模式下，你的專注方式"))
         .font(.subheadline)
         .foregroundColor(.secondary)
     }
@@ -457,8 +456,8 @@ struct BlockedProfileView: View {
         isSelected: !isClassicMode
       ) {
         if !isBlocking {
-          // Prevent switching to timer mode if profile has an active schedule
-          if profile?.schedule?.isActive == true {
+          // Prevent switching to timer mode if profile has any active schedule
+          if profile?.hasActiveSchedules == true {
             showTimerScheduleConflictAlert = true
             return
           }
@@ -630,12 +629,11 @@ struct BlockedProfileView: View {
           enableAllowModeDomains: enableAllowModeDomain,
           enableSafariBlocking: enableSafariBlocking,
           domains: domains,
-          physicalUnblockNFCTagIds: physicalUnblockNFCTagIds,
-          schedule: nil
+          physicalUnblockNFCTagIds: physicalUnblockNFCTagIds
         )
 
-        // Schedule restrictions
-        DeviceActivityCenterUtil.scheduleTimerActivity(for: updatedProfile)
+        // Re-register schedule restrictions for existing schedules
+        try DeviceActivityCenterUtil.scheduleTimerActivities(for: updatedProfile)
       } else {
         let newProfile = try BlockedProfiles.createProfile(
           in: modelContext,
@@ -652,12 +650,11 @@ struct BlockedProfileView: View {
           enableAllowModeDomains: enableAllowModeDomain,
           enableSafariBlocking: enableSafariBlocking,
           domains: domains,
-          physicalUnblockNFCTagIds: physicalUnblockNFCTagIds,
-          schedule: nil
+          physicalUnblockNFCTagIds: physicalUnblockNFCTagIds
         )
 
-        // Schedule restrictions
-        DeviceActivityCenterUtil.scheduleTimerActivity(for: newProfile)
+        // Register schedule restrictions (empty for new profiles)
+        try DeviceActivityCenterUtil.scheduleTimerActivities(for: newProfile)
       }
 
       dismiss()
@@ -727,7 +724,7 @@ private struct TutorialStep2Overlay: View {
             .font(.system(size: 14, weight: .semibold))
             .foregroundColor(ThemeManager.shared.themeColor)
 
-          Text(String(localized: "為你的模式取名，完成後點選鍵盤輸入鍵\n模式名稱舉例：「我不要受手機控制！」\n或是「我要專心！」"))
+          Text(String(localized: "為你的模式取名，完成後點選鍵盤輸入鍵\n模式名稱舉例：「我要變強」\n或是「專心唸國文」"))
             .font(.system(size: 17, weight: .medium))
             .foregroundColor(.white)
         }

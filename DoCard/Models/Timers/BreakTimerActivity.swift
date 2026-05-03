@@ -19,7 +19,7 @@ class BreakTimerActivity: TimerActivity {
   func start(for profile: SharedData.ProfileSnapshot) {
     let profileId = profile.id.uuidString
 
-    guard let activeSession = SharedData.getActiveSharedSession() else {
+    guard let activeSession = SharedData.getActiveStrategySharedSession() else {
       log.info(
         "Start break timer activity for \(profileId), no active session found to start break")
       return
@@ -44,7 +44,7 @@ class BreakTimerActivity: TimerActivity {
   func stop(for profile: SharedData.ProfileSnapshot) {
     let profileId = profile.id.uuidString
 
-    guard let activeSession = SharedData.getActiveSharedSession() else {
+    guard let activeSession = SharedData.getActiveStrategySharedSession() else {
       log.info(
         "Stop break timer activity for \(profileId), no active session found to stop break")
       return

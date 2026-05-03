@@ -1,9 +1,20 @@
+import OSLog
 import SwiftData
 import SwiftUI
+
+private let scheduleLog = Logger(subsystem: "online.do.card.app", category: "ScheduleTab")
+
+/// Identifies a specific schedule within a profile for editing.
+private struct ScheduleEditContext: Identifiable {
+  var id: UUID { schedule.id }
+  let profile: BlockedProfiles
+  let schedule: BlockedProfileSchedule
+}
 
 struct ScheduleTabView: View {
   @Environment(\.modelContext) private var context
   @EnvironmentObject var themeManager: ThemeManager
+  @EnvironmentObject var subscriptionManager: SubscriptionManager
 
   @Query(sort: [
     SortDescriptor(\BlockedProfiles.order, order: .forward),
@@ -11,16 +22,23 @@ struct ScheduleTabView: View {
   ]) private var profiles: [BlockedProfiles]
 
   @State private var showCreateSheet = false
-  @State private var editingProfile: BlockedProfiles? = nil
+  @State private var editingContext: ScheduleEditContext? = nil
   @State private var showConflictAlert = false
   @State private var conflictProfileName = ""
+  @State private var showPaywall = false
+
+  /// All (profile, schedule) pairs flattened for display.
+  private var scheduleEntries: [(profile: BlockedProfiles, schedule: BlockedProfileSchedule)] {
+    profiles.flatMap { profile in
+      profile.schedules.map { (profile: profile, schedule: $0) }
+    }
+  }
 
   var body: some View {
     NavigationStack {
       ScrollView {
         VStack(spacing: 16) {
-          let scheduledProfiles = profiles.filter { $0.schedule != nil }
-          if scheduledProfiles.isEmpty {
+          if scheduleEntries.isEmpty {
             ContentUnavailableView(
               String(localized: "尚無排程"),
               systemImage: "calendar.badge.clock",
@@ -28,14 +46,24 @@ struct ScheduleTabView: View {
             )
             .padding(.top, 60)
           } else {
-            ForEach(scheduledProfiles, id: \.id) { profile in
+            ForEach(scheduleEntries, id: \.schedule.id) { entry in
               ScheduleCard(
-                profile: profile,
+                profile: entry.profile,
+                schedule: entry.schedule,
                 onToggle: { newValue in
-                  toggleSchedule(profile: profile, enabled: newValue)
+                  if subscriptionManager.isPremium {
+                    toggleSchedule(profile: entry.profile, schedule: entry.schedule, enabled: newValue)
+                  } else {
+                    showPaywall = true
+                  }
                 },
                 onTap: {
-                  editingProfile = profile
+                  if subscriptionManager.isPremium {
+                    editingContext = ScheduleEditContext(
+                      profile: entry.profile, schedule: entry.schedule)
+                  } else {
+                    showPaywall = true
+                  }
                 }
               )
             }
@@ -50,7 +78,13 @@ struct ScheduleTabView: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
 
-          Button(action: { showCreateSheet = true }) {
+          Button(action: {
+            if subscriptionManager.isPremium {
+              showCreateSheet = true
+            } else {
+              showPaywall = true
+            }
+          }) {
             Image(systemName: "plus")
               .font(.title2)
               .fontWeight(.medium)
@@ -73,23 +107,33 @@ struct ScheduleTabView: View {
       .navigationTitle(String(localized: "排程"))
     }
     .sheet(isPresented: $showCreateSheet) {
-      ScheduleEditSheet(profile: nil, profiles: profiles)
+      ScheduleEditSheet(
+        editingProfile: nil, editingSchedule: nil, profiles: profiles)
     }
-    .sheet(item: $editingProfile) { profile in
-      ScheduleEditSheet(profile: profile, profiles: profiles)
+    .sheet(item: $editingContext) { ctx in
+      ScheduleEditSheet(
+        editingProfile: ctx.profile, editingSchedule: ctx.schedule, profiles: profiles)
+    }
+    .sheet(isPresented: $showPaywall) {
+      PremiumUpgradeView()
+        .environmentObject(subscriptionManager)
     }
     .alert(String(localized: "時間衝突"), isPresented: $showConflictAlert) {
-      Button(String(localized: "OK"), role: .cancel) {}
+      Button(String(localized: "好"), role: .cancel) {}
     } message: {
       Text(String(localized: "此排程與「\(conflictProfileName)」的排程時間衝突"))
     }
   }
 
-  private func toggleSchedule(profile: BlockedProfiles, enabled: Bool) {
-    guard var schedule = profile.schedule else { return }
+  private func toggleSchedule(
+    profile: BlockedProfiles, schedule: BlockedProfileSchedule, enabled: Bool
+  ) {
+    var updated = schedule
 
     if enabled {
-      if let conflicting = findConflictingSchedule(for: profile) {
+      if let conflicting = findConflictingSchedule(
+        schedule: schedule, inProfile: profile)
+      {
         conflictProfileName = conflicting.name
         showConflictAlert = true
         return
@@ -97,57 +141,105 @@ struct ScheduleTabView: View {
     }
 
     if enabled {
-      if schedule.days.isEmpty {
-        schedule.days = Weekday.allCases.map { $0 }
+      if updated.days.isEmpty {
+        updated.days = Weekday.allCases.map { $0 }
       }
     } else {
-      schedule.days = []
+      updated.days = []
     }
-    schedule.updatedAt = Date()
+    updated.updatedAt = Date()
 
     do {
-      try BlockedProfiles.updateProfile(profile, in: context, schedule: schedule)
+      try BlockedProfiles.updateSchedule(in: profile, context: context, schedule: updated)
       if enabled {
-        DeviceActivityCenterUtil.scheduleTimerActivity(for: profile)
+        try DeviceActivityCenterUtil.scheduleTimerActivity(
+          for: profile, schedule: updated)
+        if updated.isCurrentlyInWindow(),
+          let snapshot = SharedData.snapshot(for: profile.id.uuidString)
+        {
+          ScheduleTimerActivity().start(for: snapshot)
+        }
       } else {
-        DeviceActivityCenterUtil.removeScheduleTimerActivities(for: profile)
+        DeviceActivityCenterUtil.removeScheduleTimerActivity(
+          for: profile, scheduleId: updated.id)
       }
     } catch {
-      print("Failed to toggle schedule: \(error)")
+      scheduleLog.error("Failed to toggle schedule: \(error)")
     }
   }
 
-  private func findConflictingSchedule(for targetProfile: BlockedProfiles) -> BlockedProfiles? {
-    guard let targetSchedule = targetProfile.schedule else { return nil }
+  /// Finds a conflicting schedule across ALL profiles (excluding the schedule being toggled).
+  private func findConflictingSchedule(
+    schedule: BlockedProfileSchedule,
+    inProfile targetProfile: BlockedProfiles
+  ) -> BlockedProfiles? {
+    let effectiveDays = schedule.days.isEmpty ? Array(Weekday.allCases) : schedule.days
+    let target = BlockedProfileSchedule(
+      id: schedule.id, name: schedule.name,
+      days: effectiveDays,
+      startHour: schedule.startHour, startMinute: schedule.startMinute,
+      endHour: schedule.endHour, endMinute: schedule.endMinute,
+      endType: schedule.endType, isNextDay: schedule.isNextDay)
+    let targetRanges = scheduleMinuteRanges(target)
 
     for profile in profiles {
-      guard profile.id != targetProfile.id,
-        let otherSchedule = profile.schedule,
-        otherSchedule.isActive
-      else { continue }
-
-      let targetDays = Set(
-        targetSchedule.days.isEmpty ? Weekday.allCases : targetSchedule.days)
-      let otherDays = Set(otherSchedule.days)
-      guard !targetDays.isDisjoint(with: otherDays) else { continue }
-
-      let targetStart = targetSchedule.startHour * 60 + targetSchedule.startMinute
-      let targetEnd = targetSchedule.endHour * 60 + targetSchedule.endMinute
-      let otherStart = otherSchedule.startHour * 60 + otherSchedule.startMinute
-      let otherEnd = otherSchedule.endHour * 60 + otherSchedule.endMinute
-
-      if targetStart < otherEnd && otherStart < targetEnd {
-        return profile
+      for otherSchedule in profile.schedules {
+        guard otherSchedule.id != schedule.id, otherSchedule.isActive else { continue }
+        let otherRanges = scheduleMinuteRanges(otherSchedule)
+        if minuteRangesOverlap(targetRanges, otherRanges) {
+          return profile
+        }
       }
     }
     return nil
   }
 }
 
+// MARK: - Conflict Detection Helpers
+
+/// Expands a schedule into (start, end, weekday) minute-ranges.
+/// Cross-midnight schedules are split into two segments per day:
+///   segment 1: startMinutes → 1440 on the start weekday
+///   segment 2: 0 → endMinutes on the following weekday
+private func scheduleMinuteRanges(
+  _ s: BlockedProfileSchedule
+) -> [(start: Int, end: Int, weekday: Int)] {
+  var ranges: [(start: Int, end: Int, weekday: Int)] = []
+  let startMins = s.startHour * 60 + s.startMinute
+  let endMins = s.endHour * 60 + s.endMinute
+  for day in s.days {
+    if s.isNextDay {
+      ranges.append((start: startMins, end: 1440, weekday: day.rawValue))
+      let nextWeekday = day.rawValue % 7 + 1
+      ranges.append((start: 0, end: endMins, weekday: nextWeekday))
+    } else {
+      ranges.append((start: startMins, end: endMins, weekday: day.rawValue))
+    }
+  }
+  return ranges
+}
+
+/// Returns true if any two ranges from the two sets share the same weekday and overlap in time.
+private func minuteRangesOverlap(
+  _ a: [(start: Int, end: Int, weekday: Int)],
+  _ b: [(start: Int, end: Int, weekday: Int)]
+) -> Bool {
+  for ra in a {
+    for rb in b {
+      guard ra.weekday == rb.weekday else { continue }
+      if ra.start < rb.end && rb.start < ra.end {
+        return true
+      }
+    }
+  }
+  return false
+}
+
 // MARK: - Schedule Card
 
 private struct ScheduleCard: View {
   let profile: BlockedProfiles
+  let schedule: BlockedProfileSchedule
   let onToggle: (Bool) -> Void
   let onTap: () -> Void
 
@@ -162,17 +254,15 @@ private struct ScheduleCard: View {
             .fontWeight(.bold)
             .foregroundStyle(.primary)
 
-          if let schedule = profile.schedule {
-            Text(scheduleSubtitle(schedule))
-              .font(.subheadline)
-              .foregroundStyle(.secondary)
-
-            Text(
-              String(localized: "模式：") + profile.name
-            )
+          Text(scheduleSubtitle(schedule))
             .font(.subheadline)
             .foregroundStyle(.secondary)
-          }
+
+          Text(
+            String(localized: "模式：") + profile.name
+          )
+          .font(.subheadline)
+          .foregroundStyle(.secondary)
         }
 
         Spacer()
@@ -180,7 +270,7 @@ private struct ScheduleCard: View {
         Toggle(
           "",
           isOn: Binding(
-            get: { profile.schedule?.isActive ?? false },
+            get: { schedule.isActive },
             set: { newValue in onToggle(newValue) }
           )
         )
@@ -197,8 +287,8 @@ private struct ScheduleCard: View {
   }
 
   private var cardTitle: String {
-    if let name = profile.schedule?.name, !name.isEmpty {
-      return name
+    if !schedule.name.isEmpty {
+      return schedule.name
     }
     return profile.name
   }
@@ -242,7 +332,8 @@ struct ScheduleEditSheet: View {
   @Environment(\.dismiss) private var dismiss
   @EnvironmentObject var themeManager: ThemeManager
 
-  let profile: BlockedProfiles?
+  let editingProfile: BlockedProfiles?
+  let editingSchedule: BlockedProfileSchedule?
   let profiles: [BlockedProfiles]
 
   // Form state
@@ -253,18 +344,21 @@ struct ScheduleEditSheet: View {
     from: DateComponents(hour: 9, minute: 0))!
   @State private var endTime: Date = Calendar.current.date(
     from: DateComponents(hour: 17, minute: 0))!
-  @State private var endType: ScheduleEndType = .cardTap
+  @State private var endType: ScheduleEndType = .specificTime
+  @State private var isNextDay: Bool = false
 
   @State private var showConflictAlert = false
   @State private var conflictProfileName = ""
   @State private var showDeleteConfirmation = false
   @State private var showTimerConflictAlert = false
+  @State private var showEndBeforeStartAlert = false
+  @State private var showNextDayMismatchAlert = false
 
   // For editing/creating profiles from mode picker
   @State private var profileToEdit: BlockedProfiles? = nil
   @State private var showNewProfileView = false
 
-  var isEditing: Bool { profile != nil }
+  var isEditing: Bool { editingSchedule != nil }
 
   var body: some View {
     NavigationStack {
@@ -327,51 +421,68 @@ struct ScheduleEditSheet: View {
                     }
                   }
                 } label: {
-                  if endType == .cardTap {
-                    Text(String(localized: "感應卡片"))
-                      .foregroundStyle(.primary)
-                  } else {
-                    DatePicker(
-                      "",
-                      selection: $endTime,
-                      displayedComponents: .hourAndMinute
-                    )
+                  endTimeMenuLabel
+                }
+              }
+
+              if endType == .specificTime {
+                Divider()
+                  .padding(.vertical, 8)
+
+                HStack {
+                  Text(String(localized: "隔天"))
+                    .foregroundStyle(.secondary)
+                  Spacer()
+                  Toggle("", isOn: $isNextDay)
                     .labelsHidden()
-                  }
+                    .tint(themeManager.themeColor)
                 }
               }
             }
           }
 
-          // Profile/mode picker — NavigationLink push
-          NavigationLink {
-            ModePickerView(
-              profiles: profiles,
-              selectedProfileId: $selectedProfileId,
-              onEditProfile: { profile in
-                profileToEdit = profile
-              },
-              onNewProfile: {
-                showNewProfileView = true
+          // Profile/mode picker — NavigationLink push (only for new schedules)
+          if !isEditing {
+            NavigationLink {
+              ModePickerView(
+                profiles: profiles,
+                selectedProfileId: $selectedProfileId,
+                onEditProfile: { profile in
+                  profileToEdit = profile
+                },
+                onNewProfile: {
+                  showNewProfileView = true
+                }
+              )
+            } label: {
+              ScheduleFieldCard {
+                HStack {
+                  Text(String(localized: "模式"))
+                    .foregroundStyle(.secondary)
+                  Spacer()
+                  HStack(spacing: 4) {
+                    Text(selectedProfileName)
+                      .foregroundStyle(themeManager.themeColor)
+                    Image(systemName: "chevron.right")
+                      .font(.caption)
+                      .foregroundStyle(.secondary)
+                  }
+                }
               }
-            )
-          } label: {
+            }
+            .buttonStyle(.plain)
+          } else {
+            // Show the profile name as read-only when editing
             ScheduleFieldCard {
               HStack {
                 Text(String(localized: "模式"))
                   .foregroundStyle(.secondary)
                 Spacer()
-                HStack(spacing: 4) {
-                  Text(selectedProfileName)
-                    .foregroundStyle(themeManager.themeColor)
-                  Image(systemName: "chevron.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
+                Text(editingProfile?.name ?? "")
+                  .foregroundStyle(themeManager.themeColor)
               }
             }
           }
-          .buttonStyle(.plain)
 
           // Repeat / Day selector
           ScheduleFieldCard {
@@ -455,11 +566,12 @@ struct ScheduleEditSheet: View {
       }
     }
     .onAppear {
-      if let profile = profile, let schedule = profile.schedule {
+      if let schedule = editingSchedule {
         scheduleName = schedule.name
-        selectedProfileId = profile.id
+        selectedProfileId = editingProfile?.id
         selectedDays = Set(schedule.days)
         endType = schedule.endType
+        isNextDay = schedule.isNextDay
         let cal = Calendar.current
         startTime =
           cal.date(from: DateComponents(hour: schedule.startHour, minute: schedule.startMinute))
@@ -476,7 +588,7 @@ struct ScheduleEditSheet: View {
       BlockedProfileView(profile: nil)
     }
     .alert(String(localized: "時間衝突"), isPresented: $showConflictAlert) {
-      Button(String(localized: "OK"), role: .cancel) {}
+      Button(String(localized: "好"), role: .cancel) {}
     } message: {
       Text(String(localized: "此排程與「\(conflictProfileName)」的排程時間衝突"))
     }
@@ -491,9 +603,47 @@ struct ScheduleEditSheet: View {
     } message: {
       Text(String(localized: "計時模式無法與排程同時使用，請先將模式切換為經典模式"))
     }
+    .alert(String(localized: "時間設定錯誤"), isPresented: $showEndBeforeStartAlert) {
+      Button(String(localized: "確認"), role: .cancel) {}
+    } message: {
+      Text(String(localized: "結束時間不能早於或等於開始時間。若需跨夜排程，請開啟「隔天」設定。"))
+    }
+    .alert(
+      String(localized: "已啟用「隔天」設定，但結束時間晚於開始時間。是否要關閉「隔天」？"),
+      isPresented: $showNextDayMismatchAlert
+    ) {
+      Button(String(localized: "關閉隔天")) {
+        isNextDay = false
+      }
+      Button(String(localized: "保持設定"), role: .cancel) {}
+    } message: {
+      Text("")
+    }
   }
 
   // MARK: - Computed
+
+  @ViewBuilder
+  private var endTimeMenuLabel: some View {
+    if endType == .cardTap {
+      Text(String(localized: "感應卡片"))
+        .foregroundStyle(.primary)
+    } else {
+      HStack(spacing: 4) {
+        if isNextDay {
+          Text(String(localized: "+1天"))
+            .font(.caption2)
+            .fontWeight(.semibold)
+            .foregroundStyle(themeManager.themeColor)
+            .padding(.horizontal, 5)
+            .padding(.vertical, 2)
+            .background(Capsule().fill(themeManager.themeColor.opacity(0.15)))
+        }
+        DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
+          .labelsHidden()
+      }
+    }
+  }
 
   private var selectedProfileName: String {
     if let id = selectedProfileId, let p = profiles.first(where: { $0.id == id }) {
@@ -528,19 +678,39 @@ struct ScheduleEditSheet: View {
     let startComponents = cal.dateComponents([.hour, .minute], from: startTime)
     let endComponents = cal.dateComponents([.hour, .minute], from: endTime)
 
-    let newSchedule = BlockedProfileSchedule(
+    if endType == .specificTime {
+      let startH = startComponents.hour ?? 9
+      let startM = startComponents.minute ?? 0
+      let endH = endComponents.hour ?? 17
+      let endM = endComponents.minute ?? 0
+      if !isNextDay {
+        // Same-day schedule: end must be strictly after start
+        if endH < startH || (endH == startH && endM <= startM) {
+          showEndBeforeStartAlert = true
+          return
+        }
+      } else if endH > startH || (endH == startH && endM > startM) {
+        // Cross-midnight toggle is on but end is after start — likely a mistake
+        showNextDayMismatchAlert = true
+        return
+      }
+    }
+
+    var newSchedule = BlockedProfileSchedule(
+      id: editingSchedule?.id ?? UUID(),
       name: scheduleName,
       days: Array(selectedDays),
       startHour: startComponents.hour ?? 9,
       startMinute: startComponents.minute ?? 0,
       endHour: endType == .cardTap ? 23 : (endComponents.hour ?? 17),
       endMinute: endType == .cardTap ? 59 : (endComponents.minute ?? 0),
-      endType: endType
+      endType: endType,
+      isNextDay: endType == .specificTime ? isNextDay : false
     )
 
     let targetProfile: BlockedProfiles?
     if isEditing {
-      targetProfile = profile
+      targetProfile = editingProfile
     } else {
       targetProfile = profiles.first { $0.id == selectedProfileId }
     }
@@ -553,9 +723,11 @@ struct ScheduleEditSheet: View {
       return
     }
 
-    // Check for conflicts
+    // Check for conflicts across all schedules in all profiles
     if endType == .specificTime {
-      if let conflicting = findConflict(schedule: newSchedule, excludingProfile: targetProfile) {
+      if let conflicting = findConflict(
+        schedule: newSchedule, excludingScheduleId: newSchedule.id)
+      {
         conflictProfileName = conflicting.name
         showConflictAlert = true
         return
@@ -563,52 +735,59 @@ struct ScheduleEditSheet: View {
     }
 
     do {
-      try BlockedProfiles.updateProfile(targetProfile, in: context, schedule: newSchedule)
-      DeviceActivityCenterUtil.scheduleTimerActivity(for: targetProfile)
+      if isEditing {
+        try BlockedProfiles.updateSchedule(
+          in: targetProfile, context: context, schedule: newSchedule)
+      } else {
+        try BlockedProfiles.addSchedule(
+          to: targetProfile, in: context, schedule: newSchedule)
+      }
+      try DeviceActivityCenterUtil.scheduleTimerActivity(
+        for: targetProfile, schedule: newSchedule)
+      // Start immediately if currently within the new schedule window.
+      if newSchedule.isCurrentlyInWindow(),
+        let snapshot = SharedData.snapshot(for: targetProfile.id.uuidString)
+      {
+        ScheduleTimerActivity().start(for: snapshot)
+      }
       dismiss()
     } catch {
-      print("Failed to save schedule: \(error)")
+      scheduleLog.error("Failed to save schedule: \(error)")
     }
   }
 
   private func deleteSchedule() {
-    guard let profile = profile else { return }
+    guard let profile = editingProfile, let schedule = editingSchedule else { return }
     do {
-      DeviceActivityCenterUtil.removeScheduleTimerActivities(for: profile)
-      profile.schedule = nil
-      try context.save()
+      DeviceActivityCenterUtil.removeScheduleTimerActivity(
+        for: profile, scheduleId: schedule.id)
+      try BlockedProfiles.removeSchedule(
+        from: profile, in: context, scheduleId: schedule.id)
       dismiss()
     } catch {
-      print("Failed to delete schedule: \(error)")
+      scheduleLog.error("Failed to delete schedule: \(error)")
     }
   }
 
-  private func findConflict(schedule: BlockedProfileSchedule, excludingProfile: BlockedProfiles)
-    -> BlockedProfiles?
-  {
-    let targetDays = Set(schedule.days)
-    let targetStart = schedule.startHour * 60 + schedule.startMinute
-    let targetEnd = schedule.endHour * 60 + schedule.endMinute
-
+  /// Checks for time conflicts across ALL schedules in ALL profiles.
+  private func findConflict(
+    schedule: BlockedProfileSchedule, excludingScheduleId: UUID
+  ) -> BlockedProfiles? {
+    let targetRanges = scheduleMinuteRanges(schedule)
     for p in profiles {
-      guard p.id != excludingProfile.id,
-        let otherSchedule = p.schedule,
-        otherSchedule.isActive
-      else { continue }
-
-      let otherDays = Set(otherSchedule.days)
-      guard !targetDays.isDisjoint(with: otherDays) else { continue }
-
-      let otherStart = otherSchedule.startHour * 60 + otherSchedule.startMinute
-      let otherEnd = otherSchedule.endHour * 60 + otherSchedule.endMinute
-
-      if targetStart < otherEnd && otherStart < targetEnd {
-        return p
+      for otherSchedule in p.schedules {
+        guard otherSchedule.id != excludingScheduleId, otherSchedule.isActive else { continue }
+        let otherRanges = scheduleMinuteRanges(otherSchedule)
+        if minuteRangesOverlap(targetRanges, otherRanges) {
+          return p
+        }
       }
     }
     return nil
   }
+
 }
+
 
 // MARK: - Mode Picker View (Full-screen push)
 
@@ -728,4 +907,5 @@ private struct DayCircleButton: View {
 #Preview {
   ScheduleTabView()
     .environmentObject(ThemeManager.shared)
+    .environmentObject(SubscriptionManager.shared)
 }

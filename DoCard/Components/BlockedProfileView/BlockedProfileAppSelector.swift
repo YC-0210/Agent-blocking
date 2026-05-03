@@ -15,7 +15,7 @@ struct BlockedProfileAppSelector: View {
   }
 
   private var catAndAppCount: Int {
-    return FamilyActivityUtil.countSelectedActivities(selection, allowMode: allowMode)
+    return FamilyActivityUtil.countSelectedApps(selection, allowMode: allowMode)
   }
 
   private var countDisplayText: String {

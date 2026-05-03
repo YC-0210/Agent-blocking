@@ -33,7 +33,7 @@ struct DOProfileInfoView: View {
       }
       .disabled(isBlocking)
 
-      Text(String(localized: "已封鎖 \(appCountText)"))
+      Text(String(localized: "已阻擋 \(appCountText)"))
         .font(.system(size: 15))
         .foregroundColor(.white.opacity(0.4))
     }

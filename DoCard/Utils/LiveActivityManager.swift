@@ -57,6 +57,32 @@ class LiveActivityManager: ObservableObject {
     }
   }
 
+  /// Returns the scheduled end time for timer-based sessions.
+  /// Returns nil for non-timer sessions or if strategyData cannot be decoded.
+  private func scheduledEndTime(for session: BlockedProfileSession) -> Date? {
+    guard let strategyId = session.blockedProfile.blockingStrategyId,
+      StrategyManager.isTimerStrategy(strategyId)
+    else {
+      return nil
+    }
+
+    let plannedDurationMinutes =
+      SharedData.getActiveStrategySharedSession()?.id == session.id
+      ? SharedData.getActiveStrategySharedSession()?.plannedDurationMinutes
+      : nil
+
+    if let plannedDurationMinutes {
+      return session.startTime.addingTimeInterval(TimeInterval(plannedDurationMinutes * 60))
+    }
+
+    guard let strategyData = session.blockedProfile.strategyData else {
+      return nil
+    }
+
+    let timerData = StrategyTimerData.toStrategyTimerData(from: strategyData)
+    return session.startTime.addingTimeInterval(TimeInterval(timerData.durationInMinutes * 60))
+  }
+
   func startSessionActivity(session: BlockedProfileSession) {
     // Check if Live Activities are supported
     guard isSupported else {
@@ -87,6 +113,7 @@ class LiveActivityManager: ObservableObject {
     let attributes = DoCardWidgetAttributes(name: profileName, message: message)
     let contentState = DoCardWidgetAttributes.ContentState(
       startTime: session.startTime,
+      scheduledEndTime: scheduledEndTime(for: session),
       isBreakActive: session.isBreakActive,
       breakStartTime: session.breakStartTime,
       breakEndTime: session.breakEndTime
@@ -116,6 +143,7 @@ class LiveActivityManager: ObservableObject {
 
     let updatedState = DoCardWidgetAttributes.ContentState(
       startTime: session.startTime,
+      scheduledEndTime: scheduledEndTime(for: session),
       isBreakActive: session.isBreakActive,
       breakStartTime: session.breakStartTime,
       breakEndTime: session.breakEndTime
@@ -135,6 +163,7 @@ class LiveActivityManager: ObservableObject {
 
     let updatedState = DoCardWidgetAttributes.ContentState(
       startTime: session.startTime,
+      scheduledEndTime: scheduledEndTime(for: session),
       isBreakActive: session.isBreakActive,
       breakStartTime: session.breakStartTime,
       breakEndTime: session.breakEndTime

@@ -57,8 +57,9 @@ struct ProfileDebugCard: View {
       Group {
         DebugRow(label: "Total Sessions", value: "\(profile.sessions.count)")
         DebugRow(
-          label: "Active Schedule Timer Activity",
-          value: profile.activeScheduleTimerActivity?.rawValue ?? "nil"
+          label: "Active Schedule Timer Activities",
+          value: profile.activeScheduleTimerActivities.map { $0.rawValue }.joined(separator: ", ").isEmpty
+            ? "nil" : profile.activeScheduleTimerActivities.map { $0.rawValue }.joined(separator: ", ")
         )
       }
     }
@@ -112,7 +113,7 @@ struct ProfileDebugCard: View {
     enableLiveActivity: true,
     enableBreaks: true,
     order: 2,
-    schedule: schedule
+    schedules: [schedule]
   )
 
   return ProfileDebugCard(profile: profile)

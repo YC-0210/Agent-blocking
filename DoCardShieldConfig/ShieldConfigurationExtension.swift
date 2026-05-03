@@ -45,13 +45,15 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     // Get random fun message
     let randomMessage = getFunBlockMessage(for: type, title: title)
 
-    // Emoji "icon" (rendered to an image so it works with ShieldConfiguration.icon)
-    let emojiIcon = makeEmojiIcon(randomMessage.emoji, size: 96)
+    // TODO: Once DOLogoShield.png (transparent-background) is added to
+    // DoCardShieldConfig/Assets.xcassets/DOLogoShield.imageset/, switch to makeDOLogoIcon().
+    // Until then, the emoji icon is used as a fallback.
+    let icon = makeDOLogoIcon() ?? makeEmojiIcon(randomMessage.emoji, size: 96)
 
     return ShieldConfiguration(
       backgroundBlurStyle: .dark,
       backgroundColor: .black,
-      icon: emojiIcon,
+      icon: icon,
       title: ShieldConfiguration.Label(
         text: randomMessage.title,
         color: .white
@@ -78,41 +80,43 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
     // This keeps things fun without feeling chaotic or mismatched.
     // Using String(localized:) for all user-facing text to support localization.
     let messages: [FunMessage] = [
-      ("📵", String(localized: "Not right now"), String(format: String(localized: "%@ can wait. You're choosing your time on purpose."), title), String(localized: "Back")),
-      ("🧠", String(localized: "Brain check"), String(format: String(localized: "Do you actually want %@… or was it autopilot?"), title), String(localized: "Return")),
+      ("📵", String(localized: "認真的？"), String(localized: "做完再說。"), String(localized: "好啦好啦")),
+      ("🧠", String(localized: "先做完"), String(format: String(localized: "%@ 哪都不會去。"), title), String(localized: "好")),
       (
-        "🎯", String(localized: "Stay on target"), String(format: String(localized: "One small step toward your goal first. Then decide on %@."), title),
-        String(localized: "Continue")
+        "🎯", String(localized: "你自己設的"), String(localized: "還記得當時的承諾嗎？"),
+        String(localized: "記得")
       ),
       (
-        "⏳", String(localized: "Give it 2 minutes"), String(format: String(localized: "Finish the next tiny thing. %@ will still be there after."), title),
-        String(localized: "Keep going")
+        "⏳", String(localized: "不行喔"), String(localized: "現在不行。先把事做完。"),
+        String(localized: "好吧")
       ),
-      ("🛡️", String(localized: "Shield up"), String(localized: "Focus is protected. You've got this."), String(localized: "Onward")),
-      ("🔒", String(localized: "Locked in"), String(localized: "This block is temporary. Your momentum isn't."), String(localized: "Stay here")),
-      ("🧱", String(localized: "Boundary set"), String(localized: "You made a plan. This is you sticking to it."), String(localized: "Back")),
-      ("✨", String(localized: "Glow mode"), String(localized: "You're building attention — that's the real flex."), String(localized: "Nice")),
-      ("🫶", String(localized: "Be kind to you"), String(localized: "No shame. Just a gentle nudge back to what matters."), String(localized: "Got it")),
+      ("🛡️", String(localized: "快了"), String(localized: "再一下下，你做得到。"), String(localized: "繼續")),
+      ("🔒", String(localized: "撐一下"), String(localized: "快到了"), String(localized: "好啦")),
+      ("🧱", String(localized: "被抓到了"), String(localized: "沒事，回去吧。"), String(localized: "回去")),
+      ("✨", String(localized: "嘿"), String(localized: "這不在你的計畫裡。"), String(localized: "好好")),
+      ("🫶", String(localized: "還沒"), String(localized: "做完再用，想用多久都行。"), String(localized: "好啦好啦")),
       (
-        "🌐", String(localized: "Not this detour"), String(format: String(localized: "%@ isn't part of the mission right now."), title), String(localized: "Return")
-      ),
-      (
-        "🕸️", String(localized: "Avoid the trap"), String(localized: "One click turns into twenty. Let's not."), String(localized: "Back")
-      ),
-      ("🛡️", String(localized: "Protected zone"), String(localized: "We're keeping your attention where you wanted it."), String(localized: "Got it")),
-      ("🔒", String(localized: "Locked in"), String(localized: "This is a temporary block for a long-term win."), String(localized: "Return")),
-      (
-        "🎯", String(localized: "Back to the task"), String(localized: "Close the detour. Finish the task. Then come back on purpose."),
-        String(localized: "Back to work")
+        "🌐", String(localized: "去做你的事"), String(format: String(localized: "%@ 在這裡等你。"), title),
+        String(localized: "好")
       ),
       (
-        "⏳", String(localized: "Protect the time"), String(localized: "A few minutes can become an hour. Keep your momentum."),
-        String(localized: "Stay focused")
+        "🕸️", String(localized: "喂！"), String(localized: "你自己設定的欸，別搞"),
+        String(localized: "我知道")
       ),
-      ("📵", String(localized: "Not missing anything"), String(localized: "You're not missing anything important right now."), String(localized: "Back")),
-      ("✨", String(localized: "Momentum mode"), String(localized: "Tiny choices like this add up fast."), String(localized: "Continue")),
+      ("🛡️", String(localized: "快到了"), String(localized: "撐著，快完成了。"), String(localized: "繼續")),
+      ("🔒", String(localized: "現在嗎？"), String(localized: "要確定欸？"), String(localized: "好好")),
+      (
+        "🎯", String(localized: "你說的"), String(localized: "「做就對了」——你說的話。"),
+        String(localized: "對對對")
+      ),
+      (
+        "⏳", String(localized: "放著"), String(localized: "先把這件事做完。"),
+        String(localized: "好啦好啦")
+      ),
+      ("📵", String(localized: "等一下"), String(localized: "快到了，再久一點點。"), String(localized: "好啦")),
+      ("✨", String(localized: "急什麼"), String(localized: "先做完正事，再回來。"), String(localized: "好吧")),
     ]
-    guard !messages.isEmpty else { return ("🧠", String(localized: "Quick pause"), String(localized: "Not right now."), String(localized: "Back")) }
+    guard !messages.isEmpty else { return ("🧠", String(localized: "認真的？"), String(localized: "現在不行。"), String(localized: "好啦好啦")) }
 
     let comps = Calendar.current.dateComponents([.year, .month, .day], from: Date())
     let dayKey =
@@ -134,6 +138,19 @@ class ShieldConfigurationExtension: ShieldConfigurationDataSource {
       hash &*= 1_099_511_628_211
     }
     return hash
+  }
+
+  /// Loads the DO logo from the shield extension's own asset catalog and resizes to 96×96 pt.
+  /// Returns nil if the asset hasn't been added yet, so callers can fall back to the emoji icon.
+  private func makeDOLogoIcon() -> UIImage? {
+    guard let logo = UIImage(named: "DOLogoShield", in: Bundle.main, compatibleWith: nil) else {
+      return nil
+    }
+    let size: CGFloat = 96
+    let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
+    return renderer.image { _ in
+      logo.draw(in: CGRect(x: 0, y: 0, width: size, height: size))
+    }
   }
 
   private func makeEmojiIcon(_ emoji: String, size: CGFloat) -> UIImage? {

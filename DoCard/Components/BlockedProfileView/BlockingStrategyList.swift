@@ -10,7 +10,7 @@ struct BlockingStrategyList: View {
   var onAdvancedSettingsTapped: (() -> Void)? = nil
 
   var body: some View {
-    Section("Blocking Strategy") {
+    Section(String(localized: "Blocking Strategy")) {
       VStack(alignment: .leading, spacing: 8) {
         VStack {
           ForEach(strategies, id: \.name) { strategy in

@@ -27,19 +27,27 @@ class BlockedProfiles {
 
   var domains: [String]? = nil
 
+  var schedules: [BlockedProfileSchedule] = []
+
+  /// Legacy property — kept for SwiftData migration from single-schedule to multi-schedule.
+  /// After migration, this is always nil. Do not use directly; use `schedules` instead.
   var schedule: BlockedProfileSchedule? = nil
 
   var customReminderMessage: String?
 
   @Relationship var sessions: [BlockedProfileSession] = []
 
-  var activeScheduleTimerActivity: DeviceActivityName? {
-    return DeviceActivityCenterUtil.getActiveScheduleTimerActivity(for: self)
+  var activeScheduleTimerActivities: [DeviceActivityName] {
+    return DeviceActivityCenterUtil.getActiveScheduleTimerActivities(for: self)
+  }
+
+  var hasActiveSchedules: Bool {
+    return schedules.contains(where: { $0.isActive })
   }
 
   var scheduleIsOutOfSync: Bool {
-    return self.schedule?.isActive == true
-      && DeviceActivityCenterUtil.getActiveScheduleTimerActivity(for: self) == nil
+    return hasActiveSchedules
+      && DeviceActivityCenterUtil.getActiveScheduleTimerActivities(for: self).isEmpty
   }
 
   init(
@@ -61,7 +69,7 @@ class BlockedProfiles {
     order: Int = 0,
     domains: [String]? = nil,
     physicalUnblockNFCTagIds: [String]? = nil,
-    schedule: BlockedProfileSchedule? = nil
+    schedules: [BlockedProfileSchedule] = []
   ) {
     self.id = id
     self.name = name
@@ -84,7 +92,7 @@ class BlockedProfiles {
     self.domains = domains
 
     self.physicalUnblockNFCTagIds = physicalUnblockNFCTagIds
-    self.schedule = schedule
+    self.schedules = schedules
   }
 
   func showStopButton(elapsedTime: TimeInterval) -> Bool {
@@ -148,7 +156,7 @@ class BlockedProfiles {
     order: Int? = nil,
     domains: [String]? = nil,
     physicalUnblockNFCTagIds: [String]? = nil,
-    schedule: BlockedProfileSchedule? = nil
+    schedules: [BlockedProfileSchedule]? = nil
   ) throws -> BlockedProfiles {
     if let newName = name {
       profile.name = newName
@@ -198,8 +206,8 @@ class BlockedProfiles {
       profile.domains = newDomains
     }
 
-    if let newSchedule = schedule {
-      profile.schedule = newSchedule
+    if let newSchedules = schedules {
+      profile.schedules = newSchedules
     }
 
     // Values can be nil when removed
@@ -268,7 +276,7 @@ class BlockedProfiles {
       enableSafariBlocking: profile.enableSafariBlocking,
       domains: profile.domains,
       physicalUnblockNFCTagIds: profile.physicalUnblockNFCTagIds,
-      schedule: profile.schedule
+      schedules: profile.schedules
     )
   }
 
@@ -318,7 +326,7 @@ class BlockedProfiles {
     enableSafariBlocking: Bool = true,
     domains: [String]? = nil,
     physicalUnblockNFCTagIds: [String]? = nil,
-    schedule: BlockedProfileSchedule? = nil
+    schedules: [BlockedProfileSchedule] = []
   ) throws -> BlockedProfiles {
     let profileOrder = getNextOrder(in: context)
 
@@ -340,8 +348,8 @@ class BlockedProfiles {
       physicalUnblockNFCTagIds: physicalUnblockNFCTagIds
     )
 
-    if let schedule = schedule {
-      profile.schedule = schedule
+    if !schedules.isEmpty {
+      profile.schedules = schedules
     }
 
     // Create the snapshot so extensions can read it immediately
@@ -374,12 +382,45 @@ class BlockedProfiles {
       order: nextOrder,
       domains: source.domains,
       physicalUnblockNFCTagIds: source.physicalUnblockNFCTagIds,
-      schedule: source.schedule
+      schedules: source.schedules
     )
 
     context.insert(cloned)
     try context.save()
     return cloned
+  }
+
+  static func addSchedule(
+    to profile: BlockedProfiles,
+    in context: ModelContext,
+    schedule: BlockedProfileSchedule
+  ) throws {
+    var updated = profile.schedules
+    updated.append(schedule)
+    try updateProfile(profile, in: context, schedules: updated)
+  }
+
+  static func updateSchedule(
+    in profile: BlockedProfiles,
+    context: ModelContext,
+    schedule: BlockedProfileSchedule
+  ) throws {
+    var updated = profile.schedules
+    if let index = updated.firstIndex(where: { $0.id == schedule.id }) {
+      updated[index] = schedule
+    } else {
+      updated.append(schedule)
+    }
+    try updateProfile(profile, in: context, schedules: updated)
+  }
+
+  static func removeSchedule(
+    from profile: BlockedProfiles,
+    in context: ModelContext,
+    scheduleId: UUID
+  ) throws {
+    let updated = profile.schedules.filter { $0.id != scheduleId }
+    try updateProfile(profile, in: context, schedules: updated)
   }
 
   static func addDomain(to profile: BlockedProfiles, context: ModelContext, domain: String) throws {
@@ -404,5 +445,31 @@ class BlockedProfiles {
 
     let newDomains = domains.filter { $0 != domain }
     try updateProfile(profile, in: context, domains: newDomains)
+  }
+
+  // MARK: - Migration: single schedule → multi-schedule
+
+  /// Migrates profiles that have data in the legacy `schedule` property into the new `schedules` array.
+  /// Safe to call multiple times — only migrates profiles that still have legacy data.
+  static func migrateSchedulesToArray(in context: ModelContext) {
+    guard let profiles = try? fetchProfiles(in: context) else { return }
+    var didMigrate = false
+
+    for profile in profiles {
+      if let legacySchedule = profile.schedule {
+        // Ensure the legacy schedule gets an id if it didn't have one
+        var migrated = legacySchedule
+        if migrated.id == UUID(uuidString: "00000000-0000-0000-0000-000000000000") {
+          migrated.id = UUID()
+        }
+        profile.schedules.append(migrated)
+        profile.schedule = nil
+        didMigrate = true
+      }
+    }
+
+    if didMigrate {
+      try? context.save()
+    }
   }
 }

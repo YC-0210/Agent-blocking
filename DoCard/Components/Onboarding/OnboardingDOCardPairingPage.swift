@@ -17,6 +17,7 @@ struct OnboardingDOCardPairingPage: View {
   @State private var showButton = false
   @State private var scanState: ScanState = .idle
   @State private var isVideoPlaying = true
+  @State private var cardName: String = ""
 
   private let nfcScanner = NFCScannerUtil()
 
@@ -65,30 +66,55 @@ struct OnboardingDOCardPairingPage: View {
 
       // Bottom buttons
       VStack(spacing: 12) {
+        // Card name input — shown in idle and error states
+        if shouldShowNameField {
+          TextField(String(localized: "例：彥丞的 DO Card"), text: $cardName)
+            .font(.system(size: 16))
+            .foregroundColor(.white)
+            .multilineTextAlignment(.center)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .background(
+              RoundedRectangle(cornerRadius: 12)
+                .fill(Color.white.opacity(0.1))
+                .overlay(
+                  RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.white.opacity(0.2), lineWidth: 1)
+                )
+            )
+            .colorScheme(.dark)
+            .onChange(of: cardName) { _, newValue in
+              if newValue.count > 20 {
+                cardName = String(newValue.prefix(20))
+              }
+            }
+        }
+
         Button(action: {
           UIImpactFeedbackGenerator(style: .medium).impactOccurred()
           handleButtonTap()
         }) {
           Text(buttonTitle)
             .font(.system(size: 18, weight: .semibold))
-            .foregroundColor(.black)
+            .foregroundColor(isButtonDisabled ? .black.opacity(0.4) : .black)
             .frame(maxWidth: .infinity)
             .frame(height: 58)
             .background(
               Capsule()
-                .fill(Color.white)
+                .fill(isButtonDisabled ? Color.white.opacity(0.4) : Color.white)
             )
         }
+        .disabled(isButtonDisabled)
 
-        // Skip button — allows users without a DO Card to proceed
+        // Skip button — allows users without a DO Card to go directly to the main app
         if case .success = scanState {
           // Hide skip after successful scan
         } else {
           Button(action: {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            onContinue()
+            onboardingManager.completeOnboarding()
           }) {
-            Text(String(localized: "稍後再配對"))
+            Text(String(localized: "使用他人卡片"))
               .font(.system(size: 15, weight: .medium))
               .foregroundColor(.white.opacity(0.5))
           }
@@ -110,6 +136,21 @@ struct OnboardingDOCardPairingPage: View {
     }
   }
 
+  private var shouldShowNameField: Bool {
+    switch scanState {
+    case .idle, .error: return true
+    default: return false
+    }
+  }
+
+  private var isButtonDisabled: Bool {
+    switch scanState {
+    case .scanning: return true
+    case .idle, .error: return cardName.trimmingCharacters(in: .whitespaces).isEmpty
+    case .success: return false
+    }
+  }
+
   private var buttonTitle: String {
     switch scanState {
     case .idle, .error:
@@ -125,7 +166,7 @@ struct OnboardingDOCardPairingPage: View {
   private var statusText: some View {
     switch scanState {
     case .idle:
-      Text(String(localized: "點擊下方按鈕開始配對"))
+      Text(String(localized: "輸入卡片名稱後點擊配對"))
         .font(.system(size: 15, weight: .medium))
         .foregroundColor(.white.opacity(0.4))
     case .scanning:
@@ -165,6 +206,9 @@ struct OnboardingDOCardPairingPage: View {
   }
 
   private func startScanning() {
+    let name = cardName.trimmingCharacters(in: .whitespaces)
+    guard !name.isEmpty else { return }
+
     scanState = .scanning
     isVideoPlaying = false
 
@@ -178,6 +222,9 @@ struct OnboardingDOCardPairingPage: View {
       }
 
       onboardingManager.pairDOCard(tagId: result.id)
+      // Persist the card name (scanned from tag, or the name we just wrote)
+      onboardingManager.doCardName = result.cardName ?? name
+
       withAnimation(.easeOut(duration: 0.3)) {
         scanState = .success
       }
@@ -202,7 +249,9 @@ struct OnboardingDOCardPairingPage: View {
       isVideoPlaying = true
     }
 
-    nfcScanner.scan(profileName: "DO Card", isUnlocking: false)
+    // Single-session: read to verify + write new JSON payload with name.
+    // requirePaired: false — this is initial pairing, the card is not in the paired list yet.
+    nfcScanner.scanAndWrite(name: name, requirePaired: false)
   }
 }
 

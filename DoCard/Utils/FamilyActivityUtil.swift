@@ -4,46 +4,45 @@ import Foundation
 /// Utility functions for working with FamilyActivitySelection
 struct FamilyActivityUtil {
 
-  /// Counts the total number of selected activities (categories + applications + web domains)
+  /// Counts the total number of selected apps (individual apps + apps expanded from categories).
+  /// Categories are expanded into individual applicationTokens when FamilyActivitySelection
+  /// is initialized with includeEntireCategory: true.
+  /// Web domains are NOT counted toward the app limit.
   /// - Parameters:
   ///   - selection: The FamilyActivitySelection to count
-  ///   - allowMode: Whether this is for allow mode (affects display but not actual count)
-  /// - Returns: Total count of selected items
-  /// - Note: This shows the count as displayed to users. In ALLOW mode, Apple internally expands
-  ///         categories to individual apps when enforcing the 50 app limit, so selecting a few
-  ///         categories may exceed the limit. In BLOCK mode, categories count as 1 item each.
+  ///   - allowMode: Whether this is for allow mode (unused, kept for API compatibility)
+  /// - Returns: Total count of selected apps (applicationTokens only)
+  static func countSelectedApps(_ selection: FamilyActivitySelection, allowMode: Bool = false)
+    -> Int
+  {
+    return selection.applicationTokens.count
+  }
+
+  /// Legacy name kept for compatibility — calls countSelectedApps
   static func countSelectedActivities(_ selection: FamilyActivitySelection, allowMode: Bool = false)
     -> Int
   {
-    // This count shows categories + apps + domains as displayed
-    // IMPORTANT: In Allow mode, Apple enforces the 50 limit AFTER expanding categories to individual apps
-    // In Block mode, categories count as 1 regardless of how many apps they contain
-    return selection.categories.count + selection.applications.count + selection.webDomains.count
+    return countSelectedApps(selection, allowMode: allowMode)
   }
 
-  /// Gets display text for the count with appropriate warnings for allow mode
+  /// Gets display text for the app count
   /// - Parameters:
   ///   - selection: The FamilyActivitySelection to display
   ///   - allowMode: Whether this is for allow mode
-  /// - Returns: Formatted display text with warnings if needed
+  /// - Returns: Formatted display text, e.g. "3 個 App"
   static func getCountDisplayText(_ selection: FamilyActivitySelection, allowMode: Bool = false)
     -> String
   {
-    let apps = selection.applications.count
-    let categories = selection.categories.count
-    let total = apps + categories + selection.webDomains.count
-
-    return String(localized: "\(apps) 個 App、\(categories) 個類別")
+    let apps = selection.applicationTokens.count
+    return String(localized: "\(apps) 個 App")
   }
 
-  /// Returns a compact formatted string showing separate app and category counts
+  /// Returns a compact formatted string showing app count only
   /// - Parameter selection: The FamilyActivitySelection to format
-  /// - Returns: e.g. "3", "2 類別", "3 + 2 類別", or "無"
+  /// - Returns: e.g. "3 個 App" or "0 個 App"
   static func formatAppCount(_ selection: FamilyActivitySelection) -> String {
-    let apps = selection.applications.count
-    let categories = selection.categories.count
-
-    return String(localized: "\(apps) 個 App、\(categories) 個類別")
+    let apps = selection.applicationTokens.count
+    return String(localized: "\(apps) 個 App")
   }
 
   /// Determines if a warning should be shown for allow mode category selection
@@ -65,7 +64,7 @@ struct FamilyActivityUtil {
   ) {
     return (
       categories: selection.categories.count,
-      applications: selection.applications.count,
+      applications: selection.applicationTokens.count,
       webDomains: selection.webDomains.count
     )
   }

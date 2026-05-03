@@ -26,16 +26,16 @@ struct AuthorizationCallout: View {
               )
 
             VStack(alignment: .leading, spacing: 4) {
-              Text(String(localized: "Authorization required"))
+              Text(String(localized: "需要授權才能開始"))
                 .font(.headline)
                 .foregroundStyle(.primary)
 
-              Text(String(localized: "Authorize Screen Time to enable blocking."))
+              Text(String(localized: "授權螢幕使用時間，讓 DO 陪你一起行動"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
               HStack(spacing: 6) {
-                Text(String(localized: "Tap to authorize"))
+                Text(String(localized: "點此授權"))
                   .font(.caption)
                   .fontWeight(.semibold)
                   .foregroundStyle(themeManager.themeColor)

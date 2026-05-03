@@ -1,7 +1,10 @@
 import Combine
 import FamilyControls
 import ManagedSettings
+import OSLog
 import SwiftUI
+
+private let raLog = Logger(subsystem: "online.do.card.app", category: "RequestAuthorizer")
 
 @MainActor
 class RequestAuthorizer: ObservableObject {
@@ -21,10 +24,10 @@ class RequestAuthorizer: ObservableObject {
     Task {
       do {
         try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
-        print("Individual authorization successful")
+        raLog.debug("Individual authorization successful")
         self.isAuthorized = true
       } catch {
-        print("Error requesting authorization: \(error)")
+        raLog.error("Error requesting authorization: \(error)")
         self.isAuthorized = false
       }
     }
@@ -44,7 +47,7 @@ class RequestAuthorizer: ObservableObject {
         self?.isAuthorized = (status == .approved)
 
         if wasAuthorized && status != .approved {
-          print("⚠️ Family Controls authorization was revoked. Clearing restrictions.")
+          raLog.warning("⚠️ Family Controls authorization was revoked. Clearing restrictions.")
           // Clear any active restrictions since we no longer have permission
           let blocker = AppBlockerUtil()
           blocker.deactivateRestrictions()

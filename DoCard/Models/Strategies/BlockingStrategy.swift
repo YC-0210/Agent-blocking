@@ -24,6 +24,12 @@ protocol BlockingStrategy {
     get set
   }
 
+  /// Called after a successful NFC tap with the card name from the NDEF payload.
+  /// `nil` means the card uses the old plain-UUID format (no name written).
+  var onCardNameScanned: ((String?) -> Void)? {
+    get set
+  }
+
   func getIdentifier() -> String
   func startBlocking(
     context: ModelContext,

@@ -5,9 +5,6 @@ struct ProfileTimerButton: View {
 
   let isActive: Bool
 
-  let isBreakAvailable: Bool
-  let isBreakActive: Bool
-
   let elapsedTime: TimeInterval?
 
   let showStopButton: Bool
@@ -15,18 +12,8 @@ struct ProfileTimerButton: View {
   let onStartTapped: () -> Void
   let onStopTapped: () -> Void
 
-  let onBreakTapped: () -> Void
-
   // Breathing glow state
   @State private var glowIntensity: Double = 0.3
-
-  var breakMessage: String {
-    return isBreakActive ? String(localized: "Hold to Stop Break") : String(localized: "Hold to Start Break")
-  }
-
-  var breakColor: Color? {
-    return isBreakActive ? .orange : nil
-  }
 
   var body: some View {
     VStack(spacing: 8) {
@@ -97,18 +84,6 @@ struct ProfileTimerButton: View {
           }
         }
       }
-
-      if isBreakAvailable {
-        GlassButton(
-          title: breakMessage,
-          icon: "cup.and.heat.waves.fill",
-          fullWidth: true,
-          longPressEnabled: true,
-          color: breakColor
-        ) {
-          onBreakTapped()
-        }
-      }
     }
     .onChange(of: isActive) { _, newValue in
       if !newValue {
@@ -131,24 +106,18 @@ struct ProfileTimerButton: View {
   VStack(spacing: 20) {
     ProfileTimerButton(
       isActive: false,
-      isBreakAvailable: false,
-      isBreakActive: false,
       elapsedTime: nil,
       showStopButton: true,
       onStartTapped: {},
-      onStopTapped: {},
-      onBreakTapped: {}
+      onStopTapped: {}
     )
 
     ProfileTimerButton(
       isActive: true,
-      isBreakAvailable: true,
-      isBreakActive: false,
       elapsedTime: 3665,
       showStopButton: true,
       onStartTapped: {},
-      onStopTapped: {},
-      onBreakTapped: {}
+      onStopTapped: {}
     )
   }
   .padding()

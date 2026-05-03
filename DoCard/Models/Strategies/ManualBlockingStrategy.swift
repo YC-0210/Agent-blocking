@@ -17,6 +17,7 @@ class ManualBlockingStrategy: BlockingStrategy {
 
   var onSessionCreation: ((SessionStatus) -> Void)?
   var onErrorMessage: ((String) -> Void)?
+  var onCardNameScanned: ((String?) -> Void)?
 
   private let appBlocker: AppBlockerUtil = AppBlockerUtil()
 
@@ -50,11 +51,7 @@ class ManualBlockingStrategy: BlockingStrategy {
     context: ModelContext,
     session: BlockedProfileSession
   ) -> (any View)? {
-    session.endSession()
-    do {
-      try context.save()
-    } catch {
-      logger.error("Failed to save session after manual stop: \(error.localizedDescription)")
+    session.endSessionFully(in: context, endReason: "") { error in
       self.onErrorMessage?("Failed to save session: \(error.localizedDescription)")
     }
     self.appBlocker.deactivateRestrictions()

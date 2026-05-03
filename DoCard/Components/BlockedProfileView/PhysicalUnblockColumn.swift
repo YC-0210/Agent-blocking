@@ -111,8 +111,8 @@ struct PhysicalUnblockColumn: View {
     Form {
       Section("Not Set") {
         PhysicalUnblockColumn(
-          title: "NFC Tag",
-          description: "Set a specific NFC tag that can only unblock this profile when active",
+          title: "DO Card",
+          description: "Set a specific DO Card that can only unblock this profile when active",
           systemImage: "wave.3.right",
           id: nil,
           disabled: false,
@@ -123,8 +123,8 @@ struct PhysicalUnblockColumn: View {
 
       Section("Set") {
         PhysicalUnblockColumn(
-          title: "NFC Tag",
-          description: "Set a specific NFC tag that can only unblock this profile when active",
+          title: "DO Card",
+          description: "Set a specific DO Card that can only unblock this profile when active",
           systemImage: "wave.3.right",
           id: "nfc_12345678901234567890",
           disabled: false,
@@ -135,8 +135,8 @@ struct PhysicalUnblockColumn: View {
 
       Section("Disabled") {
         PhysicalUnblockColumn(
-          title: "NFC Tag",
-          description: "Set a specific NFC tag that can only unblock this profile when active",
+          title: "DO Card",
+          description: "Set a specific DO Card that can only unblock this profile when active",
           systemImage: "wave.3.right",
           id: "nfc_12345678901234567890",
           disabled: true,

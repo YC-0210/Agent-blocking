@@ -61,9 +61,9 @@ extension BlockedProfileSession {
   var formattedDate: String {
     let calendar = Calendar.current
     if calendar.isDateInToday(startTime) {
-      return "Today"
+      return String(localized: "Today")
     } else if calendar.isDateInYesterday(startTime) {
-      return "Yesterday"
+      return String(localized: "Yesterday")
     }
 
     let formatter = DateFormatter()
@@ -87,7 +87,7 @@ extension BlockedProfileSession {
       return "\(formattedStartTime) → \(endTimeText)"
     }
 
-    return "Started \(formattedStartTime)"
+    return String(localized: "Started \(formattedStartTime)")
   }
 
   var breakRangeText: String? {
@@ -99,10 +99,12 @@ extension BlockedProfileSession {
 
     if let breakEndTime {
       let breakEndText = breakEndTime.formatted(date: .omitted, time: .shortened)
-      return "Break \(breakStartText) → \(breakEndText)"
+      return String(localized: "Break \(breakStartText) → \(breakEndText)")
     }
 
-    return isActive ? "Break \(breakStartText) (ongoing)" : "Break \(breakStartText)"
+    return isActive
+      ? String(localized: "Break \(breakStartText) (ongoing)")
+      : String(localized: "Break \(breakStartText)")
   }
 
   var formattedDuration: String {

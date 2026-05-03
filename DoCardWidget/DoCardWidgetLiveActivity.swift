@@ -2,40 +2,13 @@ import ActivityKit
 import SwiftUI
 import WidgetKit
 
-// DO Orange accent color
-private let doOrangeColor = Color(red: 1.0, green: 0.42, blue: 0.21)
-
 struct DoCardWidgetAttributes: ActivityAttributes {
   public struct ContentState: Codable, Hashable {
     var startTime: Date
+    var scheduledEndTime: Date? = nil  // nil = non-timer session (elapsed display)
     var isBreakActive: Bool = false
     var breakStartTime: Date?
     var breakEndTime: Date?
-
-    func getTimeIntervalSinceNow() -> Double {
-      // Calculate the break duration to subtract from elapsed time
-      let breakDuration = calculateBreakDuration()
-
-      // Calculate elapsed time minus break duration
-      let adjustedStartTime = startTime.addingTimeInterval(breakDuration)
-
-      return adjustedStartTime.timeIntervalSince1970
-        - Date().timeIntervalSince1970
-    }
-
-    private func calculateBreakDuration() -> TimeInterval {
-      guard let breakStart = breakStartTime else {
-        return 0
-      }
-
-      if let breakEnd = breakEndTime {
-        // Break is complete, return the full duration
-        return breakEnd.timeIntervalSince(breakStart)
-      }
-
-      // Break is not yet ended, don't count it
-      return 0
-    }
   }
 
   var name: String
@@ -45,120 +18,90 @@ struct DoCardWidgetAttributes: ActivityAttributes {
 struct DoCardWidgetLiveActivity: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: DoCardWidgetAttributes.self) { context in
-      // Lock screen/banner UI goes here
-      HStack(alignment: .center, spacing: 16) {
-        // Left side - App info
-        VStack(alignment: .leading, spacing: 8) {
-          HStack(spacing: 4) {
-            Text("DO")
-              .font(.headline)
-              .fontWeight(.bold)
-              .foregroundColor(.primary)
-            Image(systemName: "hourglass")
-              .foregroundColor(doOrangeColor)
-          }
 
-          Text(context.attributes.name)
-            .font(.subheadline)
-            .foregroundColor(.primary)
+      // MARK: Lock Screen Banner
+      ZStack {
+        Color.black
 
-          Text(context.attributes.message)
-            .font(.caption)
-            .foregroundColor(.secondary)
+        HStack {
+          Image("DOLogo")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 40, height: 40)
+
+          Spacer()
+
+          Text(
+            context.state.scheduledEndTime ?? context.state.startTime,
+            style: .timer
+          )
+          .font(.system(size: 36, weight: .thin))
+          .foregroundColor(Color("AccentColor"))
+          .monospacedDigit()
         }
-
-        Spacer()
-
-        // Right side - Timer or break indicator
-        VStack(alignment: .trailing, spacing: 4) {
-          if context.state.isBreakActive {
-            HStack(spacing: 6) {
-              Image(systemName: "cup.and.heat.waves.fill")
-                .font(.title2)
-                .foregroundColor(.orange)
-              Text(String(localized: "On a Break"))
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .foregroundColor(.orange)
-            }
-          } else {
-            Text(
-              Date(
-                timeIntervalSinceNow: context.state
-                  .getTimeIntervalSinceNow()
-              ),
-              style: .timer
-            )
-            .font(.title)
-            .fontWeight(.semibold)
-            .foregroundColor(.secondary)
-            .multilineTextAlignment(.trailing)
-          }
-        }
+        .padding(.horizontal, 16)
       }
-      .padding(.horizontal, 16)
-      .padding(.vertical, 12)
 
     } dynamicIsland: { context in
       DynamicIsland {
+
+        // MARK: Dynamic Island — Expanded
         DynamicIslandExpandedRegion(.center) {
-          VStack(spacing: 8) {
-            HStack(spacing: 6) {
-              Image(systemName: "hourglass")
-                .foregroundColor(doOrangeColor)
-              Text(context.attributes.name)
-                .font(.headline)
-                .fontWeight(.medium)
-            }
+          HStack(alignment: .center, spacing: 12) {
+            Image("DOLogo")
+              .resizable()
+              .scaledToFit()
+              .frame(width: 32, height: 32)
 
-            Text(context.attributes.message)
-              .font(.subheadline)
-              .foregroundColor(.secondary)
-              .multilineTextAlignment(.center)
-
-            if context.state.isBreakActive {
-              VStack(spacing: 2) {
-                Image(systemName: "cup.and.heat.waves.fill")
-                  .font(.title2)
-                  .foregroundColor(.orange)
-                Text(String(localized: "On a Break"))
-                  .font(.subheadline)
-                  .fontWeight(.semibold)
-                  .foregroundColor(.orange)
+            Group {
+              if let endTime = context.state.scheduledEndTime {
+                Text(endTime, style: .timer)
+              } else {
+                Text(context.state.startTime, style: .timer)
               }
-            } else {
-              Text(
-                Date(
-                  timeIntervalSinceNow: context.state
-                    .getTimeIntervalSinceNow()
-                ),
-                style: .timer
-              )
-              .font(.title2)
-              .fontWeight(.semibold)
-              .multilineTextAlignment(.center)
             }
+            .font(.system(size: 28, weight: .thin))
+            .foregroundColor(Color("AccentColor"))
+            .monospacedDigit()
+            .frame(maxWidth: .infinity, alignment: .trailing)
           }
           .padding(.horizontal, 16)
           .padding(.vertical, 4)
         }
+
       } compactLeading: {
-        // Compact leading state
-        Image(systemName: "hourglass")
-          .foregroundColor(doOrangeColor)
+
+        // MARK: Dynamic Island — Compact Leading
+        Image("DOLogo")
+          .resizable()
+          .scaledToFit()
+          .frame(width: 36, height: 36)
+
       } compactTrailing: {
-        // Compact trailing state
-        Text(
-          context.attributes.name
-        )
-        .font(.caption)
-        .fontWeight(.semibold)
+
+        // MARK: Dynamic Island — Compact Trailing
+        Group {
+          if let endTime = context.state.scheduledEndTime {
+            Text(endTime, style: .timer)
+          } else {
+            Text(context.state.startTime, style: .timer)
+          }
+        }
+        .font(.system(size: 14, weight: .thin))
+        .foregroundColor(Color("AccentColor"))
+        .monospacedDigit()
+        .frame(maxWidth: .infinity, alignment: .trailing)
+
       } minimal: {
-        // Minimal state
-        Image(systemName: "hourglass")
-          .foregroundColor(doOrangeColor)
+
+        // MARK: Dynamic Island — Minimal
+        Image("DOLogo")
+          .resizable()
+          .scaledToFit()
+          .frame(width: 20, height: 20)
+
       }
-      .keylineTint(doOrangeColor)
+      .keylineTint(Color("AccentColor"))
     }
   }
 }
@@ -167,35 +110,40 @@ extension DoCardWidgetAttributes {
   fileprivate static var preview: DoCardWidgetAttributes {
     DoCardWidgetAttributes(
       name: "Focus Session",
-      message: "Stay focused and avoid distractions")
+      message: "")
   }
 }
 
 extension DoCardWidgetAttributes.ContentState {
+  // Non-timer session: elapsed 1 hour 1 minute
   fileprivate static var shortTime: DoCardWidgetAttributes.ContentState {
-    DoCardWidgetAttributes
-      .ContentState(
-        startTime: Date(timeInterval: 60, since: Date.now),
-        isBreakActive: false,
-        breakStartTime: nil,
-        breakEndTime: nil
-      )
-  }
-
-  fileprivate static var longTime: DoCardWidgetAttributes.ContentState {
     DoCardWidgetAttributes.ContentState(
-      startTime: Date(timeInterval: 60, since: Date.now),
+      startTime: Date(timeInterval: -3660, since: Date.now),
+      scheduledEndTime: nil,
       isBreakActive: false,
       breakStartTime: nil,
       breakEndTime: nil
     )
   }
 
-  fileprivate static var breakActive: DoCardWidgetAttributes.ContentState {
+  // Non-timer session: elapsed 2 hours 1 minute
+  fileprivate static var longTime: DoCardWidgetAttributes.ContentState {
     DoCardWidgetAttributes.ContentState(
-      startTime: Date(timeInterval: 60, since: Date.now),
-      isBreakActive: true,
-      breakStartTime: Date.now,
+      startTime: Date(timeInterval: -7260, since: Date.now),
+      scheduledEndTime: nil,
+      isBreakActive: false,
+      breakStartTime: nil,
+      breakEndTime: nil
+    )
+  }
+
+  // Timer session: 20 minutes remaining
+  fileprivate static var timerSession: DoCardWidgetAttributes.ContentState {
+    DoCardWidgetAttributes.ContentState(
+      startTime: Date(timeInterval: -300, since: Date.now),
+      scheduledEndTime: Date(timeInterval: 1200, since: Date.now),
+      isBreakActive: false,
+      breakStartTime: nil,
       breakEndTime: nil
     )
   }
@@ -206,5 +154,5 @@ extension DoCardWidgetAttributes.ContentState {
 } contentStates: {
   DoCardWidgetAttributes.ContentState.shortTime
   DoCardWidgetAttributes.ContentState.longTime
-  DoCardWidgetAttributes.ContentState.breakActive
+  DoCardWidgetAttributes.ContentState.timerSession
 }

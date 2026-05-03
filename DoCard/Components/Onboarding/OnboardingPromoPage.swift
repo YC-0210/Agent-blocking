@@ -18,10 +18,10 @@ struct OnboardingPromoPage: View {
 
       // Headline
       VStack(spacing: 0) {
-        Text(String(localized: "開始免費使用"))
+        Text(String(localized: "行動，"))
           .font(.system(size: 28, weight: .bold))
           .foregroundColor(.white)
-        Text(String(localized: "找回專屬你的時間"))
+        Text(String(localized: "從第一次靠卡開始"))
           .font(.system(size: 28, weight: .bold))
           .foregroundColor(.white)
       }
@@ -34,8 +34,8 @@ struct OnboardingPromoPage: View {
       VStack(spacing: 24) {
         benefitRow(
           icon: "lock.shield.fill",
-          title: String(localized: "專注不受干擾。"),
-          subtitle: String(localized: "終於能全心投入你最重要的事。")
+          title: String(localized: "全神貫注，做好一件事。"),
+          subtitle: String(localized: "每次感應，都是你展開行動的象徵。")
         )
         benefitRow(
           icon: "calendar",
@@ -60,7 +60,7 @@ struct OnboardingPromoPage: View {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         onComplete()
       } label: {
-        Text(String(localized: "用 NT$ 0.0 元馬上使用"))
+        Text(String(localized: "做就對了，現在開始"))
           .font(.system(size: 18, weight: .semibold))
           .foregroundColor(.white)
           .frame(maxWidth: .infinity)

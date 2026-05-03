@@ -16,6 +16,7 @@ class NFCBlockingStrategy: BlockingStrategy {
 
   var onSessionCreation: ((SessionStatus) -> Void)?
   var onErrorMessage: ((String) -> Void)?
+  var onCardNameScanned: ((String?) -> Void)?
 
   private let nfcScanner: NFCScannerUtil = NFCScannerUtil()
   private let appBlocker: AppBlockerUtil = AppBlockerUtil()
@@ -40,6 +41,13 @@ class NFCBlockingStrategy: BlockingStrategy {
         withProfile: profile,
         forceStart: forceStart ?? false
       )
+
+    context.insert(NFCTapEvent(
+      action: NFCTapEvent.actionStartBlock,
+      profileId: profile.id,
+      profileName: profile.name
+    ))
+
     self.onSessionCreation?(.started(activeSession))
 
     return nil
@@ -52,11 +60,15 @@ class NFCBlockingStrategy: BlockingStrategy {
     nfcScanner.onTagScanned = { [weak self] scannedTag in
       guard let self else { return }
 
-      session.endSession()
-      do {
-        try context.save()
-      } catch {
-        logger.error("Failed to save session after NFC unlock: \(error.localizedDescription)")
+      self.onCardNameScanned?(scannedTag.cardName)
+
+      context.insert(NFCTapEvent(
+        action: NFCTapEvent.actionEndBlock,
+        profileId: session.blockedProfile.id,
+        profileName: session.blockedProfile.name
+      ))
+
+      session.endSessionFully(in: context, endReason: "card_tap") { error in
         self.onErrorMessage?("Failed to save session: \(error.localizedDescription)")
       }
       self.appBlocker.deactivateRestrictions()

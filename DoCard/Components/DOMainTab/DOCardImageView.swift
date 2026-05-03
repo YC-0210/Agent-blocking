@@ -10,7 +10,6 @@ struct DOCardImageView: View {
       .resizable()
       .aspectRatio(1.585, contentMode: .fit)
       .frame(maxWidth: 300)
-      .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
       // Layered orange glow — soft outer + tighter inner
       .shadow(color: themeManager.themeColor.opacity(0.35), radius: 40, x: 0, y: 0)
       .shadow(color: themeManager.themeColor.opacity(0.25), radius: 20, x: 0, y: 0)

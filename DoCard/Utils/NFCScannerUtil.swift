@@ -7,6 +7,7 @@ private let logger = Logger(subsystem: "app.docard", category: "NFC")
 struct NFCResult: Equatable {
   var id: String
   var payload: String?
+  var cardName: String?
   var DateScanned: Date
 }
 
@@ -36,6 +37,13 @@ class NFCScannerUtil: NSObject {
   private var nfcSession: NFCReaderSession?
   private var uuidToWrite: String?
 
+  // When non-nil, the read path will also write a new JSON payload with this name
+  var pendingCardName: String?
+
+  // When true (rename flow), the write is only allowed if the tag is already in expectedTagIds.
+  // When false (pairing flow), any valid DO Card is accepted.
+  private var pendingRequirePaired: Bool = false
+
   deinit {
     nfcSession?.invalidate()
     nfcSession = nil
@@ -43,7 +51,7 @@ class NFCScannerUtil: NSObject {
 
   func scan(profileName: String, isUnlocking: Bool = false) {
     guard NFCReaderSession.readingAvailable else {
-      self.onError?(String(localized: "NFC scanning not available on this device"))
+      self.onError?(String(localized: "此裝置不支援 DO Card 感應"))
       return
     }
 
@@ -64,9 +72,22 @@ class NFCScannerUtil: NSObject {
     nfcSession?.begin()
   }
 
+  /// Read the card, verify it is a DO Card, then write a new JSON payload with the given name.
+  /// Calls `onTagScanned` on success (result.cardName == name), `onError` on failure.
+  ///
+  /// - Parameters:
+  ///   - name: The card name to write into the NDEF payload.
+  ///   - requirePaired: Pass `false` for the initial pairing flow (any valid DO Card accepted).
+  ///                    Pass `true` for the rename flow (card must already be in `expectedTagIds`).
+  func scanAndWrite(name: String, requirePaired: Bool) {
+    pendingCardName = name
+    pendingRequirePaired = requirePaired
+    scan(profileName: "DO Card")
+  }
+
   func writeExternalRecord(uuid: String) {
     guard NFCReaderSession.readingAvailable else {
-      self.onError?(String(localized: "NFC writing not available on this device"))
+      self.onError?(String(localized: "此裝置不支援 DO Card 寫入"))
       return
     }
 
@@ -80,7 +101,7 @@ class NFCScannerUtil: NSObject {
     // Using NFCNDEFReaderSession for writing
     let ndefSession = NFCNDEFReaderSession(
       delegate: self, queue: nil, invalidateAfterFirstRead: false)
-    ndefSession.alertMessage = String(localized: "Hold your iPhone near an NFC tag to write DO Card data.")
+    ndefSession.alertMessage = String(localized: "將 iPhone 靠近 DO Card 以寫入資料")
     ndefSession.begin()
   }
 }
@@ -155,9 +176,11 @@ extension NFCScannerUtil: NFCTagReaderSessionDelegate {
     }
   }
 
-  /// Extract the DO Card payload (UUID) from an NDEF message
-  /// Returns the UUID string if a valid DO Card External Type record is found
-  private func extractDOCardPayload(_ message: NFCNDEFMessage) -> String? {
+  /// Extract the DO Card payload from an NDEF message.
+  /// Returns `(uuid, cardName?)` — handles both old plain-UUID format and new JSON format.
+  /// - Old format: plain UUID string → `(uuid: payloadString, cardName: nil)`
+  /// - New format: `{"uuid":"...","name":"..."}` → `(uuid: parsedUUID, cardName: parsedName)`
+  private func extractDOCardPayload(_ message: NFCNDEFMessage) -> (uuid: String, cardName: String?)? {
     let doCardRecords = message.records.filter { NFCScannerUtil.isDOCardRecord($0) }
 
     guard doCardRecords.count == 1,
@@ -168,70 +191,193 @@ extension NFCScannerUtil: NFCTagReaderSessionDelegate {
       return nil
     }
 
-    return payloadString
+    // Try JSON format first (new format)
+    if let data = payloadString.data(using: .utf8),
+      let jsonObj = try? JSONSerialization.jsonObject(with: data) as? [String: String],
+      let uuid = jsonObj["uuid"],
+      !uuid.isEmpty
+    {
+      return (uuid: uuid, cardName: jsonObj["name"])
+    }
+
+    // Fall back to plain UUID format (old format)
+    return (uuid: payloadString, cardName: nil)
   }
 
   private func readMiFareTag(_ tag: NFCMiFareTag, session: NFCTagReaderSession) {
     tag.readNDEF { (message: NFCNDEFMessage?, error: Error?) in
-      if error != nil || message == nil {
-        let tagId = tag.identifier.hexEncodedString()
+      let tagId = tag.identifier.hexEncodedString()
 
+      if error != nil || message == nil {
         if let error = error {
           // SECURITY (V-08): Never log tag IDs in release builds
           logger.debug("NDEF read failed (non-critical): \(error.localizedDescription, privacy: .public). Falling back to tag identifier.")
         }
 
-        // Still use the identifier - works for all tag types
-        self.handleTagData(
-          id: tagId,
-          payload: nil,
-          session: session
-        )
+        if self.pendingCardName != nil {
+          // Cannot write without a readable NDEF — fail clearly
+          DispatchQueue.main.async { [weak self] in
+            self?.pendingCardName = nil
+            session.invalidate(errorMessage: String(localized: "無法讀取 DO Card，請重試"))
+            self?.onError?(String(localized: "無法讀取卡片資料，請重試"))
+          }
+          return
+        }
+
+        self.handleTagData(id: tagId, uuid: nil, cardName: nil, session: session)
         return
       }
 
-      let payload = self.extractDOCardPayload(message!)
-      self.handleTagData(
-        id: tag.identifier.hexEncodedString(),
-        payload: payload,
-        session: session
-      )
+      let extracted = self.extractDOCardPayload(message!)
+
+      if let pendingName = self.pendingCardName {
+        self.handleWritePath(
+          tagId: tagId, extracted: extracted, pendingName: pendingName,
+          requirePaired: self.pendingRequirePaired,
+          tag: tag, session: session)
+      } else {
+        self.handleTagData(
+          id: tagId,
+          uuid: extracted?.uuid,
+          cardName: extracted?.cardName,
+          session: session
+        )
+      }
     }
   }
 
   private func readISO15693Tag(_ tag: NFCISO15693Tag, session: NFCTagReaderSession) {
     tag.readNDEF { (message: NFCNDEFMessage?, error: Error?) in
-      if error != nil || message == nil {
-        let tagId = tag.identifier.hexEncodedString()
+      let tagId = tag.identifier.hexEncodedString()
 
+      if error != nil || message == nil {
         if let error = error {
           // SECURITY (V-08): Never log tag IDs in release builds
           logger.debug("ISO15693 NDEF read failed (non-critical): \(error.localizedDescription, privacy: .public). Falling back to tag identifier.")
         }
 
-        self.handleTagData(
-          id: tagId,
-          payload: nil,
-          session: session
-        )
+        if self.pendingCardName != nil {
+          DispatchQueue.main.async { [weak self] in
+            self?.pendingCardName = nil
+            session.invalidate(errorMessage: String(localized: "無法讀取 DO Card，請重試"))
+            self?.onError?(String(localized: "無法讀取卡片資料，請重試"))
+          }
+          return
+        }
+
+        self.handleTagData(id: tagId, uuid: nil, cardName: nil, session: session)
         return
       }
 
-      let payload = self.extractDOCardPayload(message!)
-      self.handleTagData(
-        id: tag.identifier.hexEncodedString(),
-        payload: payload,
-        session: session
-      )
+      let extracted = self.extractDOCardPayload(message!)
+
+      if let pendingName = self.pendingCardName {
+        self.handleWritePath(
+          tagId: tagId, extracted: extracted, pendingName: pendingName,
+          requirePaired: self.pendingRequirePaired,
+          tag: tag, session: session)
+      } else {
+        self.handleTagData(
+          id: tagId,
+          uuid: extracted?.uuid,
+          cardName: extracted?.cardName,
+          session: session
+        )
+      }
     }
   }
 
-  private func handleTagData(id: String, payload: String?, session: NFCTagReaderSession) {
-    let result = NFCResult(id: id, payload: payload, DateScanned: Date())
+  // MARK: - Write Path (single-session read-then-write)
+
+  /// Called after a successful NDEF read when `pendingCardName` is set.
+  /// Validates the tag is a valid DO Card, then writes the new JSON payload in the same NFC session.
+  ///
+  /// - Parameter requirePaired: When `true` (rename flow), also verifies the tag is in `expectedTagIds`.
+  ///                            When `false` (pairing flow), skips that check — the card is new and not
+  ///                            yet in the paired list.
+  private func handleWritePath(
+    tagId: String,
+    extracted: (uuid: String, cardName: String?)?,
+    pendingName: String,
+    requirePaired: Bool,
+    tag: NFCNDEFTag,
+    session: NFCTagReaderSession
+  ) {
+    guard let extracted = extracted else {
+      DispatchQueue.main.async { [weak self] in
+        self?.pendingCardName = nil
+        session.invalidate(errorMessage: String(localized: "請使用 DO Card"))
+        self?.onError?(String(localized: "這不是有效的 DO Card，請使用你的 DO Card"))
+      }
+      return
+    }
+
+    // Rename flow only: verify this card is already in the paired list
+    if requirePaired {
+      let tagIdMatches =
+        expectedTagIds == nil || expectedTagIds!.isEmpty || expectedTagIds!.contains(tagId)
+      guard tagIdMatches else {
+        DispatchQueue.main.async { [weak self] in
+          self?.pendingCardName = nil
+          session.invalidate(errorMessage: String(localized: "此DO Card 尚未配對"))
+          self?.onError?(String(localized: "此 DO Card 尚未配對，請先完成配對再重新命名"))
+        }
+        return
+      }
+    }
+
+    writeNDEFRecord(uuid: extracted.uuid, name: pendingName, to: tag, session: session) {
+      self.handleTagData(id: tagId, uuid: extracted.uuid, cardName: pendingName, session: session)
+    }
+  }
+
+  /// Write a new DO Card NDEF record with the given UUID and card name as JSON payload.
+  /// Calls `onSuccess` (on the NFC callback queue) if the write succeeds.
+  private func writeNDEFRecord(
+    uuid: String,
+    name: String,
+    to tag: NFCNDEFTag,
+    session: NFCTagReaderSession,
+    onSuccess: @escaping () -> Void
+  ) {
+    let jsonDict: [String: String] = ["uuid": uuid, "name": name]
+    guard let jsonData = try? JSONSerialization.data(withJSONObject: jsonDict),
+      let typeData = NFCScannerUtil.doCardNDEFFullType.data(using: .utf8)
+    else {
+      session.invalidate(errorMessage: String(localized: "寫入資料無效，請重試"))
+      return
+    }
+
+    let record = NFCNDEFPayload(
+      format: .nfcExternal,
+      type: typeData,
+      identifier: Data(),
+      payload: jsonData
+    )
+    let message = NFCNDEFMessage(records: [record])
+
+    tag.writeNDEF(message) { error in
+      if let error = error {
+        logger.error("NFC write error: \(error.localizedDescription, privacy: .public)")
+        session.invalidate(
+          errorMessage: String(format: String(localized: "寫入失敗：%@"), error.localizedDescription))
+      } else {
+        session.alertMessage = String(localized: "✓ 卡片已命名")
+        onSuccess()
+      }
+    }
+  }
+
+  private func handleTagData(id: String, uuid: String?, cardName: String?, session: NFCTagReaderSession) {
+    // Reset write-mode flag before dispatching to main
+    let wasWriteMode = pendingCardName != nil
+    pendingCardName = nil
+
+    let result = NFCResult(id: id, payload: uuid, cardName: cardName, DateScanned: Date())
 
     // Validate at the NFC session level so the system dialog
     // shows ✗ (cross) for invalid/unmatched tags instead of ✓ (checkmark)
-    let isDOCard = payload != nil
+    let isDOCard = uuid != nil
     let tagIdMatches = expectedTagIds == nil || expectedTagIds!.isEmpty || expectedTagIds!.contains(id)
 
     DispatchQueue.main.async { [weak self] in
@@ -245,8 +391,13 @@ extension NFCScannerUtil: NFCTagReaderSessionDelegate {
         self?.onError?(String(localized: "This DO Card is not paired. Please go to Settings to pair your card."))
       } else {
         // Case 3: Matched DO Card → ✓ checkmark
+        // For write mode the alertMessage was already set in writeNDEFRecord
+        if !wasWriteMode {
+          session.invalidate()
+        } else {
+          session.invalidate()
+        }
         self?.onTagScanned?(result)
-        session.invalidate()
       }
     }
   }

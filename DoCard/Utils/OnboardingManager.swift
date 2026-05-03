@@ -1,9 +1,18 @@
+import OSLog
 import SwiftUI
+
+private let onboardingLog = Logger(subsystem: "online.do.card.app", category: "OnboardingManager")
 
 class OnboardingManager: ObservableObject {
   static let shared = OnboardingManager()
 
-  private static let defaults = UserDefaults(suiteName: "group.DO.version3")!
+  private static let defaults: UserDefaults = {
+    guard let defaults = UserDefaults(suiteName: "group.DO.version3") else {
+      onboardingLog.error("Failed to access App Group UserDefaults — falling back to standard")
+      return UserDefaults.standard
+    }
+    return defaults
+  }()
 
   @AppStorage("onboardingCompleted", store: UserDefaults(suiteName: "group.DO.version3"))
   var isOnboardingCompleted: Bool = false
@@ -23,6 +32,20 @@ class OnboardingManager: ObservableObject {
     set { Self.defaults.set(newValue, forKey: "pairedDOCardTagIds") }
   }
 
+  /// The user-given name of their DO Card, stored locally after a successful pair or rename.
+  /// Lives on the card itself (NDEF payload); this is a cached copy for display.
+  var doCardName: String? {
+    get { Self.defaults.string(forKey: "doCardName") }
+    set {
+      if let name = newValue {
+        Self.defaults.set(name, forKey: "doCardName")
+      } else {
+        Self.defaults.removeObject(forKey: "doCardName")
+      }
+      objectWillChange.send()
+    }
+  }
+
   var pairedDOCardCount: Int {
     pairedDOCardTagIds.count
   }
@@ -32,7 +55,7 @@ class OnboardingManager: ObservableObject {
   }
 
   var canPairMoreCards: Bool {
-    pairedDOCardTagIds.count < Self.maxPairedCards
+    return pairedDOCardTagIds.count < Self.maxPairedCards
   }
 
   /// Add a new DO Card. Returns false if already paired or at max capacity.
@@ -41,7 +64,6 @@ class OnboardingManager: ObservableObject {
     var ids = pairedDOCardTagIds
     // Don't add duplicate
     if ids.contains(tagId) { return false }
-    // Don't exceed max
     if ids.count >= Self.maxPairedCards { return false }
     ids.append(tagId)
     pairedDOCardTagIds = ids

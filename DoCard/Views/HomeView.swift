@@ -24,6 +24,7 @@ struct HomeView: View {
 
   // New profile view
   @State private var showNewProfileView = false
+  @State private var newProfileInitialName: String = ""
 
   // Edit profile
   @State private var profileToEdit: BlockedProfiles? = nil
@@ -43,13 +44,25 @@ struct HomeView: View {
   @State private var showConfetti = false
   @State private var wasBlocking = false
 
+  // Saved time banner
+  @State private var showSavedTimeBanner = false
+
+  @Query(
+    filter: #Predicate<BlockedProfileSession> { $0.endTime != nil },
+    sort: \BlockedProfileSession.endTime,
+    order: .reverse
+  ) private var allCompletedSessions: [BlockedProfileSession]
+
+  private static let savedTimeBannerIntervalKey = "lastSavedTimeBannerDate"
+  private static let bannerInterval: TimeInterval = 14 * 24 * 60 * 60  // 14 days
+
   // Tab selection
   @State private var selectedTab: Tab = .doMain
 
   enum Tab: Hashable {
     case doMain
     case schedule
-    case activity
+    case report
     case settings
   }
 
@@ -68,8 +81,12 @@ struct HomeView: View {
           onManageProfiles: {
             isProfileListPresent = true
           },
-          onNewProfile: {
+          onNewProfile: { name in
+            newProfileInitialName = name
             showNewProfileView = true
+          },
+          onNavigateToSettings: {
+            selectedTab = .settings
           },
           navigateToProfileId: navigateToProfileId
         )
@@ -85,12 +102,12 @@ struct HomeView: View {
           }
           .tag(Tab.schedule)
 
-        // Tab 3: Activity
-        ActivityTabView()
+        // Tab 3: Report
+        ReportView()
           .tabItem {
-            Label(String(localized: "活動"), systemImage: "chart.bar.fill")
+            Label(String(localized: "週報"), systemImage: "chart.line.uptrend.xyaxis")
           }
-          .tag(Tab.activity)
+          .tag(Tab.report)
 
         // Tab 4: Settings
         SettingsTabView(onEmergencyTapped: {
@@ -109,6 +126,18 @@ struct HomeView: View {
         themeColor: ThemeManager.shared.themeColor
       )
       .allowsHitTesting(false)
+
+      // Saved time banner
+      if showSavedTimeBanner {
+        SavedTimeBanner(
+          totalSavedTime: totalAllTimeFocusDuration,
+          onDismiss: {
+            showSavedTimeBanner = false
+          }
+        )
+        .padding(.top, 8)
+        .zIndex(1)
+      }
     }
     .sheet(
       isPresented: $isProfileListPresent
@@ -136,6 +165,7 @@ struct HomeView: View {
     .onChange(of: scenePhase) { oldPhase, newPhase in
       if newPhase == .active {
         loadApp()
+        checkSavedTimeBanner()
       } else if newPhase == .background {
         unloadApp()
       }
@@ -155,9 +185,23 @@ struct HomeView: View {
     .onAppear {
       wasBlocking = isBlocking
       onAppearApp()
-      if onboardingManager.shouldShowTutorial && onboardingManager.tutorialStep == 0 {
+      // "使用他人卡片" users land with no profiles — silently create a starter
+      // "讀書模式" so the mode selector is visible and the screen isn't blank.
+      // Guard: only fires when no card is paired AND no profiles exist yet.
+      // Once the profile exists, profiles.isEmpty is false and this never fires again.
+      if !onboardingManager.isDOCardPaired && profiles.isEmpty {
+        try? BlockedProfiles.createProfile(in: context, name: "讀書模式")
+      }
+      // Only run the tutorial for users who own a DO Card.
+      // "使用他人卡片" users skip pairing, so isDOCardPaired stays false —
+      // the tutorial's Step 5 (NFC tap) would be a dead end for them.
+      if onboardingManager.shouldShowTutorial
+        && onboardingManager.tutorialStep == 0
+        && onboardingManager.isDOCardPaired
+      {
         onboardingManager.startTutorial()
       }
+      checkSavedTimeBanner()
     }
     .sheet(item: $profileToEdit) { profile in
       BlockedProfileView(profile: profile)
@@ -178,10 +222,15 @@ struct HomeView: View {
         }
       }
     ) {
-      BlockedProfileView(profile: nil)
+      BlockedProfileView(profile: nil, initialName: newProfileInitialName)
         .environmentObject(onboardingManager)
     }
-    .sheet(isPresented: $strategyManager.showCustomStrategyView) {
+    .sheet(
+      isPresented: $strategyManager.showCustomStrategyView,
+      onDismiss: {
+        strategyManager.cancelPendingStart()
+      }
+    ) {
       BlockingStrategyActionView(
         customView: strategyManager.customStrategyView
       )
@@ -209,7 +258,9 @@ struct HomeView: View {
 
   private func onAppearApp() {
     strategyManager.loadActiveSession(context: context)
+    strategyManager.restoreScheduledSessionIfNeeded()
     strategyManager.cleanUpGhostSchedules(context: context)
+    strategyManager.reconcileScheduleRegistrations(context: context)
   }
 
   private func unloadApp() {
@@ -217,13 +268,45 @@ struct HomeView: View {
   }
 
   private func showErrorAlert(message: String) {
-    alertTitle = String(localized: "Whoops")
+    alertTitle = String(localized: "出了一點狀況")
     alertMessage = message
     showingAlert = true
   }
 
   private func dismissAlert() {
     showingAlert = false
+  }
+
+  // MARK: - Saved Time Banner
+
+  private var totalAllTimeFocusDuration: TimeInterval {
+    allCompletedSessions.reduce(0.0) { sum, session in
+      guard let end = session.endTime else { return sum }
+      return sum + max(0, end.timeIntervalSince(session.startTime))
+    }
+  }
+
+  private func checkSavedTimeBanner() {
+    let defaults = UserDefaults(suiteName: "group.DO.version3")!
+    let lastShown = defaults.object(forKey: Self.savedTimeBannerIntervalKey) as? Date
+
+    if let lastShown = lastShown {
+      // Check if 14 days have passed since last shown
+      guard Date().timeIntervalSince(lastShown) >= Self.bannerInterval else { return }
+    } else {
+      // First time — record now as baseline, show on next eligible check
+      defaults.set(Date(), forKey: Self.savedTimeBannerIntervalKey)
+      return
+    }
+
+    // Only show if total saved time exceeds 1 hour
+    guard totalAllTimeFocusDuration >= 3600 else { return }
+
+    // Show banner and record timestamp
+    defaults.set(Date(), forKey: Self.savedTimeBannerIntervalKey)
+    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+      showSavedTimeBanner = true
+    }
   }
 }
 
@@ -235,5 +318,6 @@ struct HomeView: View {
     .environmentObject(ThemeManager.shared)
     .environmentObject(RatingManager())
     .environmentObject(OnboardingManager.shared)
+    .environmentObject(SubscriptionManager.shared)
     .defaultAppStorage(UserDefaults(suiteName: "preview")!)
 }

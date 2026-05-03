@@ -19,14 +19,7 @@ struct ProfileControlWidget: Widget {
     ) { entry in
       ProfileWidgetEntryView(entry: entry)
         .containerBackground(for: .widget) {
-          // Use the entry's background color or clear if inactive
-          if entry.isSessionActive {
-            if entry.isBreakActive {
-              Color.orange
-            } else {
-              Color.green
-            }
-          }
+          Color.black
         }
     }
     .configurationDisplayName(String(localized: "DO Profile"))

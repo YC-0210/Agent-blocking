@@ -7,8 +7,6 @@ struct BlockedProfileCard: View {
   let profile: BlockedProfiles
 
   var isActive: Bool = false
-  var isBreakAvailable: Bool = false
-  var isBreakActive: Bool = false
 
   var elapsedTime: TimeInterval? = nil
 
@@ -16,7 +14,6 @@ struct BlockedProfileCard: View {
   var onStopTapped: () -> Void
   var onEditTapped: () -> Void
   var onStatsTapped: () -> Void = {}
-  var onBreakTapped: () -> Void
 
   // 3D tilt press state
   @State private var pressLocation: CGPoint = .zero
@@ -137,13 +134,10 @@ struct BlockedProfileCard: View {
 
           ProfileTimerButton(
             isActive: isActive,
-            isBreakAvailable: isBreakAvailable,
-            isBreakActive: isBreakActive,
             elapsedTime: elapsedTime,
             showStopButton: profile.showStopButton(elapsedTime: elapsedTime ?? 0),
             onStartTapped: onStartTapped,
-            onStopTapped: onStopTapped,
-            onBreakTapped: onBreakTapped
+            onStopTapped: onStopTapped
           )
         }
         .padding(16)
@@ -207,8 +201,7 @@ struct BlockedProfileCard: View {
         ),
         onStartTapped: {},
         onStopTapped: {},
-        onEditTapped: {},
-        onBreakTapped: {}
+        onEditTapped: {}
       )
 
       // Active card with timer
@@ -222,12 +215,10 @@ struct BlockedProfileCard: View {
           reminderTimeInSeconds: 3600
         ),
         isActive: true,
-        isBreakAvailable: true,
-        elapsedTime: 1845,  // 30 minutes and 45 seconds
+        elapsedTime: 1845,
         onStartTapped: {},
         onStopTapped: {},
-        onEditTapped: {},
-        onBreakTapped: {}
+        onEditTapped: {}
       )
     }
   }

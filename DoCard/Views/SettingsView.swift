@@ -12,8 +12,8 @@ struct SettingsView: View {
       Form {
         Section {
           CustomToggle(
-            title: String(localized: "Live Activity"),
-            description: String(localized: "Shows a live activity on your lock screen with some inspirational quote"),
+            title: String(localized: "動態島 / 鎖定畫面顯示"),
+            description: String(localized: "專注時在動態島和鎖定畫面即時顯示計時與狀態"),
             isOn: $enableLiveActivity
           )
 

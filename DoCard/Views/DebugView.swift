@@ -70,6 +70,11 @@ struct DebugView: View {
               )
             }
           }
+
+          // Persistent log buffer — survives Xcode console drop
+          DebugSection(title: "Recent Log") {
+            DebugLogPanel()
+          }
         }
         .padding()
       }
@@ -224,12 +229,21 @@ struct DebugView: View {
 
     if rawValue.hasPrefix(BreakTimerActivity.id) {
       return "Break Timer"
+    } else if rawValue.hasPrefix(StrategyTimerActivity.id) {
+      return "Strategy Timer"
     } else if rawValue.hasPrefix(ScheduleTimerActivity.id) {
       return "Schedule Timer"
     } else {
-      // Check if it's a UUID (legacy schedule format)
+      // Check if it's a UUID (legacy schedule format) or profileUUID.scheduleUUID format
       if UUID(uuidString: rawValue) != nil {
         return "Schedule Timer (Legacy)"
+      }
+      let dotParts = rawValue.split(separator: ".")
+      if dotParts.count == 2,
+        UUID(uuidString: String(dotParts[0])) != nil,
+        UUID(uuidString: String(dotParts[1])) != nil
+      {
+        return "Schedule Timer"
       }
       return "Unknown"
     }
@@ -244,13 +258,22 @@ struct DebugView: View {
       return rawValue.hasSuffix(profileIdString)
     }
 
+    if rawValue.hasPrefix(StrategyTimerActivity.id) {
+      return rawValue.hasSuffix(profileIdString)
+    }
+
     // Check if it's a schedule timer activity for this profile
     if rawValue.hasPrefix(ScheduleTimerActivity.id) {
       return rawValue.hasSuffix(profileIdString)
     }
 
     // Check if it's a legacy schedule format (just the UUID)
-    return rawValue == profileIdString
+    if rawValue == profileIdString {
+      return true
+    }
+
+    // Check if it's a new schedule format (profileUUID.scheduleUUID)
+    return rawValue.hasPrefix(profileIdString + ".")
   }
 }
 

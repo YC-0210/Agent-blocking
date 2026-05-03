@@ -1,4 +1,5 @@
 import CoreNFC
+import OSLog
 import SwiftUI
 
 /// Writes NDEF-formatted URLs to NFC tags
@@ -13,6 +14,8 @@ import SwiftUI
 /// - Hotel key cards (proprietary lock system data)
 /// - Read-only/locked tags
 /// - Non-NDEF formatted tags
+private let nfcWriterLog = Logger(subsystem: "online.do.card.app", category: "NFCWriter")
+
 class NFCWriter: NSObject, ObservableObject {
   var scannedNFCTag: NFCResult?
   var isScanning: Bool = false
@@ -32,7 +35,7 @@ class NFCWriter: NSObject, ObservableObject {
 
   func writeURL(_ url: String) {
     guard NFCReaderSession.readingAvailable else {
-      self.errorMessage = String(localized: "NFC writing not available on this device")
+      self.errorMessage = String(localized: "此裝置不支援 DO Card 寫入")
       return
     }
 
@@ -50,7 +53,7 @@ class NFCWriter: NSObject, ObservableObject {
       delegate: self,
       queue: nil
     )
-    tagSession?.alertMessage = String(localized: "Hold your iPhone near an NFC tag to write the profile.")
+    tagSession?.alertMessage = String(localized: "將 iPhone 靠近 DO Card 以寫入模式資料")
     tagSession?.begin()
 
     isScanning = true
@@ -79,7 +82,7 @@ extension NFCWriter: NFCTagReaderSessionDelegate {
           self?.errorMessage = String(localized: "Tag moved away. Please hold it steady.")
         default:
           // Log the actual error for debugging
-          print("⚠️ NFC Writer error: \(readerError.code.rawValue) - \(error.localizedDescription)")
+          nfcWriterLog.error("⚠️ NFC Writer error: \(readerError.code.rawValue) - \(error.localizedDescription)")
           self?.errorMessage = error.localizedDescription
         }
       }
@@ -126,7 +129,7 @@ extension NFCWriter: NFCTagReaderSessionDelegate {
       if error != nil {
         // Tag doesn't support NDEF queries (Amiibos, hotel cards, etc.)
         session.invalidate(
-          errorMessage: String(localized: "This tag cannot be written to. Use a blank NFC tag instead."))
+          errorMessage: String(localized: "此標籤無法寫入，請使用空白 DO Card"))
         return
       }
 
@@ -134,7 +137,7 @@ extension NFCWriter: NFCTagReaderSessionDelegate {
       case .notSupported:
         // Tag detected but doesn't support NDEF (proprietary format)
         session.invalidate(
-          errorMessage: String(localized: "This tag uses a proprietary format. Use a blank NFC tag instead."))
+          errorMessage: String(localized: "此標籤使用專有格式，請使用空白 DO Card"))
       case .readOnly:
         session.invalidate(
           errorMessage: String(localized: "This tag is locked and cannot be modified."))
@@ -152,14 +155,14 @@ extension NFCWriter: NFCTagReaderSessionDelegate {
     tag.queryNDEFStatus { status, capacity, error in
       if error != nil {
         session.invalidate(
-          errorMessage: String(localized: "This tag cannot be written to. Use a blank NFC tag instead."))
+          errorMessage: String(localized: "此標籤無法寫入，請使用空白 DO Card"))
         return
       }
 
       switch status {
       case .notSupported:
         session.invalidate(
-          errorMessage: String(localized: "This tag uses a proprietary format. Use a blank NFC tag instead."))
+          errorMessage: String(localized: "此標籤使用專有格式，請使用空白 DO Card"))
       case .readOnly:
         session.invalidate(
           errorMessage: String(localized: "This tag is locked and cannot be modified."))
@@ -194,7 +197,7 @@ extension NFCWriter: NFCTagReaderSessionDelegate {
     // Write the NDEF message to the tag
     tag.writeNDEF(message) { error in
       if let error {
-        print("⚠️ NFC Writer error: \(error.localizedDescription)")
+        nfcWriterLog.error("⚠️ NFC Writer error: \(error.localizedDescription)")
         session.invalidate(
           errorMessage: String(localized: "Write failed. Please try again."))
       } else {

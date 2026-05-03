@@ -25,7 +25,7 @@ struct OnboardingPermissionPage: View {
         .offset(y: showContent ? 0 : 10)
 
       // Subtitle
-      Text(String(localized: "DO 需要你的授權才能封鎖 App\n你的資料由 Apple 安全保護"))
+      Text(String(localized: "DO 需要你的授權才能陪你展開行動\n你的資料由 Apple 安全保護"))
         .font(.system(size: 16, weight: .regular))
         .foregroundColor(.white.opacity(0.5))
         .multilineTextAlignment(.center)
@@ -121,7 +121,7 @@ struct OnboardingPermissionPage: View {
       VStack(alignment: .leading, spacing: 14) {
         permissionRow(
           icon: "app.badge.checkmark",
-          text: String(localized: "封鎖讓你分心的 App")
+          text: String(localized: "阻擋讓你分心的 App")
         )
         permissionRow(
           icon: "lock.shield",
@@ -129,7 +129,7 @@ struct OnboardingPermissionPage: View {
         )
         permissionRow(
           icon: "hand.raised",
-          text: String(localized: "只有你能控制封鎖設定")
+          text: String(localized: "設定完全由你做主")
         )
       }
     }

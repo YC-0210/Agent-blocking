@@ -44,13 +44,13 @@ struct OnboardingView: View {
           .transition(pageTransition)
         case 1:
           OnboardingStatementPage(
-            text: String(localized: "我們深刻體驗到\n手機如何毒害生活秩序"),
+            text: String(localized: "你肯定懂那種想要每次要開始行動\n卻會忍不住去滑手機的感覺"),
             onContinue: { nextPage() }
           )
           .transition(pageTransition)
         case 2:
           OnboardingStatementPage(
-            text: String(localized: "但又不想一直付那些\n鎖手機App的昂貴訂閱費"),
+            text: String(localized: "這不怪你\n要怪就怪那些故意設計讓你滑不停的社群媒體"),
             onContinue: { nextPage() }
           )
           .transition(pageTransition)
@@ -85,7 +85,7 @@ struct OnboardingView: View {
               .init(emoji: "🛏️", text: String(localized: "睡前滑手機")),
               .init(emoji: "🌅", text: String(localized: "早上起床就看手機")),
               .init(emoji: "💻", text: String(localized: "工作時被手機分心")),
-              .init(emoji: "😰", text: String(localized: "感到焦慮或壓力")),
+              .init(emoji: "😰", text: String(localized: "想做的事一直被打斷")),
               .init(emoji: "🍽️", text: String(localized: "吃飯時滑手機")),
               .init(emoji: "🙄", text: String(localized: "忽略身邊的人")),
               .init(emoji: "😟", text: String(localized: "害怕錯過（FOMO）")),

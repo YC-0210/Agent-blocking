@@ -2,6 +2,8 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>NSNFCReaderUsageDescription</key>
 	<string>DO uses NFC to pair and identify your DO Card. When you tap your card, DO reads its unique identifier to verify it matches your paired card and unlock your blocked apps.</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
@@ -10,8 +12,6 @@
 	</array>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
-	<key>Supported</key>
-	<false/>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>
 		<string>nfc</string>

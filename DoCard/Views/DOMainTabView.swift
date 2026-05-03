@@ -41,9 +41,6 @@ struct DOMainTabView: View {
     order: .reverse
   ) private var completedSessions: [BlockedProfileSession]
 
-  // Global break settings
-  @AppStorage("globalEnableBreaks") private var globalEnableBreaks: Bool = false
-
   // Profile selection
   @State private var selectedProfileIndex: Int = 0
   @State private var showSelectModeSheet: Bool = false
@@ -54,30 +51,28 @@ struct DOMainTabView: View {
   @State private var showTutorialComplete: Bool = false
   @State private var showConfetti: Bool = false
 
+  // Card-image tap entry point (Change 2)
+  @GestureState private var isCardPressed = false
+  @State private var showForceStartConfirm = false
+
+  // Tutorial Step 5 — NFC timeout state
+  @State private var tutorialNFCTimeoutVisible = false
+  @State private var nfcTimeoutWorkItem: DispatchWorkItem? = nil
+  @State private var nfcTimeoutDismissWorkItem: DispatchWorkItem? = nil
+
+  // Card naming nudge (one-time, for existing users who haven't named their card)
+  @AppStorage("hasShownCardNamingNudge") private var hasShownCardNamingNudge: Bool = false
+  @State private var showCardNamingNudge = false
+
   // Callbacks to HomeView
   var onEditProfile: (BlockedProfiles) -> Void
   var onManageProfiles: () -> Void
-  var onNewProfile: () -> Void
+  var onNewProfile: (String) -> Void
+  var onNavigateToSettings: () -> Void
   var navigateToProfileId: UUID?
 
   var isBlocking: Bool {
     strategyManager.isBlocking
-  }
-
-  var isBreakAvailable: Bool {
-    guard globalEnableBreaks else { return false }
-    guard let session = strategyManager.activeSession else { return false }
-    // Break is available if it hasn't been used yet (breakEndTime is nil)
-    return session.breakEndTime == nil
-  }
-
-  var isBreakActive: Bool {
-    strategyManager.isBreakActive
-  }
-
-  var breakUsed: Bool {
-    guard let session = strategyManager.activeSession else { return false }
-    return session.breakEndTime != nil
   }
 
   private var currentProfile: BlockedProfiles? {
@@ -128,17 +123,57 @@ struct DOMainTabView: View {
 
         Spacer()
 
-        // Timer pill badge — always visible
-        DOTimerDisplay(
-          elapsedTime: strategyManager.elapsedTime,
-          isBlocking: isBlocking,
-          todayFocusTime: todayFocusTime
-        )
+        // Timer pill badge — always visible. Mac 連動 status badge appears
+        // beneath it during an active session, but only if the user has ever
+        // paired a Mac (otherwise nothing useful to show).
+        VStack(spacing: 8) {
+          DOTimerDisplay(
+            elapsedTime: strategyManager.elapsedTime,
+            isBlocking: isBlocking,
+            todayFocusTime: todayFocusTime
+          )
+          if isBlocking {
+            MacSyncStatusBadge(sync: MacSessionSyncService.shared)
+          }
+        }
         .padding(.bottom, 50)
 
-        // DO logo image
+        // DO logo image — tap to force-start without NFC (Change 2 entry point)
         DOCardImageView()
-          .padding(.bottom, 30)
+          .scaleEffect(isCardPressed ? 0.96 : 1.0)
+          .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCardPressed)
+          .gesture(
+            DragGesture(minimumDistance: 0)
+              .updating($isCardPressed) { _, state, _ in state = true }
+              .onEnded { _ in
+                guard !isBlocking, currentProfile != nil else { return }
+                showForceStartConfirm = true
+              }
+          )
+          .confirmationDialog(
+            String(localized: "開始專注？"),
+            isPresented: $showForceStartConfirm,
+            titleVisibility: .visible
+          ) {
+            Button(String(localized: "開始")) {
+              if let profile = currentProfile {
+                strategyManager.forceStartSession(context: context, profile: profile)
+                ratingManager.incrementLaunchCount()
+              }
+            }
+            Button(String(localized: "取消"), role: .cancel) {}
+          } message: {
+            Text(String(localized: "不需要刷卡，直接開始這次專注。"))
+          }
+          .padding(.bottom, strategyManager.activeCardName != nil ? 8 : 30)
+
+        // DO Card name — reflects the most recently tapped card's name
+        if let cardName = strategyManager.activeCardName {
+          Text(cardName)
+            .font(.system(size: 13, weight: .medium))
+            .foregroundColor(.white.opacity(0.35))
+            .padding(.bottom, 22)
+        }
 
         // Mode + blocking count (only if profile exists)
         if let profile = currentProfile {
@@ -159,39 +194,38 @@ struct DOMainTabView: View {
               isBlocking: isBlocking,
               showStopButton: profile.showStopButton(
                 elapsedTime: strategyManager.elapsedTime),
-              isBreakAvailable: isBreakAvailable,
-              isBreakActive: isBreakActive,
-              breakUsed: breakUsed,
-              simpleTapMode: onboardingManager.tutorialStep == 5,
+              simpleTapMode: false,
               onStartTapped: {
+                // Both tutorial Step 5 and normal mode: long-press → NFC scan → session starts
+                strategyManager.startSessionWithNFCScan(context: context, profile: profile)
+                ratingManager.incrementLaunchCount()
+
+                // Tutorial Step 5: arm a 15-second timeout
                 if onboardingManager.tutorialStep == 5 {
-                  showTutorialComplete = true
-                  showConfetti = true
-                  DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                    showTutorialComplete = false
-                    onboardingManager.completeTutorial()
+                  tutorialNFCTimeoutVisible = false
+                  nfcTimeoutWorkItem?.cancel()
+                  nfcTimeoutDismissWorkItem?.cancel()
+
+                  let timeout = DispatchWorkItem { [self] in
+                    guard !strategyManager.isBlocking else { return }
+                    strategyManager.cancelPendingNFCScan()
+                    withAnimation(.easeIn(duration: 0.2)) {
+                      tutorialNFCTimeoutVisible = true
+                    }
+                    let dismiss = DispatchWorkItem {
+                      withAnimation(.easeOut(duration: 0.3)) {
+                        tutorialNFCTimeoutVisible = false
+                      }
+                    }
+                    nfcTimeoutDismissWorkItem = dismiss
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 3, execute: dismiss)
                   }
+                  nfcTimeoutWorkItem = timeout
+                  DispatchQueue.main.asyncAfter(deadline: .now() + 15, execute: timeout)
                 }
-                strategyButtonPress(profile)
               },
               onStopTapped: {
                 strategyButtonPress(profile)
-              },
-              onBreakTapped: { selectedMinutes in
-                // Sync global break settings to profile before toggling
-                if let session = strategyManager.activeSession {
-                  session.blockedProfile.enableBreaks = true
-                  // Use slider-selected time when starting, ignore when ending
-                  if !session.isBreakActive {
-                    session.blockedProfile.breakTimeInMinutes = selectedMinutes
-                  }
-                  do {
-                    try context.save()
-                  } catch {
-                    logger.error("Failed to save break settings: \(error.localizedDescription)")
-                  }
-                }
-                strategyManager.toggleBreak(context: context)
               }
             )
             .background(
@@ -210,13 +244,22 @@ struct DOMainTabView: View {
               }
             )
 
+            // Tutorial Step 5 timeout message — auto-dismisses after 3 seconds
+            if tutorialNFCTimeoutVisible {
+              Text(String(localized: "請靠上 DO Card 才能開始專注"))
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.white.opacity(0.6))
+                .multilineTextAlignment(.center)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
           } else {
             // No mode yet — show "Create Mode" button
             Button(action: {
               if onboardingManager.tutorialStep == 1 {
                 onboardingManager.advanceTutorial()
               }
-              onNewProfile()
+              onNewProfile("")
             }) {
               Text(String(localized: "新增模式"))
                 .font(.system(size: 17, weight: .semibold))
@@ -254,9 +297,12 @@ struct DOMainTabView: View {
 
       // Tutorial Step 5 overlay
       if onboardingManager.tutorialStep == 5 {
-        TutorialStep5Overlay(buttonFrame: focusButtonFrame)
-          .opacity(focusButtonFrame != .zero ? 1 : 0)
-          .animation(.easeIn(duration: 0.3), value: focusButtonFrame != .zero)
+        TutorialStep5Overlay(
+          buttonFrame: focusButtonFrame,
+          isNFCScanning: strategyManager.isNFCScanInProgress
+        )
+        .opacity(focusButtonFrame != .zero ? 1 : 0)
+        .animation(.easeIn(duration: 0.3), value: focusButtonFrame != .zero)
       }
 
       // Tutorial complete overlay with confetti
@@ -278,11 +324,32 @@ struct DOMainTabView: View {
         selectedProfileIndex = index
       }
     }
-    .onChange(of: isBlocking) { _, _ in
+    .onChange(of: isBlocking) { _, newValue in
       if let activeId = strategyManager.activeSession?.blockedProfile.id,
         let index = profiles.firstIndex(where: { $0.id == activeId })
       {
         selectedProfileIndex = index
+      }
+      // Tutorial Step 5: NFC scan succeeded → session started → complete tutorial
+      if newValue && onboardingManager.tutorialStep == 5 {
+        nfcTimeoutWorkItem?.cancel()
+        nfcTimeoutWorkItem = nil
+        nfcTimeoutDismissWorkItem?.cancel()
+        nfcTimeoutDismissWorkItem = nil
+        tutorialNFCTimeoutVisible = false
+        showTutorialComplete = true
+        showConfetti = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+          showTutorialComplete = false
+          onboardingManager.completeTutorial()
+        }
+      }
+    }
+    .onChange(of: strategyManager.isNFCScanInProgress) { _, scanning in
+      // Tutorial Step 5: user cancelled NFC dialog before timeout — disarm the timer
+      if !scanning && onboardingManager.tutorialStep == 5 {
+        nfcTimeoutWorkItem?.cancel()
+        nfcTimeoutWorkItem = nil
       }
     }
     .onAppear {
@@ -291,6 +358,34 @@ struct DOMainTabView: View {
       {
         selectedProfileIndex = index
       }
+      // Cold-launch default: use the persisted name from pairing/rename until the first NFC tap
+      if strategyManager.activeCardName == nil {
+        strategyManager.activeCardName = onboardingManager.doCardName
+      }
+      // One-time card naming nudge: shown only after onboarding, for paired cards without a name
+      if !hasShownCardNamingNudge
+        && onboardingManager.isOnboardingCompleted
+        && onboardingManager.isDOCardPaired
+        && onboardingManager.doCardName == nil
+      {
+        hasShownCardNamingNudge = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+          showCardNamingNudge = true
+        }
+      }
+    }
+    .sheet(isPresented: $showCardNamingNudge) {
+      CardNamingNudgeSheet(
+        onGoToSettings: {
+          showCardNamingNudge = false
+          onNavigateToSettings()
+        },
+        onDismiss: {
+          showCardNamingNudge = false
+        }
+      )
+      .presentationDetents([.height(260)])
+      .presentationDragIndicator(.visible)
     }
     .sheet(isPresented: $showSelectModeSheet) {
       SelectModeView(
@@ -299,8 +394,8 @@ struct DOMainTabView: View {
         onEditProfile: { profile in
           onEditProfile(profile)
         },
-        onCreateNew: {
-          onNewProfile()
+        onCreateNew: { name in
+          onNewProfile(name)
         }
       )
       .presentationDetents([.medium, .large])
@@ -332,7 +427,7 @@ private struct TutorialStep1Overlay: View {
           .font(.system(size: 14, weight: .semibold))
           .foregroundColor(ThemeManager.shared.themeColor)
 
-        Text(String(localized: "點擊此處來開始你的旅程"))
+        Text(String(localized: "點這裡，建立你第一個專注模式"))
           .font(.system(size: 17, weight: .medium))
           .foregroundColor(.white)
 
@@ -373,8 +468,11 @@ private struct DimmedAreaShape: Shape {
 
 private struct TutorialStep5Overlay: View {
   let buttonFrame: CGRect  // in DOMainTab coordinate space
+  let isNFCScanning: Bool
 
   @State private var arrowBounce = false
+  @State private var pulseScale: CGFloat = 1.0
+  @State private var pulseOpacity: CGFloat = 0.6
 
   var body: some View {
     GeometryReader { geo in
@@ -407,25 +505,43 @@ private struct TutorialStep5Overlay: View {
       .onTapGesture {
         // Consume taps on dimmed area — do nothing
       }
+      .overlay {
+        // Pulse ring — visible only while NFC scan is in progress
+        if isNFCScanning && buttonFrame != .zero {
+          Capsule()
+            .stroke(ThemeManager.shared.themeColor.opacity(pulseOpacity), lineWidth: 2)
+            .frame(width: cutoutRect.width + 16, height: cutoutRect.height + 16)
+            .scaleEffect(pulseScale)
+            .position(x: cutoutRect.midX, y: cutoutRect.midY)
+            .allowsHitTesting(false)
+        }
+      }
       .overlay(alignment: .top) {
         VStack(spacing: 6) {
           Text(String(localized: "步驟五"))
             .font(.system(size: 14, weight: .semibold))
             .foregroundColor(ThemeManager.shared.themeColor)
 
-          Text(String(localized: "準備好了嗎？點擊開始專注"))
-            .font(.system(size: 17, weight: .medium))
-            .foregroundColor(.white)
+          Text(
+            isNFCScanning
+              ? String(localized: "靠上你的 DO Card…")
+              : String(localized: "準備好了嗎？長按靠上 DO Card")
+          )
+          .font(.system(size: 17, weight: .medium))
+          .foregroundColor(.white)
+          .animation(.easeInOut(duration: 0.2), value: isNFCScanning)
 
-          Image(systemName: "arrow.down")
-            .font(.system(size: 20, weight: .medium))
-            .foregroundColor(.white)
-            .offset(y: arrowBounce ? 6 : -2)
-            .animation(
-              .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
-              value: arrowBounce
-            )
-            .padding(.top, 2)
+          if !isNFCScanning {
+            Image(systemName: "arrow.down")
+              .font(.system(size: 20, weight: .medium))
+              .foregroundColor(.white)
+              .offset(y: arrowBounce ? 6 : -2)
+              .animation(
+                .easeInOut(duration: 0.8).repeatForever(autoreverses: true),
+                value: arrowBounce
+              )
+              .padding(.top, 2)
+          }
         }
         .allowsHitTesting(false)
         .padding(.top, cutoutRect.minY - 80)
@@ -433,6 +549,20 @@ private struct TutorialStep5Overlay: View {
     }
     .onAppear {
       arrowBounce = true
+    }
+    .onChange(of: isNFCScanning) { _, scanning in
+      if scanning {
+        withAnimation(
+          .easeOut(duration: 1.2)
+            .repeatForever(autoreverses: false)
+        ) {
+          pulseScale = 1.25
+          pulseOpacity = 0
+        }
+      } else {
+        pulseScale = 1.0
+        pulseOpacity = 0.6
+      }
     }
   }
 }
@@ -453,11 +583,11 @@ private struct TutorialCompleteOverlay: View {
         Text("🎉")
           .font(.system(size: 60))
 
-        Text(String(localized: "恭喜完成教學！"))
+        Text(String(localized: "完成了！"))
           .font(.system(size: 22, weight: .bold))
           .foregroundColor(.white)
 
-        Text(String(localized: "你已經準備好開始專注了"))
+        Text(String(localized: "做就對了，開始你的第一次專注"))
           .font(.system(size: 16, weight: .medium))
           .foregroundColor(.white.opacity(0.7))
       }
@@ -471,6 +601,57 @@ private struct TutorialCompleteOverlay: View {
       withAnimation(.spring(response: 0.5, dampingFraction: 0.7)) {
         appear = true
       }
+    }
+  }
+}
+
+// MARK: - Card Naming Nudge Sheet
+
+private struct CardNamingNudgeSheet: View {
+  let onGoToSettings: () -> Void
+  let onDismiss: () -> Void
+
+  var body: some View {
+    VStack(spacing: 20) {
+      Spacer()
+
+      Image(systemName: "pencil.and.outline")
+        .font(.system(size: 36, weight: .light))
+        .foregroundColor(ThemeManager.shared.themeColor)
+
+      VStack(spacing: 8) {
+        Text(String(localized: "幫你的 DO Card 命名吧"))
+          .font(.system(size: 19, weight: .bold))
+          .multilineTextAlignment(.center)
+
+        Text(String(localized: "在設定中替你的卡片取一個專屬名字，每次靠卡時主頁就會顯示它。"))
+          .font(.system(size: 14, weight: .regular))
+          .foregroundColor(.secondary)
+          .multilineTextAlignment(.center)
+          .padding(.horizontal, 24)
+      }
+
+      Spacer()
+
+      VStack(spacing: 10) {
+        Button(action: onGoToSettings) {
+          Text(String(localized: "前往設定"))
+            .font(.system(size: 16, weight: .semibold))
+            .foregroundColor(.white)
+            .frame(maxWidth: .infinity)
+            .frame(height: 50)
+            .background(Capsule().fill(ThemeManager.shared.themeColor))
+        }
+
+        Button(action: onDismiss) {
+          Text(String(localized: "之後再說"))
+            .font(.system(size: 15, weight: .medium))
+            .foregroundColor(.secondary)
+        }
+        .frame(height: 36)
+      }
+      .padding(.horizontal, 24)
+      .padding(.bottom, 16)
     }
   }
 }

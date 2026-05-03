@@ -1,4 +1,7 @@
+import OSLog
 import SwiftUI
+
+private let timerDurationLog = Logger(subsystem: "online.do.card.app", category: "TimerDuration")
 
 struct TimerDurationView: View {
   @EnvironmentObject var themeManager: ThemeManager
@@ -224,7 +227,7 @@ struct TimerDurationPreviewSheetHost: View {
           TimerDurationView(
             profileName: "Work Focus",
             onDurationSelected: { timerData in
-              print("Selected duration: \(timerData.durationInMinutes) minutes")
+              timerDurationLog.debug("Selected duration: \(timerData.durationInMinutes) minutes")
             }
           )
         }

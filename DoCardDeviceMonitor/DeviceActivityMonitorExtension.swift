@@ -6,6 +6,7 @@
 //
 
 import DeviceActivity
+import Foundation
 import ManagedSettings
 import OSLog
 
@@ -18,6 +19,12 @@ private let log = Logger(
 // Make sure that your class name matches the NSExtensionPrincipalClass in your Info.plist.
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private let appBlocker = AppBlockerUtil()
+  private static let emergencyUnlockedSchedulePrefix = "emergencyUnlockedSchedule_"
+  private static let cardTapSuppressedSchedulePrefix = "cardTapSuppressedSchedule_"
+  private static let scheduleSuppressionPrefixes = [
+    emergencyUnlockedSchedulePrefix,
+    cardTapSuppressedSchedulePrefix,
+  ]
 
   override init() {
     super.init()
@@ -25,15 +32,49 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
+    log.info("=== DO Card intervalDidStart FIRED — build: \(#file) ===")
+    DebugLogStore.log(
+      "intervalDidStart", "activity=\(activity.rawValue)", process: "ext")
 
-    log.info("intervalDidStart for activity: \(activity.rawValue)")
+    // EMERGENCY_UNLOCK_AUDIT: respect app-written suppression for the current
+    // scheduled activity window so intervalDidStart cannot immediately re-block.
+    for prefix in Self.scheduleSuppressionPrefixes {
+      let suppressKey = prefix + activity.rawValue
+      if let windowEndTimestamp = SharedData.readVerifiedDouble(forKey: suppressKey) {
+        let windowEnd = Date(timeIntervalSince1970: windowEndTimestamp)
+        if Date() < windowEnd {
+          log.info("intervalDidStart suppressed for activity: \(activity.rawValue) until \(windowEnd, privacy: .public)")
+          return
+        }
+
+        SharedData.removeSignedValue(forKey: suppressKey)
+      }
+    }
+
+    let snapshotCount = SharedData.profileSnapshots.count
+    log.info("intervalDidStart for activity: \(activity.rawValue), profileSnapshots count: \(snapshotCount)")
+
+    if snapshotCount == 0 {
+      log.error("intervalDidStart: profileSnapshots is EMPTY — blocking will silently no-op for activity: \(activity.rawValue)")
+    }
+
     TimerActivityUtil.startTimerActivity(for: activity)
   }
 
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
 
-    log.info("intervalDidEnd for activity: \(activity.rawValue)")
+    let snapshotCount = SharedData.profileSnapshots.count
+    log.info("intervalDidEnd for activity: \(activity.rawValue), profileSnapshots count: \(snapshotCount)")
+    DebugLogStore.log(
+      "intervalDidEnd",
+      "activity=\(activity.rawValue) snapshotCount=\(snapshotCount)",
+      process: "ext")
+
+    if snapshotCount == 0 {
+      log.error("intervalDidEnd: profileSnapshots is EMPTY — stop will silently no-op for activity: \(activity.rawValue)")
+    }
+
     TimerActivityUtil.stopTimerActivity(for: activity)
   }
 }

@@ -1,6 +1,9 @@
 import BackgroundTasks
 import Foundation
+import OSLog
 import UserNotifications
+
+private let timersLog = Logger(subsystem: "online.do.card.app", category: "TimersUtil")
 
 // MARK: - Notification Constants
 extension Notification.Name {
@@ -127,7 +130,7 @@ class TimersUtil {
       do {
         try BGTaskScheduler.shared.submit(request)
       } catch {
-        print("Could not schedule background task: \(error)")
+        timersLog.error("Could not schedule background task: \(error)")
       }
     }
   }
@@ -182,9 +185,7 @@ class TimersUtil {
 
         UNUserNotificationCenter.current().add(request) { error in
           if let error = error {
-            print(
-              "Error scheduling notification: \(error.localizedDescription)"
-            )
+            timersLog.error("Error scheduling notification: \(error.localizedDescription)")
             completion(.failure(error))
           } else {
             // Also schedule as background task for resilience when app is killed
@@ -246,9 +247,7 @@ class TimersUtil {
       granted,
       error in
       if let error = error {
-        print(
-          "Error requesting notification authorization: \(error.localizedDescription)"
-        )
+        timersLog.error("Error requesting notification authorization: \(error.localizedDescription)")
         completion(.failure(error))
         return
       }

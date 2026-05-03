@@ -83,40 +83,6 @@ struct ProfileInsightsView: View {
             )
           }
 
-          VStack(alignment: .leading, spacing: 8) {
-            SectionTitle(String(localized: "Break Behavior"))
-
-            MultiStatCard(
-              stats: [
-                .init(
-                  title: String(localized: "Total Breaks Taken"),
-                  valueText: String(viewModel.metrics.totalBreaksTaken),
-                  systemImageName: "pause.circle",
-                  iconColor: .blue
-                ),
-                .init(
-                  title: String(localized: "Average Break Duration"),
-                  valueText: viewModel.formattedDuration(viewModel.metrics.averageBreakDuration),
-                  systemImageName: "hourglass",
-                  iconColor: .blue
-                ),
-                .init(
-                  title: String(localized: "Sessions With Breaks"),
-                  valueText: String(viewModel.metrics.sessionsWithBreaks),
-                  systemImageName: "rectangle.badge.checkmark",
-                  iconColor: .blue
-                ),
-                .init(
-                  title: String(localized: "Sessions Without Breaks"),
-                  valueText: String(viewModel.metrics.sessionsWithoutBreaks),
-                  systemImageName: "rectangle.badge.xmark",
-                  iconColor: .blue
-                ),
-              ],
-              columns: 2
-            )
-          }
-
           VStack(alignment: .leading, spacing: 16) {
             SectionTitle(String(localized: "Daily Patterns"))
 
@@ -179,154 +145,6 @@ struct ProfileInsightsView: View {
                   AxisGridLine()
                   AxisTick()
                   AxisValueLabel(format: .dateTime.month().day())
-                }
-              }
-              .chartYAxis {
-                AxisMarks(position: .leading)
-              }
-            }
-          }
-
-          VStack(alignment: .leading, spacing: 16) {
-            SectionTitle(String(localized: "Break Analysis"))
-
-            ChartCard(
-              title: String(localized: "Break Usage Over Time"),
-              subtitle: String(localized: "Number of breaks taken daily over 14 days")
-            ) {
-              let data = viewModel.breakDailyAggregates(days: 14)
-              SelectableChartFactory.dailyChart(
-                data: data,
-                xValue: \.date,
-                yValue: { Double($0.breaksCount) }
-              ) { item in
-                LineMark(
-                  x: .value("Date", item.date),
-                  y: .value("Breaks", item.breaksCount)
-                )
-                .foregroundStyle(.purple)
-                AreaMark(
-                  x: .value("Date", item.date),
-                  y: .value("Breaks", item.breaksCount)
-                )
-                .foregroundStyle(.purple.opacity(0.2))
-              } annotationValue: { selectedData in
-                String(localized: "\(selectedData?.breaksCount ?? 0) breaks")
-              }
-              .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 4)) { value in
-                  AxisGridLine()
-                  AxisTick()
-                  AxisValueLabel(format: .dateTime.month().day())
-                }
-              }
-              .chartYAxis {
-                AxisMarks(position: .leading)
-              }
-            }
-
-            ChartCard(
-              title: String(localized: "Average Break Duration Chart"),
-              subtitle: String(localized: "Mean break length in minutes per day over 14 days")
-            ) {
-              let data = viewModel.breakDailyAggregates(days: 14)
-              SelectableChartFactory.dailyChart(
-                data: data,
-                xValue: \.date,
-                yValue: { data in
-                  guard data.breaksCount > 0 else { return 0 }
-                  return data.totalBreakDuration / Double(data.breaksCount) / 60.0
-                }
-              ) { item in
-                let avgDuration =
-                  item.breaksCount > 0
-                  ? item.totalBreakDuration / Double(item.breaksCount) / 60.0 : 0
-                LineMark(
-                  x: .value("Date", item.date),
-                  y: .value("Minutes", avgDuration)
-                )
-                .foregroundStyle(.purple)
-                AreaMark(
-                  x: .value("Date", item.date),
-                  y: .value("Minutes", avgDuration)
-                )
-                .foregroundStyle(.purple.opacity(0.2))
-              } annotationValue: { selectedData in
-                guard let data = selectedData, data.breaksCount > 0 else { return String(localized: "0 min") }
-                let avgDuration = data.totalBreakDuration / Double(data.breaksCount) / 60.0
-                return String(localized: "\(Int(round(avgDuration))) min avg")
-              }
-              .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 4)) { value in
-                  AxisGridLine()
-                  AxisTick()
-                  AxisValueLabel(format: .dateTime.month().day())
-                }
-              }
-              .chartYAxis {
-                AxisMarks(position: .leading)
-              }
-            }
-
-            ChartCard(
-              title: String(localized: "Break Start Times"),
-              subtitle:
-                String(localized: "When you typically start breaks by hour of day over 14 days")
-            ) {
-              let data = viewModel.breakStartHourlyAggregates(days: 14)
-              SelectableChartFactory.hourlyChart(
-                data: data,
-                xValue: \.hour,
-                yValue: { Double($0.breaksStarted) }
-              ) { item in
-                BarMark(
-                  x: .value("Hour", item.hour),
-                  y: .value("Breaks", item.breaksStarted)
-                )
-                .foregroundStyle(.purple)
-              } annotationValue: { selectedData in
-                String(localized: "\(selectedData?.breaksStarted ?? 0) breaks started")
-              }
-              .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 6)) { value in
-                  AxisGridLine()
-                  AxisTick()
-                  if let hour = value.as(Int.self) {
-                    AxisValueLabel(formatHourShort(hour))
-                  }
-                }
-              }
-              .chartYAxis {
-                AxisMarks(position: .leading)
-              }
-            }
-
-            ChartCard(
-              title: String(localized: "Break End Times"),
-              subtitle:
-                String(localized: "When you typically end breaks by hour of day over 14 days")
-            ) {
-              let data = viewModel.breakEndHourlyAggregates(days: 14)
-              SelectableChartFactory.hourlyChart(
-                data: data,
-                xValue: \.hour,
-                yValue: { Double($0.breaksEnded) }
-              ) { item in
-                BarMark(
-                  x: .value("Hour", item.hour),
-                  y: .value("Breaks", item.breaksEnded)
-                )
-                .foregroundStyle(.purple.opacity(0.7))
-              } annotationValue: { selectedData in
-                String(localized: "\(selectedData?.breaksEnded ?? 0) breaks ended")
-              }
-              .chartXAxis {
-                AxisMarks(values: .automatic(desiredCount: 6)) { value in
-                  AxisGridLine()
-                  AxisTick()
-                  if let hour = value.as(Int.self) {
-                    AxisValueLabel(formatHourShort(hour))
-                  }
                 }
               }
               .chartYAxis {
@@ -503,14 +321,12 @@ extension ProfileInsightsView {
         title: String(localized: "Details Total Sessions"), valueText: "\(profile.sessions.count)",
         systemImageName: "list.number", iconColor: .gray),
       .init(
-        title: String(localized: "Categories Blocked"), valueText: "\(profile.selectedActivity.categories.count)",
-        systemImageName: "square.grid.2x2", iconColor: .gray),
-      .init(
-        title: String(localized: "Apps Blocked"), valueText: "\(profile.selectedActivity.applications.count)",
+        title: String(localized: "Apps Blocked"), valueText: "\(profile.selectedActivity.applicationTokens.count)",
         systemImageName: "app", iconColor: .gray),
     ]
 
-    if let active = profile.activeScheduleTimerActivity {
+    let activeTimers = profile.activeScheduleTimerActivities
+    if let active = activeTimers.first {
       items.append(
         .init(
           title: String(localized: "Active Schedule Timer Activity"), valueText: String(active.rawValue.prefix(8)),

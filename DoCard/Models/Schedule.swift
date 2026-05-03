@@ -51,7 +51,8 @@ enum ScheduleEndType: String, Codable, Equatable {
   case specificTime = "specificTime"
 }
 
-struct BlockedProfileSchedule: Codable, Equatable {
+struct BlockedProfileSchedule: Codable, Equatable, Identifiable {
+  var id: UUID = UUID()
   var name: String = ""
   var days: [Weekday]
 
@@ -60,16 +61,75 @@ struct BlockedProfileSchedule: Codable, Equatable {
   var endHour: Int
   var endMinute: Int
 
-  var endType: ScheduleEndType = .cardTap
+  var endType: ScheduleEndType = .specificTime
+  var isNextDay: Bool = false
 
   var updatedAt: Date = Date()
+
+  enum CodingKeys: String, CodingKey {
+    case id
+    case name
+    case days
+    case startHour
+    case startMinute
+    case endHour
+    case endMinute
+    case endType
+    case isNextDay
+    case updatedAt
+  }
+
+  init(
+    id: UUID = UUID(),
+    name: String = "",
+    days: [Weekday],
+    startHour: Int,
+    startMinute: Int,
+    endHour: Int,
+    endMinute: Int,
+    endType: ScheduleEndType = .specificTime,
+    isNextDay: Bool = false,
+    updatedAt: Date = Date()
+  ) {
+    self.id = id
+    self.name = name
+    self.days = days
+    self.startHour = startHour
+    self.startMinute = startMinute
+    self.endHour = endHour
+    self.endMinute = endMinute
+    self.endType = endType
+    self.isNextDay = isNextDay
+    self.updatedAt = updatedAt
+  }
+
+  init(from decoder: any Decoder) throws {
+    let container = try decoder.container(keyedBy: CodingKeys.self)
+
+    id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+    name = try container.decodeIfPresent(String.self, forKey: .name) ?? ""
+    days = try container.decode([Weekday].self, forKey: .days)
+    startHour = try container.decode(Int.self, forKey: .startHour)
+    startMinute = try container.decode(Int.self, forKey: .startMinute)
+    endHour = try container.decode(Int.self, forKey: .endHour)
+    endMinute = try container.decode(Int.self, forKey: .endMinute)
+    endType =
+      try container.decodeIfPresent(ScheduleEndType.self, forKey: .endType)
+      ?? .specificTime
+    isNextDay = try container.decodeIfPresent(Bool.self, forKey: .isNextDay) ?? false
+    updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+  }
 
   var isActive: Bool {
     return !days.isEmpty
   }
 
   var totalDurationInSeconds: Int {
-    return (endHour - startHour) * 3600 + (endMinute - startMinute) * 60
+    if isNextDay {
+      return (24 - startHour + endHour) * 3600 + (endMinute - startMinute) * 60
+    } else {
+      return (endHour - startHour) * 3600 + (endMinute - startMinute) * 60
+    }
   }
 
   var summaryText: String {
@@ -95,17 +155,32 @@ struct BlockedProfileSchedule: Codable, Equatable {
   }
 
   func isCurrentlyInWindow(now: Date = Date(), calendar: Calendar = .current) -> Bool {
-    guard isTodayScheduled(now: now, calendar: calendar) else { return false }
-
     let currentComponents = calendar.dateComponents([.hour, .minute], from: now)
     let currentHour = currentComponents.hour ?? 0
     let currentMinute = currentComponents.minute ?? 0
-
     let currentTotalMinutes = currentHour * 60 + currentMinute
     let startTotalMinutes = startHour * 60 + startMinute
     let endTotalMinutes = endHour * 60 + endMinute
 
-    return currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes
+    if isNextDay {
+      // Cross-midnight schedule: check two cases.
+      // A) Today is the start day and current time >= startTime (e.g. Mon 22:00–23:59)
+      // B) Yesterday was the start day and current time < endTime (e.g. Tue 00:00–06:00)
+      let todayWeekday = calendar.component(.weekday, from: now)
+      let yesterdayWeekday = todayWeekday == 1 ? 7 : todayWeekday - 1
+      let todayIsStartDay = days.contains(where: { $0.rawValue == todayWeekday })
+      let yesterdayWasStartDay = days.contains(where: { $0.rawValue == yesterdayWeekday })
+      if todayIsStartDay && currentTotalMinutes >= startTotalMinutes {
+        return true
+      }
+      if yesterdayWasStartDay && currentTotalMinutes < endTotalMinutes {
+        return true
+      }
+      return false
+    } else {
+      guard isTodayScheduled(now: now, calendar: calendar) else { return false }
+      return currentTotalMinutes >= startTotalMinutes && currentTotalMinutes < endTotalMinutes
+    }
   }
 
   func olderThan15Minutes(now: Date = Date()) -> Bool {

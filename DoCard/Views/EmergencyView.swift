@@ -10,9 +10,6 @@ struct EmergencyView: View {
   private var hasRemaining: Bool { strategyManager.getRemainingEmergencyUnblocks() > 0 }
 
   @State private var isPerformingEmergencyUnblock: Bool = false
-  @State private var showFounderModeAlert: Bool = false
-  @State private var founderModePassword: String = ""
-  @State private var founderModeError: Bool = false
 
   var body: some View {
     ScrollView {
@@ -31,7 +28,7 @@ struct EmergencyView: View {
   private var header: some View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
-        Text(String(localized: "Emergency Access"))
+        Text(String(localized: "緊急解鎖"))
           .font(.title2).bold()
 
         Spacer()
@@ -47,10 +44,10 @@ struct EmergencyView: View {
                 let timeUntilReset = nextResetDate.timeIntervalSinceNow
                 if timeUntilReset <= 24 * 60 * 60 {  // Less than 24 hours
                   let hoursRemaining = max(1, Int(ceil(timeUntilReset / 3600)))
-                  Text(String(localized: "Resets in \(hoursRemaining)h"))
+                  Text(String(localized: "\(hoursRemaining) 小時後重置"))
                     .font(.caption)
                 } else {
-                  Text("\(String(localized: "Resets")) \(nextResetDate, format: .dateTime.month().day())")
+                  Text("\(String(localized: "重置日期")) \(nextResetDate, format: .dateTime.month().day())")
                     .font(.caption)
                 }
               }
@@ -58,65 +55,10 @@ struct EmergencyView: View {
           }
           .padding(.vertical, 6)
 
-          Menu {
-            let currentPeriod = strategyManager.getResetPeriodInWeeks()
-
-            Button {
-              strategyManager.setResetPeriodInWeeks(2)
-            } label: {
-              if currentPeriod == 2 {
-                Label(String(localized: "2 weeks"), systemImage: "checkmark")
-              } else {
-                Text(String(localized: "2 weeks"))
-              }
-            }
-
-            Button {
-              strategyManager.setResetPeriodInWeeks(4)
-            } label: {
-              if currentPeriod == 4 {
-                Label(String(localized: "4 weeks"), systemImage: "checkmark")
-              } else {
-                Text(String(localized: "4 weeks"))
-              }
-            }
-
-            Button {
-              strategyManager.setResetPeriodInWeeks(6)
-            } label: {
-              if currentPeriod == 6 {
-                Label(String(localized: "6 weeks"), systemImage: "checkmark")
-              } else {
-                Text(String(localized: "6 weeks"))
-              }
-            }
-
-            Button {
-              strategyManager.setResetPeriodInWeeks(8)
-            } label: {
-              if currentPeriod == 8 {
-                Label(String(localized: "8 weeks"), systemImage: "checkmark")
-              } else {
-                Text(String(localized: "8 weeks"))
-              }
-            }
-          } label: {
-            Image(systemName: "gearshape.fill")
-              .font(.caption)
-              .foregroundColor(.secondary)
-              .padding(8)
-              .background(Circle().fill(Color.secondary.opacity(0.1)))
-          }
-          // SECURITY (V-03a): Prevent changing the reset period while
-          // a session is active, which could be exploited to accelerate
-          // emergency unlock counter resets.
-          .disabled(strategyManager.isBlocking)
         }
       }
 
-      Text(String(localized:
-        "Tap the glass to reveal the emergency unblock button. Use only when absolutely necessary."
-      ))
+      Text(String(localized: "需要緊急停止嗎？長按按鈕確認解鎖，請謹慎使用。"))
       .font(.callout)
       .foregroundColor(.secondary)
     }
@@ -131,7 +73,7 @@ struct EmergencyView: View {
           .font(.title3)
           .foregroundColor(hasRemaining ? .green : .red)
         VStack(alignment: .leading, spacing: 4) {
-          Text(String(localized: "Unblocks remaining"))
+          Text(String(localized: "剩餘次數"))
             .font(.subheadline)
             .foregroundColor(.secondary)
           Text("\(emergencyUnblocksRemaining)")
@@ -141,13 +83,13 @@ struct EmergencyView: View {
         Spacer()
       }
 
-      Text(String(localized: "You have a limited number of emergency unblocks."))
+      Text(String(localized: "每週有固定的緊急解鎖次數，用完後下個月重置。"))
         .font(.footnote)
         .foregroundColor(.secondary)
 
       BreakGlassButton(tapsToShatter: 3) {
         ActionButton(
-          title: String(localized: "Emergency Unblock"),
+          title: String(localized: "確認緊急解鎖"),
           backgroundColor: .red,
           iconName: "exclamationmark.triangle.fill",
           iconColor: .white,
@@ -160,27 +102,13 @@ struct EmergencyView: View {
       .frame(height: 56)
 
       if !hasRemaining {
-        Text(String(localized: "No emergency unblocks remaining. You're out of luck."))
+        Text(String(localized: "次數已用完，下個月再試。"))
           .font(.footnote)
           .foregroundColor(.red)
       } else {
-        Text(String(localized: "This will reduce your remaining count by 1."))
+        Text(String(localized: "這次將消耗 1 次機會。"))
           .font(.footnote)
           .foregroundColor(.secondary)
-      }
-
-      HStack {
-        Spacer()
-        Button {
-          founderModePassword = ""
-          founderModeError = false
-          showFounderModeAlert = true
-        } label: {
-          Text("創辦人模式")
-            .font(.caption2)
-            .foregroundColor(.secondary.opacity(0.6))
-        }
-        .buttonStyle(.plain)
       }
     }
     .padding(16)
@@ -188,26 +116,6 @@ struct EmergencyView: View {
       RoundedRectangle(cornerRadius: 16, style: .continuous)
         .fill(.thinMaterial)
     )
-    .alert("創辦人模式", isPresented: $showFounderModeAlert) {
-      SecureField("請輸入密碼", text: $founderModePassword)
-      Button("取消", role: .cancel) { }
-      Button("確認") {
-        if founderModePassword == "3962057301" {
-          strategyManager.resetEmergencyUnblocks()
-        } else {
-          founderModeError = true
-        }
-      }
-    } message: {
-      if founderModeError {
-        Text("密碼錯誤，請重新輸入。")
-      } else {
-        Text("輸入創辦人密碼以重置緊急解鎖次數。")
-      }
-    }
-    .alert("密碼錯誤", isPresented: $founderModeError) {
-      Button("好", role: .cancel) { }
-    }
   }
 
   private func performEmergencyUnblock() {

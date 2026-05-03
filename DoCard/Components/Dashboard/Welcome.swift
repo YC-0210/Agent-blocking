@@ -9,7 +9,7 @@ struct Welcome: View {
       VStack(alignment: .leading, spacing: 12) {
         // Top row with category and icon
         HStack {
-          Text(String(localized: "Physically block distracting apps "))
+          Text(String(localized: "輕觸卡片，守護你的專注時間"))
             .font(.subheadline)
             .fontWeight(.medium)
             .foregroundColor(.primary)
@@ -30,12 +30,12 @@ struct Welcome: View {
           .frame(height: 10)
 
         // Title and subtitle
-        Text(String(localized: "Welcome to DO"))
+        Text(String(localized: "歡迎來到 DO"))
           .font(.title)
           .fontWeight(.bold)
           .foregroundColor(.primary)
 
-        Text(String(localized: "Tap here to get started on your first profile. Use your DO Card to lock and unlock apps."))
+        Text(String(localized: "點這裡建立你的第一個專注模式，用 DO Card 開始展開行動"))
         .font(.subheadline)
         .foregroundColor(.secondary)
         .lineLimit(3)

@@ -10,7 +10,7 @@ struct ProfileStatsRow: View {
     HStack(spacing: 16) {
       // Apps count
       VStack(alignment: .leading, spacing: 2) {
-        Text(String(localized: "Apps & Categories"))
+        Text(String(localized: "Apps"))
           .font(.caption)
           .foregroundColor(.secondary)
 

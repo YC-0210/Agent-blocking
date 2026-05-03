@@ -1,10 +1,14 @@
 import FamilyControls
+import OSLog
 import SwiftData
 import SwiftUI
+
+private let bplLog = Logger(subsystem: "online.do.card.app", category: "BlockedProfileList")
 
 struct BlockedProfileListView: View {
   @Environment(\.modelContext) private var context
   @Environment(\.dismiss) private var dismiss
+  @EnvironmentObject private var strategyManager: StrategyManager
 
   @Query(sort: [
     SortDescriptor(\BlockedProfiles.order, order: .forward),
@@ -25,7 +29,7 @@ struct BlockedProfileListView: View {
           EmptyView(
             iconName: "person.crop.circle.badge.plus",
             headingText:
-              String(localized: "透過自訂模式來分組和切換不同的封鎖限制")
+              String(localized: "透過自訂模式來分組和切換不同的專注場景")
           )
         } else {
           List {
@@ -119,6 +123,7 @@ struct BlockedProfileListView: View {
     do {
       for index in offsets {
         let profile = profiles[index]
+        strategyManager.handleProfileDeletion(profile, context: context)
         try BlockedProfiles.deleteProfile(profile, in: context)
       }
 
@@ -126,7 +131,7 @@ struct BlockedProfileListView: View {
       let remainingProfiles = try BlockedProfiles.fetchProfiles(in: context)
       try BlockedProfiles.reorderProfiles(remainingProfiles, in: context)
     } catch {
-      print("Failed to delete or reorder profiles: \(error)")
+      bplLog.error("Failed to delete or reorder profiles: \(error)")
     }
   }
 
@@ -137,7 +142,7 @@ struct BlockedProfileListView: View {
     do {
       try BlockedProfiles.reorderProfiles(reorderedProfiles, in: context)
     } catch {
-      print("Failed to reorder profiles: \(error)")
+      bplLog.error("Failed to reorder profiles: \(error)")
     }
   }
 }
@@ -145,4 +150,5 @@ struct BlockedProfileListView: View {
 #Preview {
   BlockedProfileListView()
     .modelContainer(for: BlockedProfiles.self, inMemory: true)
+    .environmentObject(StrategyManager())
 }

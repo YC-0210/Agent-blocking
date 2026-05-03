@@ -11,13 +11,50 @@ import SwiftData
 import SwiftUI
 
 private let container: ModelContainer = {
+  let schema = Schema(versionedSchema: AppSchemaV3.self)
+  let config = ModelConfiguration(schema: schema)
   do {
     return try ModelContainer(
-      for: BlockedProfileSession.self,
-      BlockedProfiles.self
+      for: schema,
+      migrationPlan: AppMigrationPlan.self,
+      configurations: [config]
     )
   } catch {
-    fatalError("Couldn’t create ModelContainer: \(error)")
+    // Strategy B: back up the corrupt store and recreate a fresh one.
+    // This fires only when SwiftData cannot apply the migration plan —
+    // e.g. a device whose store stamp was never correctly written and
+    // whose entity hash doesn’t match any declared schema version.
+    let fm = FileManager.default
+    let storeURL = config.url
+    let backupSuffix = "bak-\(Int(Date().timeIntervalSince1970))"
+
+    // Back up the store and its WAL sidecars using the real `.store` filenames.
+    let sidecarSuffixes = ["", "-shm", "-wal"]
+    for suffix in sidecarSuffixes {
+      let src = suffix.isEmpty
+        ? storeURL
+        : storeURL.deletingLastPathComponent().appendingPathComponent(
+          "\(storeURL.lastPathComponent)\(suffix)"
+        )
+      let dst = storeURL.deletingLastPathComponent().appendingPathComponent(
+        "\(storeURL.lastPathComponent)-\(backupSuffix)\(suffix)"
+      )
+      if fm.fileExists(atPath: src.path) {
+        try? fm.moveItem(at: src, to: dst)
+      }
+    }
+
+    UserDefaults.standard.set(true, forKey: "didResetStoreOnMigrationFailure")
+
+    do {
+      return try ModelContainer(
+        for: schema,
+        migrationPlan: AppMigrationPlan.self,
+        configurations: [config]
+      )
+    } catch {
+      fatalError("Couldn’t create ModelContainer even after store reset: \(error)")
+    }
   }
 }()
 
@@ -33,9 +70,14 @@ struct DoCardApp: App {
   @StateObject private var liveActivityManager = LiveActivityManager.shared
   @StateObject private var themeManager = ThemeManager.shared
   @StateObject private var onboardingManager = OnboardingManager.shared
+  @StateObject private var subscriptionManager = SubscriptionManager.shared
 
   init() {
     TimersUtil.registerBackgroundTasks()
+
+    // Migrate legacy single-schedule data to multi-schedule array
+    let migrationContext = ModelContext(container)
+    BlockedProfiles.migrateSchedulesToArray(in: migrationContext)
 
     let asyncDependency: @Sendable () async -> (ModelContainer) = {
       @MainActor in
@@ -74,6 +116,7 @@ struct DoCardApp: App {
       .environmentObject(liveActivityManager)
       .environmentObject(themeManager)
       .environmentObject(onboardingManager)
+      .environmentObject(subscriptionManager)
       .preferredColorScheme(.dark)
     }
     .modelContainer(container)

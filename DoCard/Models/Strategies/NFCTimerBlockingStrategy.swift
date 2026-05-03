@@ -16,9 +16,16 @@ class NFCTimerBlockingStrategy: BlockingStrategy {
 
   var onSessionCreation: ((SessionStatus) -> Void)?
   var onErrorMessage: ((String) -> Void)?
+  var onCardNameScanned: ((String?) -> Void)?
 
   private let nfcScanner: NFCScannerUtil = NFCScannerUtil()
   private let appBlocker: AppBlockerUtil = AppBlockerUtil()
+
+  private var emptySelectionMessage: String {
+    SharedData.effectiveSubscriptionTier == .free
+      ? String(localized: "免費版目前只支援封鎖 App。請先選擇要封鎖的 App，才能開始專注")
+      : String(localized: "請先選擇要封鎖的 App，才能開始專注")
+  }
 
   func getIdentifier() -> String {
     return NFCTimerBlockingStrategy.id
@@ -33,6 +40,14 @@ class NFCTimerBlockingStrategy: BlockingStrategy {
       profileName: profile.name,
       onDurationSelected: { [weak self] duration in
         guard let self else { return }
+
+        if profile.hasActiveSchedules {
+          self.onErrorMessage?(
+            String(localized: "此模式已有排程，無法使用計時模式")
+          )
+          return
+        }
+
         if let strategyTimerData = StrategyTimerData.toData(from: duration) {
           // Store the timer data so that its selected for the next time the profile is started
           // This is also useful if the profile is started from the background like a shortcut or intent
@@ -47,17 +62,38 @@ class NFCTimerBlockingStrategy: BlockingStrategy {
           }
         }
 
+        let snapshot = BlockedProfiles.getSnapshot(for: profile)
+        guard self.appBlocker.wouldShieldAnything(for: snapshot) else {
+          self.onErrorMessage?(self.emptySelectionMessage)
+          return
+        }
+
         // Start blocking directly without requiring NFC tap
-        self.appBlocker.activateRestrictions(for: BlockedProfiles.getSnapshot(for: profile))
+        self.appBlocker.activateRestrictions(for: snapshot)
 
         let activeSession = BlockedProfileSession.createSession(
           in: context,
           withTag: NFCTimerBlockingStrategy.id,
           withProfile: profile,
-          forceStart: forceStart ?? false
+          forceStart: forceStart ?? false,
+          plannedDurationMinutes: duration.durationInMinutes
         )
 
-        DeviceActivityCenterUtil.startStrategyTimerActivity(for: profile)
+        guard DeviceActivityCenterUtil.startStrategyTimerActivity(for: profile) else {
+          context.delete(activeSession)
+          SharedData.flushActiveStrategySession()
+          self.appBlocker.deactivateRestrictions()
+          self.onErrorMessage?(
+            String(localized: "無法啟動計時器，請確認 Screen Time 權限仍可使用後再試一次")
+          )
+          return
+        }
+
+        context.insert(NFCTapEvent(
+          action: NFCTapEvent.actionStartBlock,
+          profileId: profile.id,
+          profileName: profile.name
+        ))
 
         self.onSessionCreation?(.started(activeSession))
       }
@@ -71,11 +107,15 @@ class NFCTimerBlockingStrategy: BlockingStrategy {
     nfcScanner.onTagScanned = { [weak self] scannedTag in
       guard let self else { return }
 
-      session.endSession()
-      do {
-        try context.save()
-      } catch {
-        logger.error("Failed to save session after NFC timer unlock: \(error.localizedDescription)")
+      self.onCardNameScanned?(scannedTag.cardName)
+
+      context.insert(NFCTapEvent(
+        action: NFCTapEvent.actionEndBlock,
+        profileId: session.blockedProfile.id,
+        profileName: session.blockedProfile.name
+      ))
+
+      session.endSessionFully(in: context, endReason: "card_tap") { error in
         self.onErrorMessage?("Failed to save session: \(error.localizedDescription)")
       }
       self.appBlocker.deactivateRestrictions()

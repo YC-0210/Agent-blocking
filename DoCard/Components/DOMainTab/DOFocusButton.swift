@@ -6,66 +6,28 @@ struct DOFocusButton: View {
 
   let isBlocking: Bool
   let showStopButton: Bool
-  let isBreakAvailable: Bool
-  let isBreakActive: Bool
-  let breakUsed: Bool  // true when break has already been taken and ended
   let simpleTapMode: Bool  // when true, start button uses simple tap instead of long press (for tutorial)
   let onStartTapped: () -> Void
   let onStopTapped: () -> Void
-  let onBreakTapped: (Int) -> Void  // passes selected break time in minutes
 
   @State private var isPressed = false
   @State private var holdProgress: CGFloat = 0
   @State private var longPressCompleted = false
-  @State private var showBreakPicker = false
-  @State private var selectedBreakMinutes: Double = 15
 
   private let longPressDuration: Double = 0.8
 
   var body: some View {
     VStack(spacing: 14) {
       if isBlocking {
-        if isBreakActive {
-          // During break — single "回到專注" button to end break early
+        if showStopButton {
           focusPillButton(
-            title: String(localized: "回到專注"),
+            title: String(localized: "停止專注"),
             color: themeManager.themeColor,
             action: {
               UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-              onBreakTapped(0)
+              onStopTapped()
             }
           )
-        } else {
-          // During focus — "休息一下" above "停止專注"
-          if isBreakAvailable {
-            if showBreakPicker {
-              // Expanded: slider + confirm
-              breakPickerView()
-            } else {
-              smallBreakButton(
-                title: String(localized: "休息一下"),
-                action: {
-                  UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                  withAnimation(.easeOut(duration: 0.25)) {
-                    showBreakPicker = true
-                  }
-                }
-              )
-            }
-          }
-
-          if showStopButton {
-            focusPillButton(
-              title: breakUsed
-                ? String(localized: "結束專注")
-                : String(localized: "停止專注"),
-              color: themeManager.themeColor,
-              action: {
-                UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                onStopTapped()
-              }
-            )
-          }
         }
       } else {
         focusPillButton(
@@ -76,70 +38,6 @@ struct DOFocusButton: View {
         )
       }
     }
-  }
-
-  // MARK: - Break Picker
-
-  private func breakPickerView() -> some View {
-    VStack(spacing: 12) {
-      // Duration label
-      Text("\(Int(selectedBreakMinutes)) " + String(localized: "分鐘"))
-        .font(.system(size: 28, weight: .bold, design: .rounded))
-        .foregroundColor(.white)
-
-      // Slider
-      Slider(value: $selectedBreakMinutes, in: 1...60, step: 1)
-        .tint(Color.white.opacity(0.4))
-
-      // Confirm + Cancel row
-      HStack(spacing: 12) {
-        // Cancel
-        Button {
-          UIImpactFeedbackGenerator(style: .light).impactOccurred()
-          withAnimation(.easeOut(duration: 0.2)) {
-            showBreakPicker = false
-          }
-        } label: {
-          Text(String(localized: "取消"))
-            .font(.system(size: 14, weight: .medium))
-            .foregroundColor(.white.opacity(0.5))
-            .frame(maxWidth: .infinity)
-            .frame(height: 40)
-            .background(
-              Capsule()
-                .stroke(Color.white.opacity(0.15), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-
-        // Confirm
-        Button {
-          UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-          withAnimation(.easeOut(duration: 0.2)) {
-            showBreakPicker = false
-          }
-          onBreakTapped(Int(selectedBreakMinutes))
-        } label: {
-          Text(String(localized: "開始休息"))
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundColor(.white)
-            .frame(maxWidth: .infinity)
-            .frame(height: 40)
-            .background(
-              Capsule()
-                .fill(Color.white.opacity(0.15))
-            )
-            .overlay(
-              Capsule()
-                .stroke(Color.white.opacity(0.25), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
-      }
-    }
-    .padding(.horizontal, 4)
-    .padding(.vertical, 12)
-    .transition(.opacity.combined(with: .scale(scale: 0.95)))
   }
 
   // MARK: - Pill Button (long-press)
@@ -227,27 +125,6 @@ struct DOFocusButton: View {
         }
     }
   }
-
-  // MARK: - Small Break Button (simple tap)
-
-  /// Smaller, subtler break button — simple tap, muted appearance.
-  private func smallBreakButton(
-    title: String,
-    action: @escaping () -> Void
-  ) -> some View {
-    Button(action: action) {
-      Text(title)
-        .font(.system(size: 14, weight: .medium))
-        .foregroundColor(.white.opacity(0.5))
-        .frame(maxWidth: .infinity)
-        .frame(height: 44)
-        .background(
-          Capsule()
-            .stroke(Color.white.opacity(0.15), lineWidth: 1)
-        )
-    }
-    .buttonStyle(.plain)
-  }
 }
 
 #Preview {
@@ -255,37 +132,17 @@ struct DOFocusButton: View {
     DOFocusButton(
       isBlocking: false,
       showStopButton: true,
-      isBreakAvailable: false,
-      isBreakActive: false,
-      breakUsed: false,
       simpleTapMode: false,
       onStartTapped: {},
-      onStopTapped: {},
-      onBreakTapped: { _ in }
+      onStopTapped: {}
     )
 
     DOFocusButton(
       isBlocking: true,
       showStopButton: true,
-      isBreakAvailable: true,
-      isBreakActive: false,
-      breakUsed: false,
       simpleTapMode: false,
       onStartTapped: {},
-      onStopTapped: {},
-      onBreakTapped: { _ in }
-    )
-
-    DOFocusButton(
-      isBlocking: true,
-      showStopButton: true,
-      isBreakAvailable: false,
-      isBreakActive: false,
-      breakUsed: true,
-      simpleTapMode: false,
-      onStartTapped: {},
-      onStopTapped: {},
-      onBreakTapped: { _ in }
+      onStopTapped: {}
     )
   }
   .padding(.horizontal, 24)

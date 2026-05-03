@@ -10,10 +10,10 @@ struct BlockedProfilePhysicalUnblockSelector: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 12) {
-      // NFC Tag Column
+      // DO Card Column
       PhysicalUnblockColumn(
-        title: "NFC Tag",
-        description: "Set a specific NFC tag that can only unblock this profile when active",
+        title: "DO Card",
+        description: String(localized: "Set a specific DO Card that can only unblock this profile when active"),
         systemImage: "wave.3.right.circle.fill",
         id: nfcTagId,
         disabled: disabled,

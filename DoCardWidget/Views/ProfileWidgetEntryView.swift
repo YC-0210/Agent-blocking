@@ -10,14 +10,12 @@ import FamilyControls
 import SwiftUI
 import WidgetKit
 
+// Brand orange from widget Assets.xcassets AccentColor (#FF6B35)
+private let brandOrange = Color("AccentColor")
+
 // MARK: - Widget View
 struct ProfileWidgetEntryView: View {
   var entry: ProfileControlProvider.Entry
-
-  // Computed property to determine if we should use white text
-  private var shouldUseWhiteText: Bool {
-    return entry.isBreakActive || entry.isSessionActive
-  }
 
   // Computed property to determine if the widget should show as unavailable
   private var isUnavailable: Bool {
@@ -31,18 +29,14 @@ struct ProfileWidgetEntryView: View {
     return activeSession.blockedProfileId.uuidString != selectedProfileId
   }
 
-  private var quickLaunchEnabled: Bool {
-    return entry.useProfileURL == true
-  }
-
   // Known-valid URL constant — safe to force unwrap
   // swiftlint:disable:next force_unwrapping
   private static let fallbackURL = URL(string: "do://")!
 
   private var linkToOpen: URL {
     // Don't open the app via profile to stop the session
-    if entry.isBreakActive || entry.isSessionActive {
-      return URL(string: "https://do.app") ?? Self.fallbackURL
+    if entry.isSessionActive {
+      return URL(string: "https://do-card.online") ?? Self.fallbackURL
     }
 
     return entry.deepLinkURL ?? Self.fallbackURL
@@ -57,14 +51,14 @@ struct ProfileWidgetEntryView: View {
           Text(entry.profileName ?? "No Profile")
             .font(.system(size: 14))
             .fontWeight(.bold)
-            .foregroundColor(shouldUseWhiteText ? .white : .primary)
+            .foregroundColor(.white)
             .lineLimit(1)
 
           Spacer()
 
           Image(systemName: "hourglass")
             .font(.body)
-            .foregroundColor(shouldUseWhiteText ? .white : Color(red: 1.0, green: 0.42, blue: 0.21))
+            .foregroundColor(brandOrange)
         }
         .padding(.top, 8)
 
@@ -78,16 +72,16 @@ struct ProfileWidgetEntryView: View {
               Text("\(blockedCount) \(String(localized: "Blocked"))")
                 .font(.system(size: 10))
                 .fontWeight(.medium)
-                .foregroundColor(shouldUseWhiteText ? .white : .secondary)
+                .foregroundColor(.white.opacity(0.6))
 
               Text("\(String(localized: "with")) \(enabledOptionsCount) \(String(localized: "Options"))")
                 .font(.system(size: 8))
                 .fontWeight(.regular)
-                .foregroundColor(shouldUseWhiteText ? .white : .green)
+                .foregroundColor(.white.opacity(0.6))
             } else {
               Text(String(localized: "No profile selected"))
                 .font(.system(size: 8))
-                .foregroundColor(shouldUseWhiteText ? .white : .secondary)
+                .foregroundColor(.white.opacity(0.6))
             }
           }
 
@@ -96,22 +90,9 @@ struct ProfileWidgetEntryView: View {
 
         // Bottom section: Status message or timer (takes up most space)
         VStack {
-          if entry.isBreakActive {
-            HStack(spacing: 4) {
-              Image(systemName: "cup.and.saucer.fill")
-                .font(.body)
-                .foregroundColor(.white)
-              Text(String(localized: "On a Break"))
-                .font(.body)
-                .fontWeight(.bold)
-                .foregroundColor(.white)
-            }
-          } else if entry.isSessionActive {
-            if let startTime = entry.sessionStartTime {
-              HStack(spacing: 4) {
-                Image(systemName: "clock.fill")
-                  .font(.body)
-                  .foregroundColor(.white)
+          if entry.isSessionActive {
+            VStack(spacing: 2) {
+              if let startTime = entry.sessionStartTime {
                 Text(
                   Date(
                     timeIntervalSinceNow: startTime.timeIntervalSince1970
@@ -121,15 +102,19 @@ struct ProfileWidgetEntryView: View {
                 )
                 .font(.system(size: 22))
                 .fontWeight(.bold)
-                .foregroundColor(.white)
+                .foregroundColor(brandOrange)
               }
+              Text(String(localized: "專注中"))
+                .font(.system(size: 10))
+                .fontWeight(.medium)
+                .foregroundColor(.white.opacity(0.6))
             }
           } else {
             Link(destination: linkToOpen) {
-              Text(quickLaunchEnabled ? String(localized: "Tap to launch") : String(localized: "Tap to open"))
+              Text(String(localized: "輕觸卡片開始專注"))
                 .font(.body)
                 .fontWeight(.medium)
-                .foregroundColor(shouldUseWhiteText ? .white : .secondary)
+                .foregroundColor(.white.opacity(0.6))
             }
           }
         }
@@ -143,20 +128,20 @@ struct ProfileWidgetEntryView: View {
         VStack(spacing: 4) {
           Image(systemName: "exclamationmark.triangle.fill")
             .font(.title2)
-            .foregroundColor(.orange)
+            .foregroundColor(brandOrange)
 
           Text(String(localized: "Unavailable"))
             .font(.system(size: 16))
             .fontWeight(.bold)
-            .foregroundColor(.primary)
+            .foregroundColor(.white)
 
           Text(String(localized: "Different profile active"))
             .font(.system(size: 10))
-            .foregroundColor(.secondary)
+            .foregroundColor(.white.opacity(0.6))
             .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(UIColor.systemBackground).opacity(0.9))
+        .background(Color.black.opacity(0.9))
         .cornerRadius(8)
       }
     }
@@ -198,7 +183,6 @@ struct ProfileWidgetEntryView: View {
       name: "Focus Session",
       selectedActivity: {
         var selection = FamilyActivitySelection()
-        // Simulate some selected apps and domains for preview
         return selection
       }(),
       createdAt: Date(),
@@ -214,7 +198,7 @@ struct ProfileWidgetEntryView: View {
       enableSafariBlocking: true,
       domains: ["facebook.com", "twitter.com", "instagram.com"],
       physicalUnblockNFCTagIds: nil,
-      schedule: nil
+      schedules: []
     ),
     deepLinkURL: URL(string: "https://do.app/profile/test-id"),
     focusMessage: "Stay focused and avoid distractions",
@@ -230,10 +214,10 @@ struct ProfileWidgetEntryView: View {
     activeSession: SharedData.SessionSnapshot(
       id: "test-session",
       tag: "test-tag",
-      blockedProfileId: activeProfileId,  // Matches selectedProfileId
-      startTime: Date(timeIntervalSinceNow: -300),  // Started 5 minutes ago
+      blockedProfileId: activeProfileId,
+      startTime: Date(timeIntervalSinceNow: -300),
       endTime: nil,
-      breakStartTime: nil,  // No break active
+      breakStartTime: nil,
       breakEndTime: nil,
       forceStarted: true
     ),
@@ -254,53 +238,14 @@ struct ProfileWidgetEntryView: View {
       enableSafariBlocking: true,
       domains: ["youtube.com", "reddit.com"],
       physicalUnblockNFCTagIds: nil,
-      schedule: nil
+      schedules: []
     ),
     deepLinkURL: URL(string: "https://do.app/profile/\(activeProfileId.uuidString)"),
     focusMessage: "Deep focus time",
     useProfileURL: true
   )
 
-  // Preview 3: Active session with break matching widget profile
-  let breakProfileId = UUID()
-  ProfileWidgetEntry(
-    date: .now,
-    selectedProfileId: breakProfileId.uuidString,
-    profileName: "Study Session",
-    activeSession: SharedData.SessionSnapshot(
-      id: "test-session-break",
-      tag: "test-tag-break",
-      blockedProfileId: breakProfileId,  // Matches selectedProfileId
-      startTime: Date(timeIntervalSinceNow: -600),  // Started 10 minutes ago
-      endTime: nil,
-      breakStartTime: Date(timeIntervalSinceNow: -60),  // Break started 1 minute ago
-      breakEndTime: nil,
-      forceStarted: true
-    ),
-    profileSnapshot: SharedData.ProfileSnapshot(
-      id: breakProfileId,
-      name: "Study Session",
-      selectedActivity: FamilyActivitySelection(),
-      createdAt: Date(),
-      updatedAt: Date(),
-      blockingStrategyId: nil,
-      order: 0,
-      enableLiveActivity: true,
-      reminderTimeInSeconds: nil,
-      customReminderMessage: nil,
-      enableBreaks: true,
-      enableAllowMode: false,
-      enableAllowModeDomains: false,
-      enableSafariBlocking: true,
-      domains: ["tiktok.com", "instagram.com", "snapchat.com"],
-      physicalUnblockNFCTagIds: nil,
-      schedule: nil
-    ),
-    deepLinkURL: URL(string: "https://do.app/profile/\(breakProfileId.uuidString)"),
-    focusMessage: "Take a well-deserved break",
-    useProfileURL: true
-  )
-  // Preview 4: No profile selected
+  // Preview 3: No profile selected
   ProfileWidgetEntry(
     date: .now,
     selectedProfileId: nil,
@@ -312,9 +257,9 @@ struct ProfileWidgetEntryView: View {
     useProfileURL: false
   )
 
-  // Preview 5: Unavailable state - different profile active
+  // Preview 4: Unavailable state - different profile active
   let unavailableProfileId = UUID()
-  let differentActiveProfileId = UUID()  // Different from unavailableProfileId
+  let differentActiveProfileId = UUID()
   ProfileWidgetEntry(
     date: .now,
     selectedProfileId: unavailableProfileId.uuidString,
@@ -322,8 +267,8 @@ struct ProfileWidgetEntryView: View {
     activeSession: SharedData.SessionSnapshot(
       id: "different-session",
       tag: "different-tag",
-      blockedProfileId: differentActiveProfileId,  // Different UUID than selectedProfileId
-      startTime: Date(timeIntervalSinceNow: -180),  // Started 3 minutes ago
+      blockedProfileId: differentActiveProfileId,
+      startTime: Date(timeIntervalSinceNow: -180),
       endTime: nil,
       breakStartTime: nil,
       breakEndTime: nil,
@@ -346,7 +291,7 @@ struct ProfileWidgetEntryView: View {
       enableSafariBlocking: true,
       domains: ["linkedin.com", "slack.com"],
       physicalUnblockNFCTagIds: nil,
-      schedule: nil
+      schedules: []
     ),
     deepLinkURL: URL(string: "https://do.app/profile/\(unavailableProfileId.uuidString)"),
     focusMessage: "Different profile is currently active",

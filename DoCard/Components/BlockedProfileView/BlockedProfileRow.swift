@@ -22,7 +22,7 @@ struct ProfileRow: View {
 
         HStack(spacing: 4) {
           Image(systemName: "clock")
-          Text("Updated \(formattedUpdateTime)")
+          Text(String(localized: "Updated \(formattedUpdateTime)"))
         }
         .foregroundStyle(.secondary)
         .font(.caption)

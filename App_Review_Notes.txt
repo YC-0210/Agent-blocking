@@ -1,0 +1,21 @@
+DO Card is a physical NFC card product designed for self-imposed digital focus. The NFC card is the core product, similar to how AirTag requires a physical tag or Apple Watch accessories require a watch.
+
+How the app works:
+- Users pair their personal DO Card (NFC card) during onboarding
+- They select distracting apps to block, then tap the DO Card to start a focus session
+- To end the session early, they must physically tap the DO Card again
+- This intentional physical friction is the core value proposition — it prevents impulsive unblocking
+
+For review without a DO Card:
+- A "Pair later" skip button is available on the NFC pairing page — tap it to proceed through onboarding
+- The app uses NFCTimerBlockingStrategy by default, which auto-unblocks when the session timer expires
+- Users are never permanently stuck — all sessions have a defined end time
+- Screen Time authorization can be revoked at any time via iOS Settings > Screen Time
+
+Technical details:
+- Uses FamilyControls with .individual authorization (self-focus, not parental control)
+- All data stored locally on-device only — no server, no tracking, no third-party SDKs
+- NFC is declared in UIRequiredDeviceCapabilities — only NFC-capable devices can install
+- Privacy manifest (PrivacyInfo.xcprivacy) declares UserDefaults usage under reason CA92.1
+
+Demo account: No login required. The app is fully offline.

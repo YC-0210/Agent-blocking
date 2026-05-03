@@ -10,7 +10,11 @@ struct SelectModeView: View {
   let profiles: [BlockedProfiles]
   @Binding var selectedIndex: Int
   var onEditProfile: (BlockedProfiles) -> Void
-  var onCreateNew: () -> Void
+  /// Called when the user wants to create a new profile.
+  /// The `String` argument is the pre-filled name (empty string for a blank new profile).
+  var onCreateNew: (String) -> Void
+
+  private let presetScenes: [String] = ["聚餐模式", "情侶模式", "讀書模式", "家庭模式"]
 
   var body: some View {
     VStack(spacing: 0) {
@@ -71,6 +75,41 @@ struct SelectModeView: View {
           }
         }
 
+        // Preset scenes section
+        HStack {
+          Text(String(localized: "預設場景"))
+            .font(.system(size: 13, weight: .medium))
+            .foregroundColor(.secondary)
+          Spacer()
+        }
+        .padding(.horizontal, 4)
+        .padding(.top, 8)
+
+        ForEach(presetScenes, id: \.self) { sceneName in
+          HStack {
+            Text(sceneName)
+              .font(.system(size: 17, weight: .regular))
+              .foregroundColor(.primary)
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+              .font(.system(size: 13, weight: .medium))
+              .foregroundColor(.secondary)
+          }
+          .padding(.horizontal, 20)
+          .padding(.vertical, 16)
+          .background(
+            RoundedRectangle(cornerRadius: 14, style: .continuous)
+              .fill(Color(.secondarySystemBackground))
+          )
+          .contentShape(Rectangle())
+          .onTapGesture {
+            onCreateNew(sceneName)
+            dismiss()
+          }
+        }
+
         // Create mode row
         HStack {
           Text(String(localized: "新增模式"))
@@ -91,7 +130,7 @@ struct SelectModeView: View {
         )
         .contentShape(Rectangle())
         .onTapGesture {
-          onCreateNew()
+          onCreateNew("")
           dismiss()
         }
       }
@@ -126,7 +165,7 @@ struct SelectModeView: View {
     ],
     selectedIndex: .constant(0),
     onEditProfile: { _ in },
-    onCreateNew: {}
+    onCreateNew: { _ in }
   )
   .environmentObject(ThemeManager.shared)
 }

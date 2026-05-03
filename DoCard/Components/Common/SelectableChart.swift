@@ -25,6 +25,19 @@ struct SelectableChart<X: Plottable & Comparable, Data: Identifiable, Content: C
   }
 
   var body: some View {
+    if let domain = xAxisDomain() {
+      baseChart
+        .chartXScale(domain: domain)
+        .chartYScale(domain: yAxisDomain())
+        .chartXSelection(value: $selectedX)
+    } else {
+      baseChart
+        .chartYScale(domain: yAxisDomain())
+        .chartXSelection(value: $selectedX)
+    }
+  }
+
+  private var baseChart: some View {
     Chart {
       ForEach(data) { item in
         content(item)
@@ -40,18 +53,14 @@ struct SelectableChart<X: Plottable & Comparable, Data: Identifiable, Content: C
           }
       }
     }
-    .chartXScale(domain: xAxisDomain())
-    .chartYScale(domain: yAxisDomain())
-    .chartXSelection(value: $selectedX)
   }
 
-  private func xAxisDomain() -> ClosedRange<X> {
+  private func xAxisDomain() -> ClosedRange<X>? {
     let xValues = data.map(xValue)
     if let minX = xValues.min(), let maxX = xValues.max() {
       return minX...maxX
     }
-    // Fallback - this shouldn't happen with valid data
-    return xValues.first!...xValues.first!
+    return nil
   }
 
   private func yAxisDomain() -> ClosedRange<Double> {
