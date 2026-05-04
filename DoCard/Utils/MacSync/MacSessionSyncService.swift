@@ -66,10 +66,16 @@ final class MacSessionSyncService: ObservableObject {
   // MARK: - Public API
 
   /// Fire-and-forget. Failure must never block the iPhone-side Screen Time flow.
-  func startSession(blockedDomains: [String] = []) {
+  ///
+  /// Note: previously took a `blockedDomains: [String]` argument that was
+  /// always defaulted to `[]` and projected into mac_sessions.blocked_domains.
+  /// Removed in May 2026 — Supabase column kept (defaults to '{}' server-side)
+  /// in case a future "iPhone-pushed default block list" feature reactivates
+  /// it; for now the client side is silent on the field.
+  func startSession() {
     let token = MacPairingService.iphoneToken
     Task {
-      await sendStart(token: token, blockedDomains: blockedDomains)
+      await sendStart(token: token)
     }
   }
 
@@ -146,7 +152,7 @@ final class MacSessionSyncService: ObservableObject {
 
     if hasLocalActive && !supabaseHasActive {
       log.info("reconcile: local active but Supabase missing — resending start")
-      await sendStart(token: token, blockedDomains: [])
+      await sendStart(token: token)
     } else if !hasLocalActive && supabaseHasActive {
       log.info("reconcile: Supabase active but local cleared — sending end")
       await sendEnd(token: token, fromQueue: true)
@@ -155,13 +161,12 @@ final class MacSessionSyncService: ObservableObject {
 
   // MARK: - Network
 
-  private func sendStart(token: String, blockedDomains: [String]) async {
+  private func sendStart(token: String) async {
     status = .syncing
 
     let body = SessionStartInsert(
       iphoneToken: token,
       state: "active",
-      blockedDomains: blockedDomains,
       startedAt: ISO8601DateFormatter().string(from: Date())
     )
 
@@ -246,13 +251,11 @@ final class MacSessionSyncService: ObservableObject {
 private struct SessionStartInsert: Encodable {
   let iphoneToken: String
   let state: String
-  let blockedDomains: [String]
   let startedAt: String
 
   enum CodingKeys: String, CodingKey {
     case iphoneToken = "iphone_token"
     case state
-    case blockedDomains = "blocked_domains"
     case startedAt = "started_at"
   }
 }

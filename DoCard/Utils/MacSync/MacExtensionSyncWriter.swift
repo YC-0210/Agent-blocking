@@ -52,10 +52,11 @@ enum MacExtensionSyncWriter {
       return
     }
 
+    // blocked_domains intentionally omitted — Supabase column defaults to '{}'.
+    // Mirrors MacSessionSyncService.sendStart cleanup of the dead client write.
     let body: [String: Any] = [
       "iphone_token": token,
       "state": "active",
-      "blocked_domains": [],
       "started_at": ISO8601DateFormatter().string(from: Date()),
     ]
 
