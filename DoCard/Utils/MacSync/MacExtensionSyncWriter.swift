@@ -113,8 +113,20 @@ enum MacExtensionSyncWriter {
     UserDefaults(suiteName: appGroupSuiteName)
   }
 
+  /// Keychain access group shared with main app. Both targets list
+  /// `$(AppIdentifierPrefix)online.do.card.app.shared` in their
+  /// `keychain-access-groups` entitlement.
+  private static let keychainAccessGroup = KeychainHelper.sharedAccessGroup
+
+  /// Read priority: Keychain (post-migration source of truth) → App Group
+  /// UserDefaults (legacy fallback for upgrade window where main app hasn't
+  /// run since switch-to-Keychain migration). Extension never writes — the
+  /// main app owns migration.
   private static func readIphoneToken() -> String? {
-    sharedDefaults()?.string(forKey: iphoneTokenKey)
+    if let kc = KeychainHelper.loadString(iphoneTokenKey, accessGroup: keychainAccessGroup) {
+      return kc
+    }
+    return sharedDefaults()?.string(forKey: iphoneTokenKey)
   }
 
   private static func enqueueEnd(token: String) {

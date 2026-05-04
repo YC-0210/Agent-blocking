@@ -18,12 +18,20 @@ enum MacSupabaseClient {
   static let anonKey =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiaGljdXhidm5rZXRiZHF5d2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzOTM1MjksImV4cCI6MjA4NDk2OTUyOX0.WJv_uaZTyFkTFgHoKXh9-4rW5WJVancLTVI5n7o0It8"
 
-  /// Reads iphone_token directly from the App Group, mirroring the extension's
-  /// MacExtensionSyncWriter approach. Avoids crossing the @MainActor boundary
-  /// of `MacPairingService.iphoneToken` from this nonisolated async context.
+  /// Reads iphone_token without crossing the @MainActor boundary of
+  /// MacPairingService.iphoneToken from this nonisolated async context.
+  /// Storage priority matches the main getter: Keychain first, App Group
+  /// UserDefaults as legacy fallback (covers the upgrade window where main
+  /// app hasn't run since the move-to-Keychain migration).
   private static func iphoneTokenForRLS() -> String? {
-    UserDefaults(suiteName: "group.DO.version3")?
-      .string(forKey: "macSync.iphoneToken")
+    if let kc = KeychainHelper.loadString(
+      MacPairingService.iphoneTokenKey,
+      accessGroup: MacPairingService.keychainAccessGroup
+    ) {
+      return kc
+    }
+    return UserDefaults(suiteName: MacPairingService.appGroupSuiteName)?
+      .string(forKey: MacPairingService.iphoneTokenKey)
   }
 
   private static let session: URLSession = {

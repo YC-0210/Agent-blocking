@@ -8,5 +8,9 @@
 	<array>
 		<string>group.DO.version3</string>
 	</array>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)online.do.card.app.shared</string>
+	</array>
 </dict>
 </plist>

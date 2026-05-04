@@ -20,30 +20,68 @@ final class MacPairingService: ObservableObject {
     UserDefaults(suiteName: appGroupSuiteName) ?? .standard
   }
 
-  private static let iphoneTokenKey = "macSync.iphoneToken"
+  static let iphoneTokenKey = "macSync.iphoneToken"
   static let hasEverSyncedKey = "macSync.hasEverSynced"
   static let pendingEndQueueKey = "macSync.pendingEndQueue"
 
-  /// The iPhone's permanent identifier. Persists across pairings so the Chrome
-  /// Extension keeps working even if the user re-generates a code. Migrates
-  /// from `UserDefaults.standard` to the App Group on first read so older
-  /// installs (pre-App-Group) keep their existing pairing.
+  /// Keychain access group shared with DoCardDeviceMonitor extension. Both
+  /// targets list `$(AppIdentifierPrefix)online.do.card.app.shared` in their
+  /// `keychain-access-groups` entitlement.
+  static let keychainAccessGroup = KeychainHelper.sharedAccessGroup
+
+  /// The iPhone's permanent identifier. Storage hierarchy (priority order):
+  ///   1. Keychain (shared access group, kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly)
+  ///   2. App Group UserDefaults (legacy storage, kept as migration source)
+  ///   3. UserDefaults.standard (pre-App-Group legacy)
+  /// On read, finds the highest-priority entry and migrates downward entries
+  /// up to Keychain (then deletes the lower copy). On miss, generates fresh
+  /// UUID into Keychain.
+  ///
+  /// Why Keychain: anon-key holders with iCloud/iTunes backup access could
+  /// previously lift the token from the .plist and spoof session start/end
+  /// for that iPhone. Keychain with ThisDeviceOnly + AfterFirstUnlock blocks
+  /// backup exfiltration while still letting the DeviceActivityMonitor
+  /// extension read after device boot.
   static var iphoneToken: String {
-    if let existing = sharedDefaults.string(forKey: iphoneTokenKey) {
-      return existing
+    // 1. Keychain — primary source post-migration
+    if let kc = KeychainHelper.loadString(iphoneTokenKey, accessGroup: keychainAccessGroup) {
+      return kc
     }
-    // Migrate from main app's private defaults if a token exists there.
-    if let legacy = UserDefaults.standard.string(forKey: iphoneTokenKey) {
-      sharedDefaults.set(legacy, forKey: iphoneTokenKey)
-      UserDefaults.standard.removeObject(forKey: iphoneTokenKey)
+    // 2. App Group UserDefaults — legacy, migrate up
+    if let legacy = sharedDefaults.string(forKey: iphoneTokenKey) {
+      KeychainHelper.saveString(
+        iphoneTokenKey,
+        value: legacy,
+        accessGroup: keychainAccessGroup,
+        accessibility: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+      )
+      sharedDefaults.removeObject(forKey: iphoneTokenKey)
       return legacy
     }
+    // 3. UserDefaults.standard — pre-App-Group legacy, migrate up
+    if let preAppGroup = UserDefaults.standard.string(forKey: iphoneTokenKey) {
+      KeychainHelper.saveString(
+        iphoneTokenKey,
+        value: preAppGroup,
+        accessGroup: keychainAccessGroup,
+        accessibility: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+      )
+      UserDefaults.standard.removeObject(forKey: iphoneTokenKey)
+      return preAppGroup
+    }
+    // 4. Fresh — write to Keychain only
     let fresh = UUID().uuidString
-    sharedDefaults.set(fresh, forKey: iphoneTokenKey)
+    KeychainHelper.saveString(
+      iphoneTokenKey,
+      value: fresh,
+      accessGroup: keychainAccessGroup,
+      accessibility: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+    )
     return fresh
   }
 
   static func resetIphoneToken() {
+    KeychainHelper.delete(iphoneTokenKey, accessGroup: keychainAccessGroup)
     sharedDefaults.removeObject(forKey: iphoneTokenKey)
     UserDefaults.standard.removeObject(forKey: iphoneTokenKey)
   }
@@ -61,6 +99,7 @@ final class MacPairingService: ObservableObject {
   /// The pendingEndQueue is intentionally NOT wiped here so that cleanup
   /// entry survives revocation.
   static func revokeAllMacPairings() {
+    KeychainHelper.delete(iphoneTokenKey, accessGroup: keychainAccessGroup)
     sharedDefaults.removeObject(forKey: iphoneTokenKey)
     sharedDefaults.removeObject(forKey: hasEverSyncedKey)
     UserDefaults.standard.removeObject(forKey: iphoneTokenKey)
