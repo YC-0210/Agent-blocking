@@ -1,0 +1,143 @@
+import SwiftUI
+
+struct OnboardingGoodNewsPage: View {
+  @EnvironmentObject var themeManager: ThemeManager
+
+  let targetYears: Int
+  let onContinue: () -> Void
+
+  @State private var displayedYears: Int = 1
+  @State private var countingDone = false
+  @State private var showContent = false
+
+  var body: some View {
+    VStack(spacing: 0) {
+      // Progress bar (5/5)
+      GeometryReader { geometry in
+        ZStack(alignment: .leading) {
+          RoundedRectangle(cornerRadius: 4)
+            .fill(Color.white.opacity(0.1))
+            .frame(height: 6)
+
+          RoundedRectangle(cornerRadius: 4)
+            .fill(themeManager.themeColor)
+            .frame(
+              width: geometry.size.width * 5.0 / 5.0,
+              height: 6
+            )
+        }
+      }
+      .frame(height: 6)
+      .padding(.horizontal, 60)
+      .padding(.top, 20)
+
+      Spacer()
+
+      // Top text
+      Text(String(localized: "好消息是\n你可以把這"))
+        .font(.system(size: 20, weight: .medium))
+        .foregroundColor(.white)
+        .multilineTextAlignment(.center)
+        .lineSpacing(4)
+        .opacity(showContent ? 1.0 : 0)
+        .offset(y: showContent ? 0 : 10)
+
+      // Large year number with gradient
+      Text("\(displayedYears) 年")
+        .font(.system(size: 72, weight: .bold))
+        .foregroundStyle(
+          LinearGradient(
+            colors: [
+              themeManager.themeColor,
+              themeManager.themeColor.opacity(0.6),
+            ],
+            startPoint: .leading,
+            endPoint: .trailing
+          )
+        )
+        .padding(.vertical, 16)
+        .contentTransition(.numericText())
+
+      // Bottom text
+      Text(String(localized: "，用來完成你真正想做的事"))
+        .font(.system(size: 18, weight: .medium))
+        .foregroundColor(.white.opacity(0.7))
+        .opacity(showContent ? 1.0 : 0)
+        .offset(y: showContent ? 0 : 10)
+
+      Spacer()
+      Spacer()
+
+      // Button
+      Button(action: {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        onContinue()
+      }) {
+        Text(String(localized: "繼續"))
+          .font(.system(size: 18, weight: .semibold))
+          .foregroundColor(.black)
+          .frame(maxWidth: .infinity)
+          .frame(height: 58)
+          .background(
+            Capsule()
+              .fill(Color.white)
+          )
+      }
+      .padding(.horizontal, 24)
+      .padding(.bottom, 30)
+      .opacity(showContent ? 1.0 : 0)
+      .offset(y: showContent ? 0 : 20)
+    }
+    .onAppear {
+      startCountingAnimation()
+    }
+  }
+
+  private func startCountingAnimation() {
+    displayedYears = 1
+    countingDone = false
+    showContent = false
+
+    let savedYears = max(targetYears / 3, 1)
+
+    // Count from 1 to savedYears
+    let totalDuration: Double = 1.5
+    let steps = max(savedYears - 1, 1)
+    let interval = totalDuration / Double(steps)
+
+    // If savedYears is 1, just show immediately
+    if savedYears <= 1 {
+      displayedYears = 1
+      countingDone = true
+      withAnimation(.easeOut(duration: 0.6).delay(0.3)) {
+        showContent = true
+      }
+      return
+    }
+
+    for i in 0..<steps {
+      DispatchQueue.main.asyncAfter(deadline: .now() + interval * Double(i + 1)) {
+        withAnimation(.interpolatingSpring(stiffness: 300, damping: 30)) {
+          displayedYears = min(i + 2, savedYears)
+        }
+
+        // After last step, show the rest of the content
+        if i == steps - 1 {
+          countingDone = true
+          withAnimation(.easeOut(duration: 0.6).delay(0.3)) {
+            showContent = true
+          }
+        }
+      }
+    }
+  }
+}
+
+#Preview {
+  ZStack {
+    Color.black.ignoresSafeArea()
+    OnboardingGoodNewsPage(targetYears: 16, onContinue: {})
+  }
+  .environmentObject(ThemeManager.shared)
+  .preferredColorScheme(.dark)
+}

@@ -1,0 +1,104 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "7A263B61",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+    "_askToBuyEnabled" : false,
+    "_billingGracePeriodEnabled" : false,
+    "_billingIssuesEnabled" : false,
+    "_disableDialogs" : false,
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_renewalBillingIssuesEnabled" : false,
+    "_storefront" : "TWN",
+    "_storeKitErrors" : [
+
+    ],
+    "_timeRate" : 0
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "DO001",
+      "localizations" : [
+
+      ],
+      "name" : "DO Card Premium",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "DO001M",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlock unlimited app blocking, category blocking, scheduling, and advanced Focus Report.",
+              "displayName" : "DO Card Premium Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "online.do.card.app.premium.monthly.v2",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "DO Card Premium Monthly",
+          "subscriptionGroupID" : "DO001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "790",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "DO001A",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Unlock unlimited app blocking, category blocking, scheduling, and advanced Focus Report.",
+              "displayName" : "DO Card Premium Annual",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "online.do.card.app.premium.annual.v2",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "DO Card Premium Annual",
+          "subscriptionGroupID" : "DO001",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

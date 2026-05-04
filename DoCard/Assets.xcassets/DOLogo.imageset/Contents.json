@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "DOLogo_orange_transparent.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
