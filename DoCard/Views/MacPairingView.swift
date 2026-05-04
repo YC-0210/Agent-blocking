@@ -72,12 +72,16 @@ struct MacPairingView: View {
 
   private func revokeAllAndRestart() {
     // Order matters: prepareForRevoke reads the CURRENT token to queue an
-    // 'ended' for it. Must run before revokeAllMacPairings wipes the token.
-    MacSessionSyncService.shared.prepareForRevoke()
-    MacPairingService.revokeAllMacPairings()
-    MacSessionSyncService.shared.resetAfterRevoke()
-    alreadyPaired = false
-    Task { await pairingService.generateNewPairingCode() }
+    // 'ended' for it. Must run before revokeAllMacPairings deletes the
+    // browser_clients rows + rotates the token (both of which depend on
+    // the current iphone_token still being valid for RLS).
+    Task { @MainActor in
+      MacSessionSyncService.shared.prepareForRevoke()
+      await MacPairingService.revokeAllMacPairings()
+      MacSessionSyncService.shared.resetAfterRevoke()
+      alreadyPaired = false
+      await pairingService.generateNewPairingCode()
+    }
   }
 
   // MARK: - Content states
