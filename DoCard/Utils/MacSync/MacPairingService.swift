@@ -126,6 +126,22 @@ final class MacPairingService: ObservableObject {
       // Continue regardless — rotation still makes old clients inert.
     }
 
+    // Also clean up the shared blocked_domains row. The new iphone_token
+    // post-rotation will get a fresh empty row created by the trigger when
+    // the next browser claims a code, so leaving the old row around just
+    // accumulates orphans.
+    do {
+      _ = try await MacSupabaseClient.request(
+        method: "DELETE",
+        path: "mac_settings",
+        queryItems: [URLQueryItem(name: "iphone_token", value: "eq.\(oldToken)")],
+        prefer: "return=minimal",
+        decoding: EmptyResponse.self
+      )
+    } catch {
+      log.error("revokeAllMacPairings: best-effort mac_settings cleanup failed: \(error.localizedDescription, privacy: .public)")
+    }
+
     // Phase 2: local rotation.
     KeychainHelper.delete(iphoneTokenKey, accessGroup: keychainAccessGroup)
     sharedDefaults.removeObject(forKey: iphoneTokenKey)
