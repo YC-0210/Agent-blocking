@@ -5,17 +5,20 @@ private let generatorLog = Logger(subsystem: "online.do.card.app", category: "Fo
 
 /// Renders a transparent-background PNG (1080×1920) of the focus session result.
 ///
-/// Layout uses absolute box bounds per the designer spec — each element is positioned
-/// at its declared top-Y rather than via gap math, so font-metric variation cannot
-/// shift the layout.
+/// Layout per designer spec — block centred horizontally, biased toward upper half
+/// of the canvas with empty whitespace below the logo.
 ///
 ///   Element   Box top   Box bottom   Notes
-///   --------  --------  -----------  --------------------------------------
-///   Pill      496       584          (88 high) fill rgba(0.06), stroke 1px
-///   Number    580       1020         440pt SF Pro Rounded bold, tabular,
-///                                    kern -17.6 (-0.04em), line-height 1.0
-///   Caption   1040      1080         40pt medium, kern 16 (0.4em), 50% white
-///   Logo      1760      1856         (96 high) bottom-anchored at canvas-64
+///   --------  --------  -----------  -------------------------------------------
+///   Pill      388       472          (h 84) fill rgba(0.06), stroke 1px 0.25
+///   Number    528       924          (h 396 = 440×0.9) cap-aligned to box top
+///   Caption   940       980          (h 40) Chinese text, drawn at typographic top
+///   Logo      1036      1132         (h 96) box-aligned, stays in upper-mid canvas
+///
+/// Visual gaps (box-edge to box-edge): pill→number 56, number→caption 16,
+/// caption→logo 56. The number uses cap-aligned drawing because SF Pro's natural
+/// ascent leaves ~25% leading above the cap that would otherwise push the visible
+/// glyph far below the spec box top.
 enum FocusShareCardGenerator {
 
   static let canvasWidth: CGFloat = 1080
@@ -39,18 +42,17 @@ enum FocusShareCardGenerator {
       let numberFontSize: CGFloat = 440
       let captionFontSize: CGFloat = 40
 
-      // --- Spec: absolute box bounds (canvas-Y) ---
-      let pillTop: CGFloat = 496
-      let pillHeight: CGFloat = 88
+      // --- Spec: absolute box bounds ---
+      let pillTop: CGFloat = 388
+      let pillHeight: CGFloat = 84
 
-      let numberTop: CGFloat = 580
+      let numberBoxTop: CGFloat = 528  // cap-align target for visible glyph top
+      let captionBoxTop: CGFloat = 940  // typographic top (Chinese text)
 
-      let captionTop: CGFloat = 1040
-
-      let logoTop: CGFloat = 1760
+      let logoTop: CGFloat = 1036
       let logoHeight: CGFloat = 96
 
-      // Pill padding/style
+      // Pill style
       let pillHorizontalPadding: CGFloat = 44
       let pillFillColor = UIColor.white.withAlphaComponent(0.06)
       let pillStrokeColor = UIColor.white.withAlphaComponent(0.25)
@@ -74,7 +76,7 @@ enum FocusShareCardGenerator {
       // --- Fonts ---
       let nameFont = UIFont.systemFont(ofSize: nameFontSize, weight: .semibold)
 
-      // Main number — SF Pro Rounded bold + tabular-nums (CoreText feature 6/0)
+      // Main number: SF Pro Rounded bold + tabular-nums (CoreText feature 6/0)
       let numberFont: UIFont = {
         let base = UIFont.systemFont(ofSize: numberFontSize, weight: .bold)
         let roundedDescriptor = base.fontDescriptor.withDesign(.rounded) ?? base.fontDescriptor
@@ -97,13 +99,10 @@ enum FocusShareCardGenerator {
         .foregroundColor: UIColor.white,
       ])
 
-      let numberParagraph = NSMutableParagraphStyle()
-      numberParagraph.lineHeightMultiple = 1.0
       let numberStr = NSAttributedString(string: numberText, attributes: [
         .font: numberFont,
         .foregroundColor: UIColor.white,
         .kern: -numberFontSize * 0.04,  // -17.6pt for -0.04em
-        .paragraphStyle: numberParagraph,
       ])
 
       let captionStr = NSAttributedString(string: unitsText, attributes: [
@@ -116,7 +115,7 @@ enum FocusShareCardGenerator {
       let numberSize = numberStr.size()
       let captionSize = captionStr.size()
 
-      // --- 1. Pill (absolute box 496–584) ---
+      // --- 1. Pill (absolute box 388–472) ---
       let pillW = nameSize.width + pillHorizontalPadding * 2
       let pillRect = CGRect(
         x: (canvasWidth - pillW) / 2,
@@ -137,28 +136,33 @@ enum FocusShareCardGenerator {
       cg.strokePath()
       cg.restoreGState()
 
-      // Centre the pill name inside the rect
       let nameOrigin = CGPoint(
         x: pillRect.midX - nameSize.width / 2,
         y: pillRect.midY - nameSize.height / 2
       )
       nameStr.draw(at: nameOrigin)
 
-      // --- 2. Number (typographic top at y=580 per spec) ---
+      // --- 2. Number (cap-aligned: visible glyph top at numberBoxTop) ---
+      // SF Pro Rounded reserves ~(ascender - capHeight) of leading above the cap;
+      // subtract that so the visible "3", "1", etc. start exactly at y=528.
+      let numberLeadingTop = numberFont.ascender - numberFont.capHeight
+      let numberDrawY = numberBoxTop - numberLeadingTop
       let numberOrigin = CGPoint(
         x: (canvasWidth - numberSize.width) / 2,
-        y: numberTop
+        y: numberDrawY
       )
       numberStr.draw(at: numberOrigin)
 
-      // --- 3. Caption (typographic top at y=1040 per spec) ---
+      // --- 3. Caption (Chinese text drawn at typographic top y=940) ---
+      // Chinese glyphs sit close to the ascender line, so literal draw matches the
+      // box top closely without cap-align tricks.
       let captionOrigin = CGPoint(
         x: (canvasWidth - captionSize.width) / 2,
-        y: captionTop
+        y: captionBoxTop
       )
       captionStr.draw(at: captionOrigin)
 
-      // --- 4. Logo (absolute box 1760–1856) ---
+      // --- 4. Logo (absolute box 1036–1132) ---
       let logoImage = UIImage(named: "DOLogo")
       let logoSize: CGSize = {
         if let img = logoImage, img.size.width > 0 {
