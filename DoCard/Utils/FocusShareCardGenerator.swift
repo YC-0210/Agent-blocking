@@ -3,11 +3,13 @@ import UIKit
 
 private let generatorLog = Logger(subsystem: "online.do.card.app", category: "FocusShareCardGenerator")
 
-/// Renders a transparent-background PNG (1080×1920) showing the focus session result.
-/// Layout (vertically centred group):
-///   1. Profile / mode name — white, bold, wide tracking
-///   2. Duration — two-cell `[H] 小時 · [M] 分鐘`, or single `[M] 分鐘` when < 1h
-///   3. DO logo — orange transparent asset, near bottom of group
+/// Renders a transparent-background PNG (1080×1920) of the focus session result.
+///
+/// Layout (top → bottom):
+///   1. Profile / mode name — white text inside a hairline rounded pill
+///   2. Big duration — `H:MM` mono bold (or `M` when < 1h), the visual anchor
+///   3. Units line — `小時 · 分鐘` (or `分鐘`) in smaller white text
+///   4. DO logo — orange transparent asset, anchored near the bottom of the canvas
 enum FocusShareCardGenerator {
 
   static let canvasWidth: CGFloat = 1080
@@ -23,140 +25,114 @@ enum FocusShareCardGenerator {
 
     let renderer = UIGraphicsImageRenderer(size: size, format: format)
 
-    return renderer.image { _ in
+    return renderer.image { ctx in
+      let cg = ctx.cgContext
       let white = UIColor.white
 
-      // --- 1. Profile name ---
-      let nameFont = UIFont.systemFont(ofSize: 64, weight: .bold)
-      let nameAttrs: [NSAttributedString.Key: Any] = [
-        .font: nameFont,
-        .foregroundColor: white,
-        .kern: 2.0,
-      ]
-      let nameStr = NSAttributedString(string: profileName, attributes: nameAttrs)
-      let nameSize = nameStr.size()
-
-      // --- 2. Duration block ---
+      // --- Compute duration text + units ---
       let totalSeconds = Int(max(0, duration))
       let hours = totalSeconds / 3600
       let minutes = (totalSeconds % 3600) / 60
 
-      let numberFont: UIFont = {
-        if let mono = UIFont(name: "SFMono-Bold", size: 280) { return mono }
-        return UIFont.monospacedSystemFont(ofSize: 280, weight: .bold)
-      }()
-      let unitFont = UIFont.systemFont(ofSize: 56, weight: .semibold)
-      let dotFont = UIFont.systemFont(ofSize: 200, weight: .bold)
-
-      let numberAttrs: [NSAttributedString.Key: Any] = [.font: numberFont, .foregroundColor: white]
-      let unitAttrs: [NSAttributedString.Key: Any] = [.font: unitFont, .foregroundColor: white, .kern: 2.0]
-      let dotAttrs: [NSAttributedString.Key: Any] = [.font: dotFont, .foregroundColor: white]
-
-      // Pre-measure cells
-      struct DurationCell {
-        let number: NSAttributedString
-        let unit: NSAttributedString
-        let numberSize: CGSize
-        let unitSize: CGSize
-        var width: CGFloat { max(numberSize.width, unitSize.width) }
-        var height: CGFloat { numberSize.height + 12 + unitSize.height }
-      }
-
-      func makeCell(number: Int, unit: String) -> DurationCell {
-        let numberStr = NSAttributedString(string: "\(number)", attributes: numberAttrs)
-        let unitStr = NSAttributedString(string: unit, attributes: unitAttrs)
-        return DurationCell(
-          number: numberStr,
-          unit: unitStr,
-          numberSize: numberStr.size(),
-          unitSize: unitStr.size()
-        )
-      }
-
-      let cells: [DurationCell]
-      let dotStr: NSAttributedString?
-      let dotSize: CGSize
-      let cellSpacing: CGFloat = 60  // gap between cell ↔ dot ↔ cell
-
+      let numberText: String
+      let unitsText: String
       if hours >= 1 {
-        cells = [
-          makeCell(number: hours, unit: String(localized: "小時")),
-          makeCell(number: minutes, unit: String(localized: "分鐘")),
-        ]
-        dotStr = NSAttributedString(string: "·", attributes: dotAttrs)
-        dotSize = dotStr!.size()
+        numberText = "\(hours):\(String(format: "%02d", minutes))"
+        unitsText = String(localized: "小時 · 分鐘")
       } else {
-        cells = [makeCell(number: minutes, unit: String(localized: "分鐘"))]
-        dotStr = nil
-        dotSize = .zero
+        numberText = "\(minutes)"
+        unitsText = String(localized: "分鐘")
       }
 
-      let durationBlockHeight = cells.map(\.height).max() ?? 0
-      let durationBlockWidth: CGFloat = {
-        let cellsWidth = cells.map(\.width).reduce(0, +)
-        let dotWidth = dotStr != nil ? dotSize.width + cellSpacing * 2 : 0
-        return cellsWidth + dotWidth
+      // --- Fonts ---
+      let nameFont = UIFont.systemFont(ofSize: 64, weight: .semibold)
+      let numberFont: UIFont = {
+        if let mono = UIFont(name: "SFMono-Bold", size: 380) { return mono }
+        return UIFont.monospacedSystemFont(ofSize: 380, weight: .bold)
       }()
+      let unitsFont = UIFont.systemFont(ofSize: 56, weight: .regular)
 
-      // --- 3. Logo ---
-      let logoImage = UIImage(named: "DOLogo")
-      let logoSize: CGSize
-      if let img = logoImage, img.size.width > 0 {
-        let targetWidth = canvasWidth * 0.22
-        let scale = targetWidth / img.size.width
-        logoSize = CGSize(width: targetWidth, height: img.size.height * scale)
-      } else {
-        logoSize = CGSize(width: 200, height: 80)
-      }
+      // --- 1. Profile name in pill ---
+      let nameAttrs: [NSAttributedString.Key: Any] = [
+        .font: nameFont,
+        .foregroundColor: white,
+        .kern: 1.5,
+      ]
+      let nameStr = NSAttributedString(string: profileName, attributes: nameAttrs)
+      let nameSize = nameStr.size()
 
-      // --- Vertical layout: name → duration → logo ---
-      let groupSpacing: CGFloat = 100
-      let totalGroupHeight = nameSize.height + groupSpacing + durationBlockHeight + groupSpacing + logoSize.height
-      let startY = (canvasHeight - totalGroupHeight) / 2
+      let pillHorizontalPadding: CGFloat = 56
+      let pillVerticalPadding: CGFloat = 26
+      let pillWidth = nameSize.width + pillHorizontalPadding * 2
+      let pillHeight = nameSize.height + pillVerticalPadding * 2
+      let pillY: CGFloat = 360  // ~19% from top
+      let pillRect = CGRect(
+        x: (canvasWidth - pillWidth) / 2,
+        y: pillY,
+        width: pillWidth,
+        height: pillHeight
+      )
 
-      // Draw profile name
-      let nameOrigin = CGPoint(x: (canvasWidth - nameSize.width) / 2, y: startY)
+      let pillPath = UIBezierPath(
+        roundedRect: pillRect,
+        cornerRadius: pillHeight / 2
+      )
+      // Hairline white stroke at low opacity — looks like a subtle ring on transparent PNG
+      cg.saveGState()
+      cg.setStrokeColor(UIColor.white.withAlphaComponent(0.55).cgColor)
+      cg.setLineWidth(3)
+      cg.addPath(pillPath.cgPath)
+      cg.strokePath()
+      cg.restoreGState()
+
+      let nameOrigin = CGPoint(
+        x: pillRect.midX - nameSize.width / 2,
+        y: pillRect.midY - nameSize.height / 2
+      )
       nameStr.draw(at: nameOrigin)
 
-      // Draw duration block
-      let durationY = startY + nameSize.height + groupSpacing
-      var cursorX = (canvasWidth - durationBlockWidth) / 2
-      for (idx, cell) in cells.enumerated() {
-        // Number
-        let numberOrigin = CGPoint(
-          x: cursorX + (cell.width - cell.numberSize.width) / 2,
-          y: durationY
-        )
-        cell.number.draw(at: numberOrigin)
+      // --- 2. Big duration number ---
+      let numberAttrs: [NSAttributedString.Key: Any] = [
+        .font: numberFont,
+        .foregroundColor: white,
+      ]
+      let numberStr = NSAttributedString(string: numberText, attributes: numberAttrs)
+      let numberSize = numberStr.size()
 
-        // Unit (under number)
-        let unitOrigin = CGPoint(
-          x: cursorX + (cell.width - cell.unitSize.width) / 2,
-          y: durationY + cell.numberSize.height + 12
-        )
-        cell.unit.draw(at: unitOrigin)
+      // Vertically centred-ish, biased a bit above middle so units have room below.
+      let numberY: CGFloat = 760
+      let numberOrigin = CGPoint(
+        x: (canvasWidth - numberSize.width) / 2,
+        y: numberY
+      )
+      numberStr.draw(at: numberOrigin)
 
-        cursorX += cell.width
+      // --- 3. Units row ---
+      let unitsAttrs: [NSAttributedString.Key: Any] = [
+        .font: unitsFont,
+        .foregroundColor: UIColor.white.withAlphaComponent(0.7),
+        .kern: 6.0,
+      ]
+      let unitsStr = NSAttributedString(string: unitsText, attributes: unitsAttrs)
+      let unitsSize = unitsStr.size()
 
-        // Dot separator (only between two cells)
-        if idx == 0, let dotStr {
-          cursorX += cellSpacing
-          let dotOrigin = CGPoint(
-            x: cursorX,
-            // align dot with number row, slight optical adjustment
-            y: durationY + (cell.numberSize.height - dotSize.height) / 2 - 20
-          )
-          dotStr.draw(at: dotOrigin)
-          cursorX += dotSize.width + cellSpacing
-        }
-      }
+      let unitsY = numberY + numberSize.height + 24
+      let unitsOrigin = CGPoint(
+        x: (canvasWidth - unitsSize.width) / 2,
+        y: unitsY
+      )
+      unitsStr.draw(at: unitsOrigin)
 
-      // Draw logo
-      let logoY = startY + nameSize.height + groupSpacing + durationBlockHeight + groupSpacing
-      if let img = logoImage {
+      // --- 4. Logo near bottom ---
+      let logoImage = UIImage(named: "DOLogo")
+      let logoBottomMargin: CGFloat = 200
+      if let img = logoImage, img.size.width > 0 {
+        let targetWidth = canvasWidth * 0.18
+        let scale = targetWidth / img.size.width
+        let logoSize = CGSize(width: targetWidth, height: img.size.height * scale)
         let logoRect = CGRect(
           x: (canvasWidth - logoSize.width) / 2,
-          y: logoY,
+          y: canvasHeight - logoBottomMargin - logoSize.height,
           width: logoSize.width,
           height: logoSize.height
         )
@@ -168,7 +144,10 @@ enum FocusShareCardGenerator {
           attributes: [.font: fallbackFont, .foregroundColor: white]
         )
         let fSize = fallback.size()
-        fallback.draw(at: CGPoint(x: (canvasWidth - fSize.width) / 2, y: logoY))
+        fallback.draw(at: CGPoint(
+          x: (canvasWidth - fSize.width) / 2,
+          y: canvasHeight - logoBottomMargin - fSize.height
+        ))
       }
     }
   }
