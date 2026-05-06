@@ -65,7 +65,11 @@ enum FocusShareCardGenerator {
       let pillVerticalPadding: CGFloat = 26
       let pillWidth = nameSize.width + pillHorizontalPadding * 2
       let pillHeight = nameSize.height + pillVerticalPadding * 2
-      let pillY: CGFloat = 360  // ~19% from top
+      // Anchor the pill just above the number, so name → number → units form
+      // one tight vertical cluster centred near the canvas middle.
+      let pillToNumberGap: CGFloat = 80
+      let numberY: CGFloat = 760
+      let pillY: CGFloat = numberY - pillToNumberGap - pillHeight
       let pillRect = CGRect(
         x: (canvasWidth - pillWidth) / 2,
         y: pillY,
@@ -99,8 +103,7 @@ enum FocusShareCardGenerator {
       let numberStr = NSAttributedString(string: numberText, attributes: numberAttrs)
       let numberSize = numberStr.size()
 
-      // Vertically centred-ish, biased a bit above middle so units have room below.
-      let numberY: CGFloat = 760
+      // numberY was defined above (used to anchor the pill).
       let numberOrigin = CGPoint(
         x: (canvasWidth - numberSize.width) / 2,
         y: numberY
