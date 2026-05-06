@@ -258,11 +258,13 @@ struct HomeView: View {
       .presentationDetents([.height(540)])
       .presentationDragIndicator(.visible)
     }
-    .fullScreenCover(item: $shareSessionToPresent) { session in
+    .sheet(item: $shareSessionToPresent) { session in
       FocusShareCardView(
         profileName: session.profileName,
         duration: session.duration
       )
+      .presentationDetents([.large])
+      .presentationDragIndicator(.hidden)
     }
     .alert(alertTitle, isPresented: $showingAlert) {
       Button(String(localized: "OK"), role: .cancel) { dismissAlert() }

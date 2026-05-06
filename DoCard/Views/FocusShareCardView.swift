@@ -6,6 +6,7 @@ import SwiftUI
 /// "儲存到相簿" (saves to Photos) and "分享至…" (iOS share sheet). Swipe down to dismiss.
 struct FocusShareCardView: View {
   @EnvironmentObject var themeManager: ThemeManager
+  @Environment(\.dismiss) private var dismiss
 
   let profileName: String
   let duration: TimeInterval
@@ -16,11 +17,21 @@ struct FocusShareCardView: View {
 
   var body: some View {
     VStack(spacing: 28) {
-      // Drag indicator (visual cue that the page swipes down)
-      Capsule()
-        .fill(Color.white.opacity(0.25))
-        .frame(width: 40, height: 5)
-        .padding(.top, 12)
+      // Top bar: close button on the left
+      HStack {
+        Button(action: { dismiss() }) {
+          Image(systemName: "xmark")
+            .font(.system(size: 18, weight: .semibold))
+            .foregroundStyle(.white)
+            .frame(width: 36, height: 36)
+            .background(Circle().fill(Color.white.opacity(0.12)))
+        }
+        .accessibilityLabel(String(localized: "關閉"))
+
+        Spacer()
+      }
+      .padding(.horizontal, 20)
+      .padding(.top, 12)
 
       Spacer(minLength: 0)
 
