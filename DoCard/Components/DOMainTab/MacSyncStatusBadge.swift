@@ -51,15 +51,15 @@ struct MacSyncStatusBadge: View {
   private var label: String {
     switch sync.status {
     case .synced:
-      return String(localized: "Chrome 已連動")
+      return String(localized: "Chrome / Safari 已連動")
     case .syncing:
-      return String(localized: "Chrome 同步中")
+      return String(localized: "Chrome / Safari 同步中")
     case .failed:
       return sync.pendingEndCount > 0
-        ? String(localized: "Chrome 重試中")
-        : String(localized: "Chrome 同步失敗")
+        ? String(localized: "Chrome / Safari 重試中")
+        : String(localized: "Chrome / Safari 同步失敗")
     case .idle:
-      return String(localized: "Chrome 連動")
+      return String(localized: "Chrome / Safari 連動")
     }
   }
 
