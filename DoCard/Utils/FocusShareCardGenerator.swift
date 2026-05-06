@@ -5,11 +5,17 @@ private let generatorLog = Logger(subsystem: "online.do.card.app", category: "Fo
 
 /// Renders a transparent-background PNG (1080×1920) of the focus session result.
 ///
-/// Layout (top → bottom):
-///   1. Profile / mode name — white text inside a hairline rounded pill
-///   2. Big duration — `H:MM` mono bold (or `M` when < 1h), the visual anchor
-///   3. Units line — `小時 · 分鐘` (or `分鐘`) in smaller white text
-///   4. DO logo — orange transparent asset, anchored near the bottom of the canvas
+/// Layout follows the original HTML reference, scaled 1.73× from a 220px design number
+/// to the 380pt rendered number. The four elements (pill → number → caption → logo) form
+/// one vertical group flex-centred in the canvas, leaving equal top/bottom whitespace.
+///
+///   Element     Spec (HTML px)          Rendered (pt)
+///   -------     -----------------       -------------
+///   Pill name   font 22, pad 10/22      font 38, pad 17/38
+///   Number      font 220, lh 0.9        font 380, mono bold
+///   Caption     font 18, ls 0.4em       font 31, kern 12
+///   Logo        height 48               height 83
+///   Gaps        28 / 8 / 28             48 / 14 / 48
 enum FocusShareCardGenerator {
 
   static let canvasWidth: CGFloat = 1080
@@ -29,6 +35,21 @@ enum FocusShareCardGenerator {
       let cg = ctx.cgContext
       let white = UIColor.white
 
+      // --- Spec-driven sizes (scaled 1.73× from HTML reference) ---
+      let nameFontSize: CGFloat = 38
+      let numberFontSize: CGFloat = 380
+      let captionFontSize: CGFloat = 31
+
+      let pillVerticalPadding: CGFloat = 17
+      let pillHorizontalPadding: CGFloat = 38
+      let pillStrokeWidth: CGFloat = 3
+
+      let logoTargetHeight: CGFloat = 83
+
+      let pillToNumberGap: CGFloat = 48
+      let numberToCaptionGap: CGFloat = 14
+      let captionToLogoGap: CGFloat = 48
+
       // --- Compute duration text + units ---
       let totalSeconds = Int(max(0, duration))
       let hours = totalSeconds / 3600
@@ -44,47 +65,72 @@ enum FocusShareCardGenerator {
         unitsText = String(localized: "分鐘")
       }
 
-      // --- Fonts ---
-      let nameFont = UIFont.systemFont(ofSize: 64, weight: .semibold)
+      // --- Build attributed strings ---
+      let nameFont = UIFont.systemFont(ofSize: nameFontSize, weight: .semibold)
       let numberFont: UIFont = {
-        if let mono = UIFont(name: "SFMono-Bold", size: 380) { return mono }
-        return UIFont.monospacedSystemFont(ofSize: 380, weight: .bold)
+        if let mono = UIFont(name: "SFMono-Bold", size: numberFontSize) { return mono }
+        return UIFont.monospacedSystemFont(ofSize: numberFontSize, weight: .bold)
       }()
-      let unitsFont = UIFont.systemFont(ofSize: 56, weight: .regular)
+      let captionFont = UIFont.systemFont(ofSize: captionFontSize, weight: .regular)
 
-      // --- 1. Profile name in pill ---
-      let nameAttrs: [NSAttributedString.Key: Any] = [
+      let nameStr = NSAttributedString(string: profileName, attributes: [
         .font: nameFont,
         .foregroundColor: white,
-        .kern: 1.5,
-      ]
-      let nameStr = NSAttributedString(string: profileName, attributes: nameAttrs)
+        .kern: 1.0,
+      ])
+      let numberStr = NSAttributedString(string: numberText, attributes: [
+        .font: numberFont,
+        .foregroundColor: white,
+      ])
+      let captionStr = NSAttributedString(string: unitsText, attributes: [
+        .font: captionFont,
+        .foregroundColor: UIColor.white.withAlphaComponent(0.7),
+        .kern: 12.0,  // 0.4em × 31pt
+      ])
+
       let nameSize = nameStr.size()
+      let numberSize = numberStr.size()
+      let captionSize = captionStr.size()
 
-      let pillHorizontalPadding: CGFloat = 56
-      let pillVerticalPadding: CGFloat = 26
-      let pillWidth = nameSize.width + pillHorizontalPadding * 2
-      let pillHeight = nameSize.height + pillVerticalPadding * 2
-      // Anchor the pill just above the number, so name → number → units form
-      // one tight vertical cluster centred near the canvas middle.
-      let pillToNumberGap: CGFloat = 80
-      let numberY: CGFloat = 760
-      let pillY: CGFloat = numberY - pillToNumberGap - pillHeight
+      // Pill
+      let pillW = nameSize.width + pillHorizontalPadding * 2
+      let pillH = nameSize.height + pillVerticalPadding * 2
+
+      // Logo
+      let logoImage = UIImage(named: "DOLogo")
+      let logoSize: CGSize = {
+        if let img = logoImage, img.size.width > 0 {
+          let scale = logoTargetHeight / img.size.height
+          return CGSize(width: img.size.width * scale, height: logoTargetHeight)
+        }
+        return CGSize(width: 200, height: logoTargetHeight)
+      }()
+
+      // --- Group layout (flex-centred vertically) ---
+      let groupHeight =
+        pillH
+        + pillToNumberGap
+        + numberSize.height
+        + numberToCaptionGap
+        + captionSize.height
+        + captionToLogoGap
+        + logoSize.height
+      let groupTop = (canvasHeight - groupHeight) / 2
+
+      // --- 1. Profile-name pill ---
       let pillRect = CGRect(
-        x: (canvasWidth - pillWidth) / 2,
-        y: pillY,
-        width: pillWidth,
-        height: pillHeight
+        x: (canvasWidth - pillW) / 2,
+        y: groupTop,
+        width: pillW,
+        height: pillH
       )
-
       let pillPath = UIBezierPath(
         roundedRect: pillRect,
-        cornerRadius: pillHeight / 2
+        cornerRadius: pillH / 2
       )
-      // Hairline white stroke at low opacity — looks like a subtle ring on transparent PNG
       cg.saveGState()
       cg.setStrokeColor(UIColor.white.withAlphaComponent(0.55).cgColor)
-      cg.setLineWidth(3)
+      cg.setLineWidth(pillStrokeWidth)
       cg.addPath(pillPath.cgPath)
       cg.strokePath()
       cg.restoreGState()
@@ -95,62 +141,34 @@ enum FocusShareCardGenerator {
       )
       nameStr.draw(at: nameOrigin)
 
-      // --- 2. Big duration number ---
-      let numberAttrs: [NSAttributedString.Key: Any] = [
-        .font: numberFont,
-        .foregroundColor: white,
-      ]
-      let numberStr = NSAttributedString(string: numberText, attributes: numberAttrs)
-      let numberSize = numberStr.size()
-
-      // numberY was defined above (used to anchor the pill).
-      let numberOrigin = CGPoint(
-        x: (canvasWidth - numberSize.width) / 2,
-        y: numberY
-      )
+      // --- 2. Number ---
+      let numberY = pillRect.maxY + pillToNumberGap
+      let numberOrigin = CGPoint(x: (canvasWidth - numberSize.width) / 2, y: numberY)
       numberStr.draw(at: numberOrigin)
 
-      // --- 3. Units row ---
-      let unitsAttrs: [NSAttributedString.Key: Any] = [
-        .font: unitsFont,
-        .foregroundColor: UIColor.white.withAlphaComponent(0.7),
-        .kern: 6.0,
-      ]
-      let unitsStr = NSAttributedString(string: unitsText, attributes: unitsAttrs)
-      let unitsSize = unitsStr.size()
+      // --- 3. Caption ---
+      let captionY = numberY + numberSize.height + numberToCaptionGap
+      let captionOrigin = CGPoint(x: (canvasWidth - captionSize.width) / 2, y: captionY)
+      captionStr.draw(at: captionOrigin)
 
-      let unitsY = numberY + numberSize.height + 24
-      let unitsOrigin = CGPoint(
-        x: (canvasWidth - unitsSize.width) / 2,
-        y: unitsY
-      )
-      unitsStr.draw(at: unitsOrigin)
-
-      // --- 4. Logo near bottom ---
-      let logoImage = UIImage(named: "DOLogo")
-      let logoBottomMargin: CGFloat = 200
-      if let img = logoImage, img.size.width > 0 {
-        let targetWidth = canvasWidth * 0.18
-        let scale = targetWidth / img.size.width
-        let logoSize = CGSize(width: targetWidth, height: img.size.height * scale)
+      // --- 4. Logo ---
+      let logoY = captionY + captionSize.height + captionToLogoGap
+      if let img = logoImage {
         let logoRect = CGRect(
           x: (canvasWidth - logoSize.width) / 2,
-          y: canvasHeight - logoBottomMargin - logoSize.height,
+          y: logoY,
           width: logoSize.width,
           height: logoSize.height
         )
         img.draw(in: logoRect)
       } else {
-        let fallbackFont = UIFont.systemFont(ofSize: 80, weight: .bold)
+        let fallbackFont = UIFont.systemFont(ofSize: logoTargetHeight, weight: .bold)
         let fallback = NSAttributedString(
           string: "DO",
           attributes: [.font: fallbackFont, .foregroundColor: white]
         )
         let fSize = fallback.size()
-        fallback.draw(at: CGPoint(
-          x: (canvasWidth - fSize.width) / 2,
-          y: canvasHeight - logoBottomMargin - fSize.height
-        ))
+        fallback.draw(at: CGPoint(x: (canvasWidth - fSize.width) / 2, y: logoY))
       }
     }
   }
