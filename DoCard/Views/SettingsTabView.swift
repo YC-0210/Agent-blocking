@@ -205,7 +205,7 @@ struct SettingsTabView: View {
           CustomToggle(
             title: String(localized: "完成後詢問是否分享"),
             description: String(
-              localized: "session 滿 30 分鐘且正常結束時，跳出分享提示"),
+              localized: "專注時段滿 30 分鐘且正常結束時，跳出分享提示"),
             isOn: $askToShareAfterSession
           )
 
