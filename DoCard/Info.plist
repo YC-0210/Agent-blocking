@@ -6,6 +6,8 @@
 	<false/>
 	<key>NSNFCReaderUsageDescription</key>
 	<string>DO uses NFC to pair and identify your DO Card. When you tap your card, DO reads its unique identifier to verify it matches your paired card and unlock your blocked apps.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>DO Card 需要此權限才能將你的專注卡片儲存到相簿。</string>
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.docard.backgroundprocessing</string>

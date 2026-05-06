@@ -29,6 +29,11 @@ class StrategyManager: ObservableObject {
 
   @Published var errorMessage: String?
 
+  /// Set when a session ends and meets share-prompt eligibility (normal completion ≥ 30 min,
+  /// user has not disabled the prompt in Settings). Observed by HomeView to present the
+  /// share-prompt bottom sheet. HomeView nils this back to consume the event.
+  @Published var pendingShareSession: ShareableSession?
+
   /// The name of the most recently tapped DO Card, read live from the NFC payload.
   /// Updated on every successful NFC tap (start or stop session).
   /// Not persisted — initialized from `OnboardingManager.doCardName` on first view appearance.
@@ -157,6 +162,7 @@ class StrategyManager: ObservableObject {
             session.endReason = "timer_expired"
             session.endSession()
             try? context.save()
+            evaluateShareEligibility(session: session)
 
             appBlocker.deactivateRestrictions()
             activeSession = nil
@@ -202,6 +208,7 @@ class StrategyManager: ObservableObject {
             session.endReason = "timer_expired"
             session.endSession()
             try? context.save()
+            evaluateShareEligibility(session: session)
 
             appBlocker.deactivateRestrictions()
             activeSession = nil
@@ -270,6 +277,7 @@ class StrategyManager: ObservableObject {
         // notifySessionEnded already, or may have failed). Fire defensively —
         // idempotent PATCH on no-active-rows is harmless.
         MacSessionSyncService.shared.endSession()
+        evaluateShareEligibility(session: previousSession)
       }
 
       activeSession = nil
@@ -291,6 +299,30 @@ class StrategyManager: ObservableObject {
 
       restoreScheduledSessionIfNeeded()
     }
+  }
+
+  /// Eligibility:
+  ///   - endReason is "card_tap" or "timer_expired" (not emergency_unlock, not nil)
+  ///   - duration ≥ 30 minutes
+  ///   - user has not turned off the prompt in Settings (`askToShareAfterSession`)
+  /// Sets `pendingShareSession` to a value-type snapshot for HomeView to observe.
+  private func evaluateShareEligibility(session: BlockedProfileSession?) {
+    guard let session,
+          let reason = session.endReason,
+          reason == "card_tap" || reason == "timer_expired"
+    else { return }
+
+    // TEST: lowered to 60s for easier QA — revert to 1800 (30 min) before ship.
+    guard session.duration >= 60 else { return }
+
+    // @AppStorage default is true; explicit object check preserves that default.
+    let askEnabled = UserDefaults.standard.object(forKey: "askToShareAfterSession") as? Bool ?? true
+    guard askEnabled else { return }
+
+    pendingShareSession = ShareableSession(
+      profileName: session.blockedProfile.name,
+      duration: session.duration
+    )
   }
 
   func handleProfileDeletion(_ profile: BlockedProfiles, context: ModelContext) {
@@ -823,9 +855,12 @@ class StrategyManager: ObservableObject {
         // here must never block the iPhone-side Screen Time flow.
         MacSessionSyncService.shared.startSession()
       case .ended(let endedProfile):
+        // Capture before nil-ing so we can evaluate share eligibility on the just-ended session.
+        let endedSession = self.activeSession
         self.activeSession = nil
         self.liveActivityManager.endSessionActivity()
         self.scheduleReminder(profile: endedProfile)
+        self.evaluateShareEligibility(session: endedSession)
 
         self.stopTimer()
         self.elapsedTime = 0

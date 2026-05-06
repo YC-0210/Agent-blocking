@@ -6,6 +6,7 @@ struct SettingsView: View {
 
   @AppStorage("globalEnableLiveActivity") private var enableLiveActivity: Bool = false
   @AppStorage("globalEnableReminder") private var enableReminder: Bool = false
+  @AppStorage("askToShareAfterSession") private var askToShareAfterSession: Bool = true
 
   var body: some View {
     NavigationStack {
@@ -15,6 +16,12 @@ struct SettingsView: View {
             title: String(localized: "動態島 / 鎖定畫面顯示"),
             description: String(localized: "專注時在動態島和鎖定畫面即時顯示計時與狀態"),
             isOn: $enableLiveActivity
+          )
+
+          CustomToggle(
+            title: String(localized: "完成後詢問是否分享"),
+            description: String(localized: "session 滿 30 分鐘且正常結束時，跳出分享提示"),
+            isOn: $askToShareAfterSession
           )
 
           CustomToggle(

@@ -47,6 +47,9 @@ struct HomeView: View {
   // Saved time banner
   @State private var showSavedTimeBanner = false
 
+  // Share session full-screen preview (presented after user taps "分享" in the prompt sheet)
+  @State private var shareSessionToPresent: ShareableSession? = nil
+
   @Query(
     filter: #Predicate<BlockedProfileSession> { $0.endTime != nil },
     sort: \BlockedProfileSession.endTime,
@@ -239,6 +242,27 @@ struct HomeView: View {
     .sheet(isPresented: $showEmergencyView) {
       EmergencyView()
         .presentationDetents([.height(350)])
+    }
+    .sheet(item: $strategyManager.pendingShareSession) { session in
+      ShareSessionPromptSheet(
+        profileName: session.profileName,
+        duration: session.duration,
+        onShare: {
+          shareSessionToPresent = session
+          strategyManager.pendingShareSession = nil
+        },
+        onLater: {
+          strategyManager.pendingShareSession = nil
+        }
+      )
+      .presentationDetents([.height(540)])
+      .presentationDragIndicator(.visible)
+    }
+    .fullScreenCover(item: $shareSessionToPresent) { session in
+      FocusShareCardView(
+        profileName: session.profileName,
+        duration: session.duration
+      )
     }
     .alert(alertTitle, isPresented: $showingAlert) {
       Button(String(localized: "OK"), role: .cancel) { dismissAlert() }
