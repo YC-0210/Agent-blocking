@@ -3,19 +3,23 @@ import UIKit
 
 private let generatorLog = Logger(subsystem: "online.do.card.app", category: "FocusShareCardGenerator")
 
-/// Renders a transparent-background PNG (1080×1920) of the focus session result.
+/// Renders a transparent-background PNG (1080×1920, 9:16) of the focus session result.
 ///
-/// Layout — absolute spec on the 1080×1920 canvas (each element positioned by its
-/// own Y centre, not as a flex-centred group):
+/// Per spec, the layout uses absolute Y-centre positions on the canvas:
 ///
-///   Element   X centre   Y centre        Height     Font
-///   --------  --------   -------------   --------   -----
-///   Pill      50%        45.0% (864)     4.4% pill  44pt name
-///   Number    50%        60.4% (1160)    20.6%      440pt mono bold
-///   Caption   50%        72.6% (1394)    2.1%       40pt, kern 16 (0.4em)
-///   Logo      50%        anchored 64pt   5.0%       — (asset)
-///                        from bottom
-///   Implied gaps: pill→number 56pt, number→caption 16pt
+///   Element   Centre Y    Font / size
+///   --------  ----------  -------------------------------------------
+///   Pill      762 (39.7%) SF Pro 44pt semibold, padding 20×44,
+///                         fill rgba(255,255,255,0.06), stroke rgba(0.25)
+///   Number    960 (50.0%) SF Pro Rounded 440pt bold, tabular-nums,
+///                         letter-spacing -0.04em, line-height 0.9
+///   Caption   1294 (67.4%) SF Pro 40pt medium, kern 16 (0.4em),
+///                         colour rgba(255,255,255,0.5)
+///   Logo      bottom-anchored 64pt above canvas bottom, height 96pt
+///
+/// Note: backdrop-blur from the spec is not modelled — PNG output is transparent
+/// so there is nothing behind the pill to blur. The translucent fill alone
+/// reads correctly when pasted onto an IG Story background.
 enum FocusShareCardGenerator {
 
   static let canvasWidth: CGFloat = 1080
@@ -33,26 +37,24 @@ enum FocusShareCardGenerator {
 
     return renderer.image { ctx in
       let cg = ctx.cgContext
-      let white = UIColor.white
 
-      // --- Spec: font sizes (1080×1920 absolute) ---
+      // --- Spec ---
       let nameFontSize: CGFloat = 44
       let numberFontSize: CGFloat = 440
       let captionFontSize: CGFloat = 40
 
-      // --- Spec: Y centres (% of canvas height) ---
-      let pillCenterY: CGFloat = canvasHeight * 0.450
-      let numberCenterY: CGFloat = canvasHeight * 0.604
-      let captionCenterY: CGFloat = canvasHeight * 0.726
+      let pillCenterY: CGFloat = 762   // 39.7%
+      let numberCenterY: CGFloat = 960  // 50.0% — canvas centre
+      let captionCenterY: CGFloat = 1294  // 67.4%
 
-      // --- Spec: logo ---
-      let logoTargetHeight: CGFloat = 96  // 5.0% of 1920
-      let logoBottomMargin: CGFloat = 64  // 3.33% of 1920
+      let logoTargetHeight: CGFloat = 96
+      let logoBottomMargin: CGFloat = 64  // distance from canvas bottom
 
-      // --- Pill padding (proportional to name font) ---
-      let pillVerticalPadding: CGFloat = 16
+      let pillVerticalPadding: CGFloat = 20
       let pillHorizontalPadding: CGFloat = 44
-      let pillStrokeWidth: CGFloat = 3
+      let pillFillColor = UIColor.white.withAlphaComponent(0.06)
+      let pillStrokeColor = UIColor.white.withAlphaComponent(0.25)
+      let pillStrokeWidth: CGFloat = 1
 
       // --- Compute duration text + units ---
       let totalSeconds = Int(max(0, duration))
@@ -69,34 +71,59 @@ enum FocusShareCardGenerator {
         unitsText = String(localized: "分鐘")
       }
 
-      // --- Build attributed strings ---
+      // --- Fonts ---
+      // Pill name — SF Pro semibold (weight 600)
       let nameFont = UIFont.systemFont(ofSize: nameFontSize, weight: .semibold)
+
+      // Main number — SF Pro Rounded bold (700) + tabular-nums + line-height 0.9
+      // Tabular numbers via CoreText feature: kNumberSpacingType(6) / kMonospacedNumbersSelector(0).
       let numberFont: UIFont = {
-        if let mono = UIFont(name: "SFMono-Bold", size: numberFontSize) { return mono }
-        return UIFont.monospacedSystemFont(ofSize: numberFontSize, weight: .bold)
+        let base = UIFont.systemFont(ofSize: numberFontSize, weight: .bold)
+        let roundedDescriptor = base.fontDescriptor.withDesign(.rounded) ?? base.fontDescriptor
+        let tabularDescriptor = roundedDescriptor.addingAttributes([
+          UIFontDescriptor.AttributeName.featureSettings: [
+            [
+              UIFontDescriptor.FeatureKey.type: 6,
+              UIFontDescriptor.FeatureKey.selector: 0,
+            ]
+          ]
+        ])
+        return UIFont(descriptor: tabularDescriptor, size: numberFontSize)
       }()
-      let captionFont = UIFont.systemFont(ofSize: captionFontSize, weight: .regular)
+
+      // Caption — SF Pro medium (500)
+      let captionFont = UIFont.systemFont(ofSize: captionFontSize, weight: .medium)
+
+      // --- Attributed strings ---
+      // Number: letter-spacing -0.04em → kern -17.6pt on 440pt font.
+      // line-height 0.9 → tight paragraph, but for a single-line draw-at-point
+      // it has no effect on glyph metrics; documented for fidelity to spec.
+      let numberParagraph = NSMutableParagraphStyle()
+      numberParagraph.alignment = .center
+      numberParagraph.lineHeightMultiple = 0.9
+      let numberStr = NSAttributedString(string: numberText, attributes: [
+        .font: numberFont,
+        .foregroundColor: UIColor.white,
+        .kern: -numberFontSize * 0.04,
+        .paragraphStyle: numberParagraph,
+      ])
 
       let nameStr = NSAttributedString(string: profileName, attributes: [
         .font: nameFont,
-        .foregroundColor: white,
-        .kern: 1.0,
+        .foregroundColor: UIColor.white,
       ])
-      let numberStr = NSAttributedString(string: numberText, attributes: [
-        .font: numberFont,
-        .foregroundColor: white,
-      ])
+
       let captionStr = NSAttributedString(string: unitsText, attributes: [
         .font: captionFont,
-        .foregroundColor: UIColor.white.withAlphaComponent(0.7),
-        .kern: 16.0,  // 0.4em × 40pt
+        .foregroundColor: UIColor.white.withAlphaComponent(0.5),
+        .kern: captionFontSize * 0.4,  // 0.4em letter-spacing
       ])
 
       let nameSize = nameStr.size()
       let numberSize = numberStr.size()
       let captionSize = captionStr.size()
 
-      // --- 1. Profile-name pill (centred at pillCenterY) ---
+      // --- 1. Pill (centre Y = 762) ---
       let pillW = nameSize.width + pillHorizontalPadding * 2
       let pillH = nameSize.height + pillVerticalPadding * 2
       let pillRect = CGRect(
@@ -106,8 +133,13 @@ enum FocusShareCardGenerator {
         height: pillH
       )
       let pillPath = UIBezierPath(roundedRect: pillRect, cornerRadius: pillH / 2)
+
       cg.saveGState()
-      cg.setStrokeColor(UIColor.white.withAlphaComponent(0.55).cgColor)
+      cg.setFillColor(pillFillColor.cgColor)
+      cg.addPath(pillPath.cgPath)
+      cg.fillPath()
+
+      cg.setStrokeColor(pillStrokeColor.cgColor)
       cg.setLineWidth(pillStrokeWidth)
       cg.addPath(pillPath.cgPath)
       cg.strokePath()
@@ -119,21 +151,21 @@ enum FocusShareCardGenerator {
       )
       nameStr.draw(at: nameOrigin)
 
-      // --- 2. Number (centred at numberCenterY) ---
+      // --- 2. Number (centre Y = 960) ---
       let numberOrigin = CGPoint(
         x: (canvasWidth - numberSize.width) / 2,
         y: numberCenterY - numberSize.height / 2
       )
       numberStr.draw(at: numberOrigin)
 
-      // --- 3. Caption (centred at captionCenterY) ---
+      // --- 3. Caption (centre Y = 1294) ---
       let captionOrigin = CGPoint(
         x: (canvasWidth - captionSize.width) / 2,
         y: captionCenterY - captionSize.height / 2
       )
       captionStr.draw(at: captionOrigin)
 
-      // --- 4. Logo (anchored 64pt from bottom edge) ---
+      // --- 4. Logo (bottom-anchored 64pt above canvas bottom) ---
       let logoImage = UIImage(named: "DOLogo")
       let logoSize: CGSize = {
         if let img = logoImage, img.size.width > 0 {
@@ -155,7 +187,7 @@ enum FocusShareCardGenerator {
         let fallbackFont = UIFont.systemFont(ofSize: logoTargetHeight, weight: .bold)
         let fallback = NSAttributedString(
           string: "DO",
-          attributes: [.font: fallbackFont, .foregroundColor: white]
+          attributes: [.font: fallbackFont, .foregroundColor: UIColor.white]
         )
         let fSize = fallback.size()
         fallback.draw(at: CGPoint(x: (canvasWidth - fSize.width) / 2, y: logoY))
