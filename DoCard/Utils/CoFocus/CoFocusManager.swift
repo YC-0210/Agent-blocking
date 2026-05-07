@@ -62,6 +62,12 @@ final class CoFocusManager: ObservableObject {
   private var sessionObservation: AnyCancellable?
   private var lastSeenSessionActive: Bool = false
   private var didBootstrap: Bool = false
+  /// Pairings whose partnerEnded UI has already been shown and dismissed.
+  /// Polling within the 30s recently-completed window must not re-trigger
+  /// the partnerEnded sticky for the same pairing — otherwise the UI loops:
+  /// partnerEnded → idle (10s timer) → polling re-fetches → partnerEnded → ...
+  /// Bounded; cleared opportunistically once it gets too large.
+  private var dismissedPairingIds: Set<UUID> = []
 
   // Sticky duration for the "夥伴已結束" overlay before we drop back to .idle.
   private static let partnerEndedStickyDuration: Duration = .seconds(10)
@@ -231,7 +237,11 @@ final class CoFocusManager: ObservableObject {
       // First-to-unlock writes records; either side reaching here = session done.
       // If partner ended (and I haven't yet), keep a "partner ended" sticky phase
       // so the UI shows the closing message before going idle.
-      if session.endedByUserId != myId {
+      // BUT skip if the user has already dismissed this exact pairing — otherwise
+      // polling within the 30s recently-completed window keeps reviving partnerEnded.
+      if dismissedPairingIds.contains(session.id) {
+        newPhase = .idle
+      } else if session.endedByUserId != myId {
         newPhase = .partnerEnded(session)
         // Only schedule the 10s auto-idle timer when we ENTER partnerEnded.
         // Re-firing this from polling repeats would keep resetting the timer.
@@ -264,6 +274,17 @@ final class CoFocusManager: ObservableObject {
   }
 
   private func transitionToIdle() async {
+    // Mark the pairing we're leaving as "dismissed" so any in-flight or
+    // subsequent polling within the 30s recently-completed window can't
+    // re-trigger partnerEnded for it.
+    if let dismissedId = phase.pairing?.id {
+      dismissedPairingIds.insert(dismissedId)
+      // Cap to keep memory bounded (pairings are rare; 32 is well over a day's worth).
+      if dismissedPairingIds.count > 32 {
+        dismissedPairingIds.removeAll()
+        dismissedPairingIds.insert(dismissedId)
+      }
+    }
     self.phase = .idle
     await stopRealtime()
     reconcilePolling()
