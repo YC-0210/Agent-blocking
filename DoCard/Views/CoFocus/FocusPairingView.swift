@@ -436,9 +436,6 @@ private struct CoFocusActiveView: View {
   let session: PairingSession
   let partnerEnded: Bool
 
-  @State private var now: Date = .now
-  let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
   private var partnerNickname: String {
     guard let myId = manager.myUserId else { return "" }
     return session.partnerNickname(forCaller: myId) ?? ""
@@ -446,7 +443,7 @@ private struct CoFocusActiveView: View {
 
   /// Seconds elapsed since both parties tapped (the共同 timer).
   /// Frozen on partnerEnded at session_end_at.
-  private var coFocusSeconds: Int {
+  private func coFocusSeconds(at now: Date) -> Int {
     guard let start = session.sessionStartAt else { return 0 }
     let end = partnerEnded ? (session.sessionEndAt ?? now) : now
     return max(0, Int(end.timeIntervalSince(start)))
@@ -459,6 +456,19 @@ private struct CoFocusActiveView: View {
   }
 
   var body: some View {
+    // TimelineView owns the periodic re-render for the timer display, isolated
+    // from external @Published churn. Without this, body re-renders triggered
+    // by polling / strategyManager updates would re-create a Timer.publish
+    // subscription whose first fire would be 1s in the future, causing the
+    // visible counter to occasionally skip a tick (47 → 49).
+    TimelineView(.periodic(from: session.sessionStartAt ?? .now, by: 1)) { context in
+      bodyContent(now: context.date)
+    }
+  }
+
+  @ViewBuilder
+  private func bodyContent(now: Date) -> some View {
+    let coSec = coFocusSeconds(at: now)
     VStack(spacing: 18) {
       Spacer()
 
@@ -496,7 +506,7 @@ private struct CoFocusActiveView: View {
       // partnerEnded   → coFocusSeconds is session_end_at-anchored, so it freezes.
       // Same expression, different anchor → consistent main-number identity, the
       // freeze is what visually pairs with "X 已結束共同專注".
-      Text(formatDuration(seconds: coFocusSeconds))
+      Text(formatDuration(seconds: coSec))
         .font(.system(size: 88, weight: .semibold, design: .rounded))
         .monospacedDigit()
         .foregroundStyle(.primary)
@@ -544,7 +554,6 @@ private struct CoFocusActiveView: View {
       .padding(.bottom, 24)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .onReceive(timer) { now = $0 }
     .animation(.easeInOut(duration: 0.6), value: partnerEnded)
     .navigationTitle(partnerEnded
       ? String(localized: "共同專注")

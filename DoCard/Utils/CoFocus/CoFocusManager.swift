@@ -261,14 +261,22 @@ final class CoFocusManager: ObservableObject {
       newPhase = .idle
     }
 
-    self.phase = newPhase
+    // Only assign when the phase value actually changes. Polling fires every
+    // 3s and most ticks return the same row → the same Phase value. Reassigning
+    // an identical @Published value still notifies subscribers, which kicks
+    // SwiftUI to re-render and resets internal Timer.publish subscriptions in
+    // CoFocusActiveView — that's how the user observed sporadic 2-sec jumps in
+    // the main timer.
+    if newPhase != self.phase {
+      self.phase = newPhase
+    }
 
     // If we just transitioned into .active, signal HomeView to surface the tab.
     if case .active = newPhase, !isSameCase(oldPhase, .active(session)) {
       shouldFocusTab = true
     }
 
-    // (Re)subscribe Realtime to the right pairing id.
+    // (Re)subscribe Realtime to the right pairing id (idempotent if same).
     await reconcileRealtime(for: session)
     reconcilePolling()
   }
