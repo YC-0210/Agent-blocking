@@ -464,13 +464,23 @@ private struct CoFocusActiveView: View {
 
       // ─── Caption (top) ───────────────────────────────
       if partnerEnded {
-        Text(String.localizedStringWithFormat(
-          String(localized: "%@ 已結束共同專注"),
-          partnerNickname
-        ))
-        .font(.headline)
-        .foregroundStyle(.secondary)
+        VStack(spacing: 8) {
+          Image(systemName: "person.fill.checkmark")
+            .font(.title)
+            .foregroundStyle(ThemeManager.shared.themeColor)
+          Text(String.localizedStringWithFormat(
+            String(localized: "%@ 已結束共同專注"),
+            partnerNickname
+          ))
+          .font(.title3.weight(.semibold))
+          .foregroundStyle(.primary)
+        }
         .transition(.opacity)
+        .onAppear {
+          // Haptic so the partner-ended transition is impossible to miss
+          // even if the user's eyes are off the screen.
+          UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
       } else {
         Text(String.localizedStringWithFormat(
           String(localized: "與 %@ 共同專注中"),
