@@ -57,6 +57,7 @@ final class CoFocusManager: ObservableObject {
   private let client = CoFocusSupabase.shared
   private var realtimeChannel: RealtimeChannelV2?
   private var realtimeTask: Task<Void, Never>?
+  private var pollTask: Task<Void, Never>?
   private var partnerEndedTimer: Task<Void, Never>?
   private var sessionObservation: AnyCancellable?
   private var lastSeenSessionActive: Bool = false
@@ -64,6 +65,9 @@ final class CoFocusManager: ObservableObject {
 
   // Sticky duration for the "夥伴已結束" overlay before we drop back to .idle.
   private static let partnerEndedStickyDuration: Duration = .seconds(10)
+  // Polling fallback cadence — kicks in only when a non-idle pairing exists.
+  // Belt-and-suspenders against Realtime drops; cheap (single RPC every 3s).
+  private static let pollingInterval: Duration = .seconds(3)
 
   private init() {}
 
@@ -150,6 +154,40 @@ final class CoFocusManager: ObservableObject {
     }
   }
 
+  /// Manual escape hatch from the active / partnerEnded overlay.
+  /// Always lands the user back on the idle home, regardless of which side
+  /// the pairing is on. Does NOT release ScreenTime (NFC stays in charge of that).
+  ///
+  ///   waitingJoin / waitingTap → cancel_pairing on server
+  ///   active                   → unlock_pairing on server (writes records)
+  ///   partnerEnded             → just clear local sticky UI
+  ///   anything else            → already idle
+  func endCoFocusFromUI() async {
+    guard let pairing = phase.pairing else {
+      await transitionToIdle()
+      return
+    }
+    switch pairing.status {
+    case .waitingJoin, .waitingTap:
+      await cancelCurrentPairing()
+    case .active:
+      do {
+        let updated: PairingSession = try await client
+          .rpc("unlock_pairing", params: CoFocusRPC.PairingIdParams(p_pairing_id: pairing.id))
+          .execute()
+          .value
+        await applyServerState(updated)
+      } catch {
+        log.error("endCoFocusFromUI/unlock failed: \(error.localizedDescription, privacy: .public)")
+        // Worst case: dismiss the UI anyway so the user isn't trapped.
+        await transitionToIdle()
+      }
+    case .completed, .cancelled, .expired, .abandoned:
+      partnerEndedTimer?.cancel()
+      await transitionToIdle()
+    }
+  }
+
   /// Caller-driven cancel from the UI (the "取消" button).
   /// NOTE: this does NOT release the user's ScreenTime — that stays under NFC's control.
   func cancelCurrentPairing() async {
@@ -195,13 +233,20 @@ final class CoFocusManager: ObservableObject {
       // so the UI shows the closing message before going idle.
       if session.endedByUserId != myId {
         newPhase = .partnerEnded(session)
-        scheduleAutoIdleAfterPartnerEnded()
+        // Only schedule the 10s auto-idle timer when we ENTER partnerEnded.
+        // Re-firing this from polling repeats would keep resetting the timer.
+        if !isSameCase(oldPhase, newPhase) {
+          scheduleAutoIdleAfterPartnerEnded()
+          Task { await self.refreshMonthlyTotal() }
+          Task { await self.refreshHistory() }
+        }
       } else {
         newPhase = .idle
+        if !isSameCase(oldPhase, newPhase) {
+          Task { await self.refreshMonthlyTotal() }
+          Task { await self.refreshHistory() }
+        }
       }
-      // Refresh aggregates whichever side completed.
-      Task { await self.refreshMonthlyTotal() }
-      Task { await self.refreshHistory() }
     case .cancelled, .expired, .abandoned:
       newPhase = .idle
     }
@@ -215,11 +260,38 @@ final class CoFocusManager: ObservableObject {
 
     // (Re)subscribe Realtime to the right pairing id.
     await reconcileRealtime(for: session)
+    reconcilePolling()
   }
 
   private func transitionToIdle() async {
     self.phase = .idle
     await stopRealtime()
+    reconcilePolling()
+  }
+
+  /// Polling fallback. Active whenever phase is non-idle. Belt-and-suspenders
+  /// against Realtime drops (and currently the only way the active→completed
+  /// partnerEnded transition is delivered, since the Supabase project's Realtime
+  /// tenant has been observed to silently drop replication events).
+  private func reconcilePolling() {
+    let shouldPoll: Bool
+    switch phase {
+    case .idle, .loading: shouldPoll = false
+    case .waitingJoin, .waitingTap, .active, .partnerEnded: shouldPoll = true
+    }
+
+    if shouldPoll && pollTask == nil {
+      pollTask = Task { [weak self] in
+        while !Task.isCancelled {
+          try? await Task.sleep(for: Self.pollingInterval)
+          if Task.isCancelled { return }
+          await self?.refreshActivePairing()
+        }
+      }
+    } else if !shouldPoll {
+      pollTask?.cancel()
+      pollTask = nil
+    }
   }
 
   private func scheduleAutoIdleAfterPartnerEnded() {

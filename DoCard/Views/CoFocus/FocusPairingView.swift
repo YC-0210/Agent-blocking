@@ -516,7 +516,26 @@ private struct CoFocusActiveView: View {
       Text(String(localized: "刷卡解鎖即可結束。"))
         .font(.footnote)
         .foregroundStyle(.tertiary)
-        .padding(.bottom, 24)
+
+      // Manual escape hatch — covers any case where Realtime / polling
+      // lags behind server state and the active overlay would otherwise stay stuck.
+      // Active phase: ends the co-session on server (records get written).
+      // partnerEnded phase: just dismisses the sticky message.
+      Button(action: {
+        Task { await manager.endCoFocusFromUI() }
+      }) {
+        Text(partnerEnded
+          ? String(localized: "返回主頁")
+          : String(localized: "結束共同專注"))
+          .font(.subheadline)
+          .frame(maxWidth: .infinity)
+          .padding(.vertical, 12)
+          .background(.ultraThinMaterial)
+          .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+      }
+      .buttonStyle(.plain)
+      .padding(.horizontal, 40)
+      .padding(.bottom, 24)
     }
     .frame(maxWidth: .infinity, maxHeight: .infinity)
     .onReceive(timer) { now = $0 }
