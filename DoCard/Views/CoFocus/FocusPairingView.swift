@@ -492,34 +492,30 @@ private struct CoFocusActiveView: View {
       }
 
       // ─── Primary time (center) ───────────────────────
-      Text(formatDuration(seconds: partnerEnded ? personalSeconds : coFocusSeconds))
+      // Active phase   → coFocusSeconds is now-anchored, so it ticks.
+      // partnerEnded   → coFocusSeconds is session_end_at-anchored, so it freezes.
+      // Same expression, different anchor → consistent main-number identity, the
+      // freeze is what visually pairs with "X 已結束共同專注".
+      Text(formatDuration(seconds: coFocusSeconds))
         .font(.system(size: 88, weight: .semibold, design: .rounded))
         .monospacedDigit()
         .foregroundStyle(.primary)
-        .id(partnerEnded ? "personal" : "co")
         .transition(.asymmetric(
           insertion: .scale(scale: 0.3).combined(with: .opacity),
           removal: .opacity
         ))
 
       // ─── Subordinate time (bottom) ────────────────────
-      if partnerEnded {
-        Text(String.localizedStringWithFormat(
-          String(localized: "共同時長 %@"),
-          formatDuration(seconds: coFocusSeconds)
-        ))
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-        .monospacedDigit()
-      } else {
-        Text(String.localizedStringWithFormat(
-          String(localized: "個人 %@"),
-          formatDuration(seconds: personalSeconds)
-        ))
-        .font(.subheadline)
-        .foregroundStyle(.secondary)
-        .monospacedDigit()
-      }
+      // Personal time keeps ticking in BOTH modes (the user's NFC is still
+      // active until they unlock locally). In partnerEnded mode this is the
+      // only visible cue that the user is still in their solo session.
+      Text(String.localizedStringWithFormat(
+        String(localized: "個人 %@"),
+        formatDuration(seconds: personalSeconds)
+      ))
+      .font(.subheadline)
+      .foregroundStyle(.secondary)
+      .monospacedDigit()
 
       Spacer()
 
