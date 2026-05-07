@@ -344,6 +344,7 @@
 			);
 			name = DoCard;
 			packageProductDependencies = (
+				CF000002CFCFCF0000000002 /* Supabase */,
 			);
 			productName = DoCard;
 			productReference = 801B20952CB363A10073E9E2 /* DoCard.app */;
@@ -475,6 +476,7 @@
 			mainGroup = 801B208C2CB363A10073E9E2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				CF000001CFCFCF0000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 801B20962CB363A10073E9E2 /* Products */;
@@ -1165,6 +1167,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		CF000001CFCFCF0000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.27.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		CF000002CFCFCF0000000002 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = CF000001CFCFCF0000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 801B208D2CB363A10073E9E2 /* Project object */;
 }

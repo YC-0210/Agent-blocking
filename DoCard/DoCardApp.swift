@@ -71,6 +71,8 @@ struct DoCardApp: App {
   @StateObject private var themeManager = ThemeManager.shared
   @StateObject private var onboardingManager = OnboardingManager.shared
   @StateObject private var subscriptionManager = SubscriptionManager.shared
+  @StateObject private var coFocusManager = CoFocusManager.shared
+  @StateObject private var pairingDeviceStore = PairingDeviceStore.shared
 
   init() {
     TimersUtil.registerBackgroundTasks()
@@ -117,6 +119,9 @@ struct DoCardApp: App {
       .environmentObject(themeManager)
       .environmentObject(onboardingManager)
       .environmentObject(subscriptionManager)
+      .environmentObject(coFocusManager)
+      .environmentObject(pairingDeviceStore)
+      .task { await coFocusManager.bootstrap() }
       .preferredColorScheme(.dark)
     }
     .modelContainer(container)

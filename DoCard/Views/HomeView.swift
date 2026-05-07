@@ -13,6 +13,7 @@ struct HomeView: View {
   @EnvironmentObject var navigationManager: NavigationManager
   @EnvironmentObject var ratingManager: RatingManager
   @EnvironmentObject var onboardingManager: OnboardingManager
+  @EnvironmentObject var coFocusManager: CoFocusManager
 
   // Profile management
   @Query(sort: [
@@ -65,6 +66,7 @@ struct HomeView: View {
   enum Tab: Hashable {
     case doMain
     case schedule
+    case coFocus
     case report
     case settings
   }
@@ -105,14 +107,21 @@ struct HomeView: View {
           }
           .tag(Tab.schedule)
 
-        // Tab 3: Report
+        // Tab 3: 共同專注
+        FocusPairingView()
+          .tabItem {
+            Label(String(localized: "共同專注"), systemImage: "person.2.fill")
+          }
+          .tag(Tab.coFocus)
+
+        // Tab 4: Report
         ReportView()
           .tabItem {
             Label(String(localized: "週報"), systemImage: "chart.line.uptrend.xyaxis")
           }
           .tag(Tab.report)
 
-        // Tab 4: Settings
+        // Tab 5: Settings
         SettingsTabView(onEmergencyTapped: {
           showEmergencyView = true
         })
@@ -169,9 +178,17 @@ struct HomeView: View {
       if newPhase == .active {
         loadApp()
         checkSavedTimeBanner()
+        Task { await coFocusManager.bootstrap() }
       } else if newPhase == .background {
         unloadApp()
       }
+    }
+    .onChange(of: coFocusManager.shouldFocusTab) { _, newValue in
+      // Pairing flipped to .active → surface the tab so both sides see the
+      // individual→共同 timer transition.
+      guard newValue else { return }
+      selectedTab = .coFocus
+      coFocusManager.shouldFocusTab = false
     }
     .onReceive(strategyManager.$errorMessage) { errorMessage in
       if let message = errorMessage {
