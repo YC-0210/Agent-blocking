@@ -38,10 +38,19 @@ struct StrategyManagerDebugCard: View {
       Divider()
 
       // Emergency Unblocks
-      DebugRow(
-        label: "Emergency Unblocks Remaining",
-        value: "\(strategyManager.getRemainingEmergencyUnblocks())"
-      )
+      HStack {
+        DebugRow(
+          label: "Emergency Unblocks Remaining",
+          value: "\(strategyManager.getRemainingEmergencyUnblocks())"
+        )
+        Spacer()
+        Button("Reset to 3") {
+          strategyManager.resetEmergencyUnblocks()
+        }
+        .font(.caption)
+        .buttonStyle(.bordered)
+        .controlSize(.mini)
+      }
 
       Divider()
 
