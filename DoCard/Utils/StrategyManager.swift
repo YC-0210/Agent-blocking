@@ -722,16 +722,22 @@ class StrategyManager: ObservableObject {
     // Set end reason before stopBlocking persists the session
     activeSession.endReason = "emergency_unlock"
 
+    // EMERGENCY_UNLOCK_AUDIT (Bug #3): write the suppression flag BEFORE
+    // stopBlocking. The .ended callback fired inside stopBlocking calls
+    // restoreScheduledSessionIfNeeded, which checks this flag to decide
+    // whether to re-apply the schedule's shield. If the flag isn't there
+    // yet, restore re-applies the shield AND fires Mac sync startSession —
+    // leaving iOS shield up and Mac extensions blocked until the next
+    // foreground reconcile. (No-op for non-scheduled triggerSource via
+    // internal guard in writeEmergencyUnlockSuppressionFlags.)
+    suppressScheduledReblockIfNeeded(for: activeSession)
+
     // Stop the active session using the manual strategy, by passes any other strategy in view
     let manualStrategy = getStrategy(id: ManualBlockingStrategy.id)
     _ = manualStrategy.stopBlocking(
       context: context,
       session: activeSession
     )
-
-    // EMERGENCY_UNLOCK_AUDIT: suppress extension re-block for the current
-    // scheduled window without stopping the repeating monitor itself.
-    suppressScheduledReblockIfNeeded(for: activeSession)
 
     // Defensive reset: the happy path relies on onSessionCreation(.ended) firing synchronously
     // inside stopBlocking() above to nil activeSession and stop the timer. If that chain is
