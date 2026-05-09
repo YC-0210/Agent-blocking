@@ -28,6 +28,7 @@ struct DOMainTabView: View {
   @EnvironmentObject var ratingManager: RatingManager
   @EnvironmentObject var themeManager: ThemeManager
   @EnvironmentObject var onboardingManager: OnboardingManager
+  @EnvironmentObject var coFocusManager: CoFocusManager
 
   @Query(sort: [
     SortDescriptor(\BlockedProfiles.order, order: .forward),
@@ -86,6 +87,33 @@ struct DOMainTabView: View {
     return profiles[max(0, index)]
   }
 
+  /// User-facing label describing the current active session's type, shown
+  /// beneath the timer when blocking. Co-focus active takes precedence so
+  /// the user sees "共同專注中" while the pairing is in progress, then sees
+  /// the underlying session type (e.g. "排程鎖定中") if blocking continues
+  /// after co-focus ends. Returns nil when there is no active session.
+  /// (Bug #7.)
+  private var sessionTypeLabel: String? {
+    if case .active = coFocusManager.phase {
+      return String(localized: "共同專注中")
+    }
+    guard let session = strategyManager.activeSession else { return nil }
+    if session.triggerSource == "scheduled" {
+      return String(localized: "排程鎖定中")
+    }
+    if let strategyId = session.blockedProfile.blockingStrategyId,
+      StrategyManager.isTimerStrategy(strategyId)
+    {
+      if let plannedDurationMinutes =
+        SharedData.getActiveStrategySharedSession()?.plannedDurationMinutes
+      {
+        return String(localized: "定時 \(plannedDurationMinutes) 分鐘")
+      }
+      return String(localized: "定時專注中")
+    }
+    return String(localized: "正常鎖定中")
+  }
+
   /// Accumulated focus time since the last noon reset (completed sessions only).
   /// Resets daily at 12:00 PM — if it's before noon, the window starts at yesterday's noon.
   private var todayFocusTime: TimeInterval {
@@ -132,6 +160,17 @@ struct DOMainTabView: View {
             isBlocking: isBlocking,
             todayFocusTime: todayFocusTime
           )
+          if isBlocking, let label = sessionTypeLabel {
+            // Bug #7: surface the session type beneath the timer so the
+            // user can tell whether the current block came from a schedule,
+            // a co-focus pairing, a timer, or a manual NFC tap. Especially
+            // important after co-focus ends inside an active schedule
+            // window — without this the schedule re-applying looks like a
+            // bug from the user's POV.
+            Text(label)
+              .font(.system(size: 13, weight: .medium))
+              .foregroundColor(.white.opacity(0.5))
+          }
           if isBlocking {
             MacSyncStatusBadge(sync: MacSessionSyncService.shared)
           }
@@ -195,6 +234,7 @@ struct DOMainTabView: View {
               showStopButton: profile.showStopButton(
                 elapsedTime: strategyManager.elapsedTime),
               simpleTapMode: false,
+              coFocusAwaitingMyTap: coFocusManager.shouldDivertNFCTapToCoFocus,
               onStartTapped: {
                 // Both tutorial Step 5 and normal mode: long-press → NFC scan → session starts
                 strategyManager.startSessionWithNFCScan(context: context, profile: profile)
