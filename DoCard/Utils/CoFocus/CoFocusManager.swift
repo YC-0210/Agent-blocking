@@ -206,7 +206,18 @@ final class CoFocusManager: ObservableObject {
         .value
       await applyServerState(updated)
     } catch {
-      lastError = friendlyError(error)
+      // Bug #5: server returns P0005 when the row is no longer in
+      // waiting_join/waiting_tap (e.g. partner already cancelled, or cron
+      // swept past tap_deadline). Local phase is still .waitingTap because
+      // the cancellation event never propagated. Treat P0005 as "server is
+      // ahead of us" and drop to idle to match server reality, instead of
+      // leaving the user stuck on a dead waitingTap UI with no escape but
+      // force-quit.
+      if "\(error)".contains("P0005") {
+        await transitionToIdle()
+      } else {
+        lastError = friendlyError(error)
+      }
     }
   }
 
