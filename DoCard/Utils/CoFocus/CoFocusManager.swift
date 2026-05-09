@@ -423,6 +423,27 @@ final class CoFocusManager: ObservableObject {
     realtimeChannel = nil
   }
 
+  // MARK: - NFC card-tap intercept (called from NFC blocking strategies)
+
+  /// True when the next NFC card-tap should be diverted to a co-focus tap_card
+  /// instead of ending the active blocking session. NFC strategies must check
+  /// this at the top of their `onTagScanned` closure and skip the session-end
+  /// path when true — otherwise tapping the card during a scheduled (or any
+  /// other active) session ends the session and the user's intent to start
+  /// co-focus is silently lost.
+  var shouldDivertNFCTapToCoFocus: Bool {
+    guard let myId = myUserId, let pairing = phase.pairing else { return false }
+    return pairing.status == .waitingTap && !pairing.hasTapped(myId)
+  }
+
+  /// Fire-and-forget entry point used by NFC blocking strategies after they
+  /// observe `shouldDivertNFCTapToCoFocus == true`. Reuses the existing
+  /// edge-driven tap_card path (`handleNFCTapStarted`) so the RPC, server
+  /// state ingestion, and error handling stay in one place.
+  func recordCoFocusTapFromNFC() {
+    Task { await self.handleNFCTapStarted() }
+  }
+
   // MARK: - StrategyManager hook (NFC-tap bridge)
 
   private func observeStrategyManager() {

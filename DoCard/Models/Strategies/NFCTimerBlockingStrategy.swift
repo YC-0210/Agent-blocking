@@ -109,6 +109,21 @@ class NFCTimerBlockingStrategy: BlockingStrategy {
 
       self.onCardNameScanned?(scannedTag.cardName)
 
+      // Bug #6 (Co-Focus over Schedule): when a co-focus pairing is awaiting
+      // this user's tap, divert this NFC tap to record a co-focus tap rather
+      // than ending the active session. Schedule continues, apps remain
+      // blocked. The user's tap is interpreted as "start co-focus", not
+      // "end the current session". `NFCScannerUtil` always invokes this
+      // callback via `DispatchQueue.main.async`, so MainActor.assumeIsolated
+      // is safe here and lets us keep the dispatch decision synchronous.
+      let diverted: Bool = MainActor.assumeIsolated {
+        let manager = CoFocusManager.shared
+        guard manager.shouldDivertNFCTapToCoFocus else { return false }
+        manager.recordCoFocusTapFromNFC()
+        return true
+      }
+      if diverted { return }
+
       context.insert(NFCTapEvent(
         action: NFCTapEvent.actionEndBlock,
         profileId: session.blockedProfile.id,
