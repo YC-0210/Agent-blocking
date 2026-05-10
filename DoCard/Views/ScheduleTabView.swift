@@ -15,6 +15,7 @@ struct ScheduleTabView: View {
   @Environment(\.modelContext) private var context
   @EnvironmentObject var themeManager: ThemeManager
   @EnvironmentObject var subscriptionManager: SubscriptionManager
+  @EnvironmentObject var strategyManager: StrategyManager
 
   @Query(sort: [
     SortDescriptor(\BlockedProfiles.order, order: .forward),
@@ -26,6 +27,7 @@ struct ScheduleTabView: View {
   @State private var showConflictAlert = false
   @State private var conflictProfileName = ""
   @State private var showPaywall = false
+  @State private var showActiveScheduleBlockAlert = false
 
   /// All (profile, schedule) pairs flattened for display.
   private var scheduleEntries: [(profile: BlockedProfiles, schedule: BlockedProfileSchedule)] {
@@ -123,6 +125,11 @@ struct ScheduleTabView: View {
     } message: {
       Text(String(localized: "此排程與「\(conflictProfileName)」的排程時間衝突"))
     }
+    .alert(String(localized: "排程進行中"), isPresented: $showActiveScheduleBlockAlert) {
+      Button(String(localized: "好"), role: .cancel) {}
+    } message: {
+      Text(String(localized: "這條排程正在進行中。請靠卡結束本次專注，或使用緊急解鎖。"))
+    }
   }
 
   private func toggleSchedule(
@@ -137,6 +144,30 @@ struct ScheduleTabView: View {
         conflictProfileName = conflicting.name
         showConflictAlert = true
         return
+      }
+    } else {
+      // Bug #1: prevent bypass via toggle. If THIS schedule is currently
+      // driving an active scheduled blocking session for THIS profile,
+      // block the toggle and surface a brand-aligned alert. Card tap and
+      // emergency unlock are the only legitimate escape paths from an
+      // in-progress schedule window — letting the toggle silently end the
+      // session would defeat the "environment design promise" the schedule
+      // exists to enforce.
+      //
+      // Because the SwiftData session does not record which specific
+      // schedule started it, we approximate by checking that THIS
+      // schedule's window is currently active. This slightly over-blocks
+      // when a profile has multiple overlapping in-window schedules
+      // (toggling off any of them is blocked while any is driving),
+      // which is the safer default until BlockedProfileSession gains a
+      // schedule_id field.
+      if let session = strategyManager.activeSession,
+        session.blockedProfile.id == profile.id,
+        session.triggerSource == "scheduled",
+        schedule.isCurrentlyInWindow()
+      {
+        showActiveScheduleBlockAlert = true
+        return  // schedule.isActive unchanged → Toggle binding's get returns true → visual reverts.
       }
     }
 
