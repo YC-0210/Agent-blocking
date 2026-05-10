@@ -273,6 +273,25 @@ struct SettingsTabView: View {
             }
           }
           .buttonStyle(.plain)
+
+          NavigationLink(destination: MacPairingView(forcePreflightForDebug: true)) {
+            HStack {
+              Image(systemName: "checklist")
+                .foregroundStyle(.orange)
+                .font(.title3)
+
+              VStack(alignment: .leading, spacing: 2) {
+                Text("Preview Preflight Check")
+                  .font(.headline)
+                  .foregroundStyle(.primary)
+                Text("Force-show Chrome pairing checklist")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+
+              Spacer()
+            }
+          }
         } header: {
           Text("Debug (DEBUG build only)")
         }

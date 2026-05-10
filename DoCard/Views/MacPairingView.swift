@@ -4,6 +4,10 @@ import SwiftUI
 /// in the Chrome Extension popup. Polls Supabase to detect when the extension
 /// has claimed the code, then flips into a "已配對" state.
 struct MacPairingView: View {
+  /// Set to `true` from the debug section to force-show the preflight
+  /// checklist regardless of current pairing state.
+  var forcePreflightForDebug: Bool = false
+
   @EnvironmentObject var themeManager: ThemeManager
   @StateObject private var pairingService = MacPairingService()
   @State private var alreadyPaired: Bool = false
@@ -35,6 +39,11 @@ struct MacPairingView: View {
     .navigationTitle(String(localized: "Chrome 連動"))
     .navigationBarTitleDisplayMode(.inline)
     .task {
+      if forcePreflightForDebug {
+        checkingExisting = false
+        showPreflightCheck = true
+        return
+      }
       alreadyPaired = await MacPairingService.isAlreadyPairedToMac()
       checkingExisting = false
       if !alreadyPaired {
