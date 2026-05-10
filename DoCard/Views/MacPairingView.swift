@@ -8,6 +8,7 @@ struct MacPairingView: View {
   @StateObject private var pairingService = MacPairingService()
   @State private var alreadyPaired: Bool = false
   @State private var checkingExisting: Bool = true
+  @State private var showPreflightCheck: Bool = false
   @State private var now: Date = Date()
   @State private var showRegenerateConfirm: Bool = false
   @State private var showRevokeAllConfirm: Bool = false
@@ -37,7 +38,7 @@ struct MacPairingView: View {
       alreadyPaired = await MacPairingService.isAlreadyPairedToMac()
       checkingExisting = false
       if !alreadyPaired {
-        await pairingService.generateNewPairingCode()
+        showPreflightCheck = true   // show checklist before generating code
       }
     }
     .onReceive(timer) { now = $0 }
@@ -88,7 +89,9 @@ struct MacPairingView: View {
 
   @ViewBuilder
   private var content: some View {
-    if alreadyPaired, case .idle = pairingService.state {
+    if showPreflightCheck {
+      preflightCheckView
+    } else if alreadyPaired, case .idle = pairingService.state {
       pairedSuccessView
     } else {
       switch pairingService.state {
@@ -109,6 +112,67 @@ struct MacPairingView: View {
       case .failed(let message):
         failedView(message: message)
       }
+    }
+  }
+
+  // MARK: - Preflight check (shown before code is generated)
+
+  private var preflightCheckView: some View {
+    VStack(spacing: 24) {
+      Spacer()
+
+      Text(String(localized: "連接前先確認"))
+        .font(.system(size: 20, weight: .bold))
+        .foregroundColor(.white)
+
+      VStack(alignment: .leading, spacing: 20) {
+        // Item 1 — Chrome Extension installed
+        VStack(alignment: .leading, spacing: 6) {
+          HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "checkmark.circle")
+              .foregroundColor(themeManager.themeColor)
+              .font(.system(size: 20))
+            Text(String(localized: "已在 Mac 安裝 Chrome Extension"))
+              .font(.system(size: 15))
+              .foregroundColor(.white.opacity(0.9))
+          }
+          Text(String(localized: "還沒安裝？在 Chrome 線上應用程式商店搜尋「Do Card」就可以找到。"))
+            .font(.system(size: 12))
+            .foregroundColor(.white.opacity(0.45))
+            .padding(.leading, 32)
+        }
+
+        // Item 2 — both devices nearby
+        HStack(alignment: .top, spacing: 12) {
+          Image(systemName: "checkmark.circle")
+            .foregroundColor(themeManager.themeColor)
+            .font(.system(size: 20))
+          Text(String(localized: "iPhone 和 Mac 都在手邊"))
+            .font(.system(size: 15))
+            .foregroundColor(.white.opacity(0.9))
+        }
+      }
+      .padding(20)
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .background(
+        RoundedRectangle(cornerRadius: 12)
+          .fill(Color.white.opacity(0.04))
+      )
+
+      Spacer()
+
+      Button(action: {
+        showPreflightCheck = false
+        Task { await pairingService.generateNewPairingCode() }
+      }) {
+        Text(String(localized: "準備好了，產生代碼"))
+          .font(.system(size: 16, weight: .semibold))
+          .foregroundColor(.white)
+          .frame(maxWidth: .infinity)
+          .frame(height: 50)
+          .background(Capsule().fill(themeManager.themeColor))
+      }
+      .padding(.bottom, 8)
     }
   }
 
