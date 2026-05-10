@@ -400,6 +400,9 @@ private struct PairingWaitingView: View {
         Text(String(localized: "刷卡開始共同專注"))
           .font(.subheadline)
           .foregroundStyle(.secondary)
+        Text(String(localized: "兩個人各自刷卡，才算正式開始"))
+          .font(.footnote)
+          .foregroundStyle(.tertiary)
       }
 
       Spacer()
