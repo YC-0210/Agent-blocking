@@ -292,6 +292,29 @@ struct SettingsTabView: View {
               Spacer()
             }
           }
+
+          Button {
+            UserDefaults(suiteName: "group.DO.version3")?
+              .removeObject(forKey: "hasSeenCoFocusOnboarding")
+          } label: {
+            HStack {
+              Image(systemName: "arrow.counterclockwise.circle.fill")
+                .foregroundStyle(.orange)
+                .font(.title3)
+
+              VStack(alignment: .leading, spacing: 2) {
+                Text("Reset Co-Focus Onboarding")
+                  .font(.headline)
+                  .foregroundStyle(.primary)
+                Text("Re-show 共同專注 tutorial on next tab visit")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+
+              Spacer()
+            }
+          }
+          .buttonStyle(.plain)
         } header: {
           Text("Debug (DEBUG build only)")
         }

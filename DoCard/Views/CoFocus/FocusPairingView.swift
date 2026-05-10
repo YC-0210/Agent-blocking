@@ -6,6 +6,11 @@ struct FocusPairingView: View {
   @EnvironmentObject var manager: CoFocusManager
   @EnvironmentObject var deviceStore: PairingDeviceStore
 
+  @AppStorage("hasSeenCoFocusOnboarding",
+              store: UserDefaults(suiteName: "group.DO.version3"))
+  private var hasSeenCoFocusOnboarding: Bool = false
+  @State private var showCoFocusOnboarding: Bool = false
+
   var body: some View {
     NavigationStack {
       Group {
@@ -24,6 +29,21 @@ struct FocusPairingView: View {
       }
       .animation(.easeInOut(duration: 0.6), value: phaseId(manager.phase))
       .navigationBarTitleDisplayMode(.inline)
+    }
+    .onAppear {
+      if !hasSeenCoFocusOnboarding {
+        showCoFocusOnboarding = true
+      }
+    }
+    .sheet(isPresented: $showCoFocusOnboarding, onDismiss: {
+      hasSeenCoFocusOnboarding = true
+    }) {
+      CoFocusOnboardingView {
+        hasSeenCoFocusOnboarding = true
+        showCoFocusOnboarding = false
+      }
+      .presentationDetents([.large])
+      .presentationDragIndicator(.visible)
     }
   }
 
