@@ -110,6 +110,23 @@ struct EmergencyView: View {
           .font(.footnote)
           .foregroundColor(.secondary)
       }
+
+      // === REMOVE_BEFORE_APP_STORE: emergency-unlock reset for testing ===
+      // Lifts the dev-only reset out of the #if DEBUG Settings → Debug
+      // section so QA can refill the counter without switching to a Debug
+      // build. Grep "REMOVE_BEFORE_APP_STORE" before submission.
+      Button {
+        strategyManager.resetEmergencyUnblocks()
+      } label: {
+        HStack(spacing: 4) {
+          Image(systemName: "arrow.counterclockwise.circle")
+          Text("重置次數（測試用）")
+        }
+        .font(.footnote)
+        .foregroundColor(.secondary)
+      }
+      .padding(.top, 4)
+      // === END REMOVE_BEFORE_APP_STORE ===
     }
     .padding(16)
     .background(
