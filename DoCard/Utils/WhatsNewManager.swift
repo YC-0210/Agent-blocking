@@ -20,4 +20,10 @@ final class WhatsNewManager: ObservableObject {
     Self.store.set(true, forKey: Self.seenKey)
     shouldShowWhatsNew = false
   }
+
+  /// Debug only — clears the seen flag so the modal will re-appear.
+  func reset() {
+    Self.store.removeObject(forKey: Self.seenKey)
+    shouldShowWhatsNew = true
+  }
 }

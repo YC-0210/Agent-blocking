@@ -251,6 +251,28 @@ struct SettingsTabView: View {
             }
           }
           .buttonStyle(.plain)
+
+          Button {
+            WhatsNewManager.shared.reset()
+          } label: {
+            HStack {
+              Image(systemName: "arrow.counterclockwise.circle.fill")
+                .foregroundStyle(.orange)
+                .font(.title3)
+
+              VStack(alignment: .leading, spacing: 2) {
+                Text("Reset What's New")
+                  .font(.headline)
+                  .foregroundStyle(.primary)
+                Text("Re-show v2.0.6 feature modal")
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+
+              Spacer()
+            }
+          }
+          .buttonStyle(.plain)
         } header: {
           Text("Debug (DEBUG build only)")
         }
