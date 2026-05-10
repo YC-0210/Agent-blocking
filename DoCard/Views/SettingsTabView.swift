@@ -32,6 +32,11 @@ struct SettingsTabView: View {
   @State private var renameNameInput = ""
   @State private var renameState: RenameState = .idle
 
+  /// Programmatic-navigation flag for the Mac sync entry — tap goes through
+  /// a paywall check first; only premium users flip this to true to open
+  /// `MacPairingView`. Mirrors ScheduleTabView's premium-gated flow.
+  @State private var navigateToMacPairing = false
+
   private let nfcScanner = NFCScannerUtil()
   private let nfcRenameScanner = NFCScannerUtil()
 
@@ -164,9 +169,22 @@ struct SettingsTabView: View {
         }
         .listRowBackground(Color(.systemGray6).opacity(0.08))
 
-        // MARK: - 連動裝置 Section
+        // MARK: - 連動裝置 Section (Premium-gated)
         Section {
-          NavigationLink(destination: MacPairingView()) {
+          // Mac sync is a Premium feature in v2.0.6+ — entry routes through
+          // a paywall check. Premium users flip `navigateToMacPairing` to
+          // open `MacPairingView` via `.navigationDestination`; free users
+          // see PremiumUpgradeView via the existing `showPaywall` sheet.
+          // UI is intentionally unchanged so the row still looks tappable
+          // for free users (mirrors ScheduleTabView's pattern: tap a free
+          // card → paywall sheet).
+          Button {
+            if subscriptionManager.isPremium {
+              navigateToMacPairing = true
+            } else {
+              showPaywall = true
+            }
+          } label: {
             HStack {
               Image(systemName: "laptopcomputer.and.iphone")
                 .foregroundStyle(themeManager.themeColor)
@@ -182,7 +200,15 @@ struct SettingsTabView: View {
               }
 
               Spacer()
+
+              Image(systemName: "chevron.right")
+                .foregroundStyle(.secondary)
+                .font(.caption)
             }
+          }
+          .buttonStyle(.plain)
+          .navigationDestination(isPresented: $navigateToMacPairing) {
+            MacPairingView()
           }
         } header: {
           Text(String(localized: "連動裝置"))
