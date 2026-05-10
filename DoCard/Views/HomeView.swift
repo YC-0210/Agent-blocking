@@ -14,6 +14,10 @@ struct HomeView: View {
   @EnvironmentObject var ratingManager: RatingManager
   @EnvironmentObject var onboardingManager: OnboardingManager
   @EnvironmentObject var coFocusManager: CoFocusManager
+  @EnvironmentObject var whatsNewManager: WhatsNewManager
+
+  // What's New — remembers which tab to switch to after sheet dismisses
+  @State private var whatsNewDestination: Tab? = nil
 
   // Profile management
   @Query(sort: [
@@ -273,6 +277,32 @@ struct HomeView: View {
         }
       )
       .presentationDetents([.height(540)])
+      .presentationDragIndicator(.visible)
+    }
+    .sheet(
+      isPresented: $whatsNewManager.shouldShowWhatsNew,
+      onDismiss: {
+        whatsNewManager.markAsSeen()
+        if let dest = whatsNewDestination {
+          selectedTab = dest
+          whatsNewDestination = nil
+        }
+      }
+    ) {
+      WhatsNewView(
+        onGoToSettings: {
+          whatsNewDestination = .settings
+          whatsNewManager.markAsSeen()
+        },
+        onGoToCoFocus: {
+          whatsNewDestination = .coFocus
+          whatsNewManager.markAsSeen()
+        },
+        onDismiss: {
+          whatsNewManager.markAsSeen()
+        }
+      )
+      .presentationDetents([.height(520)])
       .presentationDragIndicator(.visible)
     }
     .sheet(item: $shareSessionToPresent) { session in

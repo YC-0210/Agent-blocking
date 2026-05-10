@@ -73,6 +73,7 @@ struct DoCardApp: App {
   @StateObject private var subscriptionManager = SubscriptionManager.shared
   @StateObject private var coFocusManager = CoFocusManager.shared
   @StateObject private var pairingDeviceStore = PairingDeviceStore.shared
+  @StateObject private var whatsNewManager = WhatsNewManager.shared
 
   init() {
     TimersUtil.registerBackgroundTasks()
@@ -121,6 +122,7 @@ struct DoCardApp: App {
       .environmentObject(subscriptionManager)
       .environmentObject(coFocusManager)
       .environmentObject(pairingDeviceStore)
+      .environmentObject(whatsNewManager)
       .task { await coFocusManager.bootstrap() }
       .preferredColorScheme(.dark)
     }
