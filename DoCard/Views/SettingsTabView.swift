@@ -32,10 +32,6 @@ struct SettingsTabView: View {
   @State private var renameNameInput = ""
   @State private var renameState: RenameState = .idle
 
-  #if DEBUG
-  @State private var showDebugView = false
-  #endif
-
   private let nfcScanner = NFCScannerUtil()
   private let nfcRenameScanner = NFCScannerUtil()
 
@@ -221,106 +217,6 @@ struct SettingsTabView: View {
         }
         .listRowBackground(Color(.systemGray6).opacity(0.08))
 
-        // MARK: - Debug Section (DEBUG builds only — temporary entry for log inspection)
-        // Presented as sheet (not NavigationLink): DebugView wraps itself in NavigationView,
-        // and pushing a NavigationView into NavigationStack crashes on iOS 16+.
-        #if DEBUG
-        Section {
-          Button {
-            showDebugView = true
-          } label: {
-            HStack {
-              Image(systemName: "ladybug.fill")
-                .foregroundStyle(.purple)
-                .font(.title3)
-
-              VStack(alignment: .leading, spacing: 2) {
-                Text("Debug")
-                  .font(.headline)
-                  .foregroundStyle(.primary)
-                Text("Recent log + session state")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-
-              Spacer()
-
-              Image(systemName: "chevron.right")
-                .foregroundStyle(.secondary)
-                .font(.caption)
-            }
-          }
-          .buttonStyle(.plain)
-
-          Button {
-            WhatsNewManager.shared.reset()
-          } label: {
-            HStack {
-              Image(systemName: "arrow.counterclockwise.circle.fill")
-                .foregroundStyle(.orange)
-                .font(.title3)
-
-              VStack(alignment: .leading, spacing: 2) {
-                Text("Reset What's New")
-                  .font(.headline)
-                  .foregroundStyle(.primary)
-                Text("Re-show v2.0.6 feature modal")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-
-              Spacer()
-            }
-          }
-          .buttonStyle(.plain)
-
-          NavigationLink(destination: MacPairingView(forcePreflightForDebug: true)) {
-            HStack {
-              Image(systemName: "checklist")
-                .foregroundStyle(.orange)
-                .font(.title3)
-
-              VStack(alignment: .leading, spacing: 2) {
-                Text("Preview Preflight Check")
-                  .font(.headline)
-                  .foregroundStyle(.primary)
-                Text("Force-show Chrome pairing checklist")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-
-              Spacer()
-            }
-          }
-
-          Button {
-            UserDefaults(suiteName: "group.DO.version3")?
-              .removeObject(forKey: "hasSeenCoFocusOnboarding")
-          } label: {
-            HStack {
-              Image(systemName: "arrow.counterclockwise.circle.fill")
-                .foregroundStyle(.orange)
-                .font(.title3)
-
-              VStack(alignment: .leading, spacing: 2) {
-                Text("Reset Co-Focus Onboarding")
-                  .font(.headline)
-                  .foregroundStyle(.primary)
-                Text("Re-show 共同專注 tutorial on next tab visit")
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-
-              Spacer()
-            }
-          }
-          .buttonStyle(.plain)
-        } header: {
-          Text("Debug (DEBUG build only)")
-        }
-        .listRowBackground(Color(.systemGray6).opacity(0.08))
-        #endif
-
         // MARK: - Emergency Section (untouched — always-free safety feature)
         if strategyManager.isBlocking {
           Section {
@@ -369,14 +265,6 @@ struct SettingsTabView: View {
           onWrite: startRenameWrite
         )
       }
-      #if DEBUG
-      .sheet(isPresented: $showDebugView) {
-        // Standalone log viewer — no env object dependencies. Avoids crashes
-        // from DebugView's heavier session/profile cards when env isn't fully
-        // wired through the sheet boundary.
-        DebugLogView()
-      }
-      #endif
       .onChange(of: enableLiveActivity) { _, newValue in
         syncLiveActivityToAllProfiles(enabled: newValue)
       }

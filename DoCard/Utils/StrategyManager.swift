@@ -312,8 +312,8 @@ class StrategyManager: ObservableObject {
           reason == "card_tap" || reason == "timer_expired"
     else { return }
 
-    // TEST: lowered to 60s for easier QA — revert to 1800 (30 min) before ship.
-    guard session.duration >= 60 else { return }
+    // Share-prompt eligibility: only sessions ≥ 30 minutes are worth sharing.
+    guard session.duration >= 1800 else { return }
 
     // @AppStorage default is true; explicit object check preserves that default.
     let askEnabled = UserDefaults.standard.object(forKey: "askToShareAfterSession") as? Bool ?? true
