@@ -31,8 +31,8 @@ struct WhatsNewView: View {
       VStack(spacing: 14) {
         WhatsNewCard(
           icon: "globe",
-          title: String(localized: "同步封鎖 Chrome"),
-          description: String(localized: "專注開始時，Chrome 瀏覽器網站也一起同步封鎖，也會隨著手機一同解除鎖定"),
+          title: String(localized: "同步封鎖 Chrome / Safari"),
+          description: String(localized: "專注開始時，Chrome / Safari 上的網站也一起同步封鎖，也會隨著手機一同解除鎖定"),
           buttonLabel: String(localized: "去設定連接"),
           onButton: onGoToSettings
         )

@@ -36,7 +36,7 @@ struct MacPairingView: View {
       .padding(.horizontal, 24)
       .padding(.top, 32)
     }
-    .navigationTitle(String(localized: "Chrome 連動"))
+    .navigationTitle(String(localized: "Chrome / Safari 連動"))
     .navigationBarTitleDisplayMode(.inline)
     .task {
       if forcePreflightForDebug {
@@ -64,7 +64,7 @@ struct MacPairingView: View {
       Text(String(localized: "原配對碼將立即失效。"))
     }
     .confirmationDialog(
-      String(localized: "解除所有 Chrome 連動？"),
+      String(localized: "解除所有 Chrome / Safari 連動？"),
       isPresented: $showRevokeAllConfirm,
       titleVisibility: .visible
     ) {
@@ -75,7 +75,7 @@ struct MacPairingView: View {
     } message: {
       Text(String(
         localized:
-          "已配對的 Chrome 將不再收到刷卡訊號。要徹底清除，請另外在每個瀏覽器 popup 上按「解除配對」。"
+          "已配對的 Chrome / Safari 將不再收到刷卡訊號。要徹底清除，請另外在每個瀏覽器 popup 上按「解除配對」。"
       ))
     }
   }
@@ -141,11 +141,11 @@ struct MacPairingView: View {
             Image(systemName: "checkmark.circle")
               .foregroundColor(themeManager.themeColor)
               .font(.system(size: 20))
-            Text(String(localized: "已在 Mac 安裝 Chrome Extension"))
+            Text(String(localized: "已在 Mac 安裝 Chrome / Safari 擴充功能"))
               .font(.system(size: 15))
               .foregroundColor(.white.opacity(0.9))
           }
-          Text(String(localized: "還沒安裝？在 Chrome 線上應用程式商店搜尋「Do Card」就可以找到。"))
+          Text(String(localized: "還沒安裝？Chrome 在「Chrome 線上應用程式商店」、Safari 在 Mac App Store 搜尋「Do Card」即可找到。"))
             .font(.system(size: 12))
             .foregroundColor(.white.opacity(0.45))
             .padding(.leading, 32)
@@ -187,7 +187,7 @@ struct MacPairingView: View {
 
   private func awaitingClaimView(code: String, expiresAt: Date) -> some View {
     VStack(spacing: 20) {
-      Text(String(localized: "在 Chrome 中輸入這組代碼"))
+      Text(String(localized: "在 Chrome / Safari 中輸入這組代碼"))
         .font(.system(size: 14))
         .foregroundColor(.white.opacity(0.6))
 
@@ -208,13 +208,13 @@ struct MacPairingView: View {
 
       Spacer()
 
-      Text(String(localized: "還沒安裝擴充功能？在 Chrome 線上應用程式商店搜尋「Do Card」就可以找到。"))
+      Text(String(localized: "還沒安裝擴充功能？Chrome 在「Chrome 線上應用程式商店」、Safari 在 Mac App Store 搜尋「Do Card」即可找到。"))
         .font(.system(size: 12))
         .foregroundColor(.white.opacity(0.45))
         .multilineTextAlignment(.center)
 
       VStack(alignment: .leading, spacing: 12) {
-        InstructionRow(number: "1", text: String(localized: "打開 Chrome"))
+        InstructionRow(number: "1", text: String(localized: "打開 Chrome / Safari"))
         InstructionRow(number: "2", text: String(localized: "點擊 DO Card 擴充功能圖示"))
         InstructionRow(number: "3", text: String(localized: "輸入上方代碼並按「配對」"))
       }
@@ -303,14 +303,14 @@ struct MacPairingView: View {
       Text(String(localized: "已配對"))
         .font(.system(size: 22, weight: .bold))
         .foregroundColor(.white)
-      Text(String(localized: "刷卡開始 session 時，Chrome 上的分心網站會自動封鎖。"))
+      Text(String(localized: "刷卡開始 session 時，Chrome / Safari 上的分心網站會自動封鎖。"))
         .font(.system(size: 14))
         .foregroundColor(.white.opacity(0.6))
         .multilineTextAlignment(.center)
         .padding(.horizontal, 16)
 
       Text(String(
-        localized: "可同時連動多個 Chrome。配對狀態由瀏覽器端記憶，iPhone 無法逐一查看。"
+        localized: "可同時連動多個 Chrome / Safari。配對狀態由瀏覽器端記憶，iPhone 無法逐一查看。"
       ))
       .font(.system(size: 12))
       .foregroundColor(.white.opacity(0.4))
@@ -325,7 +325,7 @@ struct MacPairingView: View {
           alreadyPaired = false
           Task { await pairingService.generateNewPairingCode() }
         }) {
-          Text(String(localized: "新增另一個 Chrome"))
+          Text(String(localized: "新增另一個 Chrome / Safari"))
             .font(.system(size: 15, weight: .semibold))
             .foregroundColor(.white)
             .frame(maxWidth: .infinity)
@@ -336,7 +336,7 @@ struct MacPairingView: View {
         }
 
         Button(action: { showRevokeAllConfirm = true }) {
-          Text(String(localized: "解除所有 Chrome 連動"))
+          Text(String(localized: "解除所有 Chrome / Safari 連動"))
             .font(.system(size: 14, weight: .medium))
             .foregroundColor(.red)
             .frame(maxWidth: .infinity)
