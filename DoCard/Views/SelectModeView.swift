@@ -14,7 +14,12 @@ struct SelectModeView: View {
   /// The `String` argument is the pre-filled name (empty string for a blank new profile).
   var onCreateNew: (String) -> Void
 
-  private let presetScenes: [String] = ["聚餐模式", "情侶模式", "讀書模式", "家庭模式"]
+  private let presetScenes: [String] = [
+    String(localized: "聚餐模式"),
+    String(localized: "情侶模式"),
+    String(localized: "讀書模式"),
+    String(localized: "家庭模式"),
+  ]
 
   var body: some View {
     VStack(spacing: 0) {

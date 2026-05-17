@@ -214,7 +214,7 @@ struct HomeView: View {
       // Guard: only fires when no card is paired AND no profiles exist yet.
       // Once the profile exists, profiles.isEmpty is false and this never fires again.
       if !onboardingManager.isDOCardPaired && profiles.isEmpty {
-        try? BlockedProfiles.createProfile(in: context, name: "讀書模式")
+        try? BlockedProfiles.createProfile(in: context, name: String(localized: "讀書模式"))
       }
       // Only run the tutorial for users who own a DO Card.
       // "使用他人卡片" users skip pairing, so isDOCardPaired stays false —

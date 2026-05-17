@@ -56,7 +56,7 @@ struct ReportView: View {
             Image(systemName: "wave.3.right.circle")
                 .font(.system(size: 56))
                 .foregroundStyle(themeManager.themeColor.opacity(0.5))
-            Text("碰一下卡片，開始記錄你的專注歷程")
+            Text(String(localized: "碰一下卡片，開始記錄你的專注歷程"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -86,7 +86,7 @@ struct ReportView: View {
                     )
                     statCard(
                         title: String(localized: "平均專注"),
-                        subtitle: "（本週每次專注的平均時間）",
+                        subtitle: String(localized: "（本週每次專注的平均時間）"),
                         value: formatDuration(viewModel.averageSessionDuration),
                         icon: "timer"
                     )
@@ -352,7 +352,7 @@ struct ReportView: View {
                 Spacer()
             }
 
-            Text("（根據完成率、專注時長與碰卡一致性綜合計算）")
+            Text(String(localized: "（根據完成率、專注時長與碰卡一致性綜合計算）"))
                 .font(.caption)
                 .foregroundColor(.gray)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -500,7 +500,7 @@ struct ReportView: View {
                 Spacer()
             }
 
-            Text("（專注期間沒有中途緊急停止的比例）")
+            Text(String(localized: "（專注期間沒有中途緊急停止的比例）"))
                 .font(.caption)
                 .foregroundColor(.gray)
 
@@ -811,7 +811,7 @@ struct ReportView: View {
 
             // Stage badge
             HStack(spacing: 8) {
-                Text(result.stage.rawValue)
+                Text(result.stage.localizedName)
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 10)
@@ -956,7 +956,7 @@ struct ReportView: View {
                 Spacer()
             }
 
-            Text("（過去四週的每週專注總時長變化）")
+            Text(String(localized: "（過去四週的每週專注總時長變化）"))
                 .font(.caption)
                 .foregroundColor(.gray)
                 .frame(maxWidth: .infinity, alignment: .leading)

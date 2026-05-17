@@ -1,675 +1,1247 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "\"Just do it\" — your words." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "「做就對了」，你說的。"
+  "sourceLanguage": "en",
+  "strings": {
+    "\"Just do it\" — your words.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「做就對了」，你說的。"
           }
         }
       }
     },
-    "「做就對了」——你說的話。" : {
-
-    },
-    "%@ isn't going anywhere." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 又不會跑掉。"
+    "%@ isn't going anywhere.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 又不會跑掉。"
           }
         }
       }
     },
-    "%@ will be right here waiting." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 在這裡等你。"
+    "%@ will be right here waiting.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 在這裡等你。"
           }
         }
       }
     },
-    "%@ 哪都不會去。" : {
-
-    },
-    "%@ 在這裡等你。" : {
-
-    },
-    "Almost there" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等一下嘛"
+    "%@ 哪都不會去。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ isn't going anywhere."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 哪都不會去。"
           }
         }
       }
     },
-    "Almost time. Just a bit longer." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "時間快到了啦。"
+    "%@ 在這裡等你。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ will be here when you're done."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 在這裡等你。"
           }
         }
       }
     },
-    "Alright" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "好吧"
+    "Almost there": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等一下嘛"
           }
         }
       }
     },
-    "App" : {
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App"
+    "Almost time. Just a bit longer.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時間快到了啦。"
           }
         }
       }
     },
-    "Caught ya" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "被抓包了"
+    "Alright": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好吧"
           }
         }
       }
     },
-    "Come on" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "認真一點"
+    "App": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App"
           }
         }
       }
     },
-    "Fine" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "好啦"
+    "Caught ya": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "被抓包了"
           }
         }
       }
     },
-    "Fine fine" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "去了去了"
+    "Come on": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "認真一點"
           }
         }
       }
     },
-    "Fine ok" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "算了好啦"
+    "Fine": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好啦"
           }
         }
       }
     },
-    "Finish first" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "先做完啦"
+    "Fine fine": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去了去了"
           }
         }
       }
     },
-    "Finish the real stuff first, then come back." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "做完正事再點開啦。"
+    "Fine ok": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "算了好啦"
           }
         }
       }
     },
-    "Finish this one thing first." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "做完這件事再說。"
+    "Finish first": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先做完啦"
           }
         }
       }
     },
-    "Finish up, then use it as long as you want." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等你做完，再來用多久都行。"
+    "Finish the real stuff first, then come back.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "做完正事再點開啦。"
           }
         }
       }
     },
-    "Go back" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "回去"
+    "Finish this one thing first.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "做完這件事再說。"
           }
         }
       }
     },
-    "Go do the thing" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "先去忙吧"
+    "Finish up, then use it as long as you want.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等你做完，再來用多久都行。"
           }
         }
       }
     },
-    "Hey" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "幹嘛啦"
+    "Go back": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回去"
           }
         }
       }
     },
-    "Hey!" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "喂"
+    "Go do the thing": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先去忙吧"
           }
         }
       }
     },
-    "Hold on" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "忍一下"
+    "Hey": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "幹嘛啦"
           }
         }
       }
     },
-    "Hold on, almost done." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "撐著，快了。"
+    "Hey!": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "喂"
           }
         }
       }
     },
-    "I know" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "我知道"
+    "Hold on": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忍一下"
           }
         }
       }
     },
-    "It's fine. Just go back." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沒關係，回去就好。"
+    "Hold on, almost done.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撐著，快了。"
           }
         }
       }
     },
-    "It's just this one block of time." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "就這段時間而已。"
+    "I know": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我知道"
           }
         }
       }
     },
-    "Just a bit more. You've got this." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "就快了。再撐一下。"
+    "It's fine. Just go back.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒關係，回去就好。"
           }
         }
       }
     },
-    "Keep going" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "繼續"
+    "It's just this one block of time.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "就這段時間而已。"
           }
         }
       }
     },
-    "Leave it" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "先放著"
+    "Just a bit more. You've got this.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "就快了。再撐一下。"
           }
         }
       }
     },
-    "Nope" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不行喔"
+    "Keep going": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續"
           }
         }
       }
     },
-    "Not now. Get it done first." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現在不行。做完再說。"
+    "Leave it": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先放著"
           }
         }
       }
     },
-    "Not right now." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現在不行。"
+    "Nope": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不行喔"
           }
         }
       }
     },
-    "Not yet" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不是現在"
+    "Not now. Get it done first.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在不行。做完再說。"
           }
         }
       }
     },
-    "Ok fine" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "好啦"
+    "Not right now.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在不行。"
           }
         }
       }
     },
-    "Ok ok" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "好啦"
+    "Not yet": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不是現在"
           }
         }
       }
     },
-    "Ok ok ok" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "好好好"
+    "Ok fine": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好啦"
           }
         }
       }
     },
-    "Right now?" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "現在？"
+    "Ok ok": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好啦"
           }
         }
       }
     },
-    "Right." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "對喔"
+    "Ok ok ok": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好好好"
           }
         }
       }
     },
-    "Seriously?" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "別鬧了"
+    "Right now?": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在？"
           }
         }
       }
     },
-    "So close" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "還差一點"
+    "Right.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "對喔"
           }
         }
       }
     },
-    "This wasn't in the plan." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "這不在計畫裡啦。"
+    "Seriously?": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "別鬧了"
           }
         }
       }
     },
-    "Wait till you're done. Then open it." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等時間到再打開吧。"
+    "So close": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還差一點"
           }
         }
       }
     },
-    "Website" : {
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "網站"
+    "This wasn't in the plan.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這不在計畫裡啦。"
           }
         }
       }
     },
-    "What's the rush" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "急什麼呢"
+    "Wait till you're done. Then open it.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等時間到再打開吧。"
           }
         }
       }
     },
-    "Yeah yeah" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "對啦"
+    "Website": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "網站"
           }
         }
       }
     },
-    "You did this" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你鎖的"
+    "What's the rush": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "急什麼呢"
           }
         }
       }
     },
-    "You said it" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你說過的"
+    "Yeah yeah": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "對啦"
           }
         }
       }
     },
-    "You set this yourself, you know." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你自己設的耶。"
+    "You did this": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你鎖的"
           }
         }
       }
     },
-    "You set this yourself. Remember?" : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "忘了嗎？是你自己設的。"
+    "You said it": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你說過的"
           }
         }
       }
     },
-    "You sure about that." : {
-      "extractionState" : "stale",
-      "localizations" : {
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "真的現在嗎。"
+    "You set this yourself, you know.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你自己設的耶。"
           }
         }
       }
     },
-    "不行喔" : {
-
+    "You set this yourself. Remember?": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "忘了嗎？是你自己設的。"
+          }
+        }
+      }
     },
-    "你自己設定的欸，別搞" : {
-
+    "You sure about that.": {
+      "extractionState": "stale",
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "真的現在嗎。"
+          }
+        }
+      }
     },
-    "你自己設的" : {
-
+    "「做就對了」——你說的話。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "\"Just DO !\" — your words."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "「做就對了」——你說的話。"
+          }
+        }
+      }
     },
-    "你說的" : {
-
+    "不行喔": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nope"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "不行喔"
+          }
+        }
+      }
     },
-    "做完再用，想用多久都行。" : {
-
+    "你自己設定的欸，別搞": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You set this yourself — don't break it."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你自己設定的欸，別搞"
+          }
+        }
+      }
     },
-    "做完再說。" : {
-
+    "你自己設的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You set this"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你自己設的"
+          }
+        }
+      }
     },
-    "先做完" : {
-
+    "你說的": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your words"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你說的"
+          }
+        }
+      }
     },
-    "先做完正事，再回來。" : {
-
+    "做完再用，想用多久都行。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish first, then use it as long as you want."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "做完再用，想用多久都行。"
+          }
+        }
+      }
     },
-    "先把這件事做完。" : {
-
+    "做完再說。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish first."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "做完再說。"
+          }
+        }
+      }
     },
-    "再一下下，你做得到。" : {
-
+    "先做完": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish first"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先做完"
+          }
+        }
+      }
     },
-    "去做你的事" : {
-
+    "先做完正事，再回來。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish what matters first, then come back."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先做完正事，再回來。"
+          }
+        }
+      }
     },
-    "喂！" : {
-
+    "先把這件事做完。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Finish this first."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先把這件事做完。"
+          }
+        }
+      }
     },
-    "嘿" : {
-
+    "再一下下，你做得到。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Just a little longer — you've got this."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再一下下，你做得到。"
+          }
+        }
+      }
     },
-    "回去" : {
-
+    "去做你的事": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get back to it"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去做你的事"
+          }
+        }
+      }
     },
-    "好" : {
-
+    "喂！": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hey!"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "喂！"
+          }
+        }
+      }
     },
-    "好吧" : {
-
+    "嘿": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hey"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "嘿"
+          }
+        }
+      }
     },
-    "好啦" : {
-
+    "回去": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go back"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回去"
+          }
+        }
+      }
     },
-    "好啦好啦" : {
-
+    "好": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "OK"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好"
+          }
+        }
+      }
     },
-    "好好" : {
-
+    "好吧": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alright"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好吧"
+          }
+        }
+      }
     },
-    "對對對" : {
-
+    "好啦": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Okay"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好啦"
+          }
+        }
+      }
     },
-    "快了" : {
-
+    "好啦好啦": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fine, fine"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好啦好啦"
+          }
+        }
+      }
     },
-    "快到了" : {
-
+    "好好": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Got it"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "好好"
+          }
+        }
+      }
     },
-    "快到了，再久一點點。" : {
-
+    "對對對": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yep, yep"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "對對對"
+          }
+        }
+      }
     },
-    "急什麼" : {
-
+    "快了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Almost there"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快了"
+          }
+        }
+      }
     },
-    "我知道" : {
-
+    "快到了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Almost done"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快到了"
+          }
+        }
+      }
     },
-    "撐一下" : {
-
+    "快到了，再久一點點。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Almost there — just a bit longer."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "快到了，再久一點點。"
+          }
+        }
+      }
     },
-    "撐著，快完成了。" : {
-
+    "急什麼": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's the rush"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "急什麼"
+          }
+        }
+      }
     },
-    "放著" : {
-
+    "我知道": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I know"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我知道"
+          }
+        }
+      }
     },
-    "沒事，回去吧。" : {
-
+    "撐一下": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hang in there"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撐一下"
+          }
+        }
+      }
     },
-    "現在不行。" : {
-
+    "撐著，快完成了。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hang in there — almost done."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "撐著，快完成了。"
+          }
+        }
+      }
     },
-    "現在不行。先把事做完。" : {
-
+    "放著": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Leave it"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "放著"
+          }
+        }
+      }
     },
-    "現在嗎？" : {
-
+    "沒事，回去吧。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "It's fine. Get back to it."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "沒事，回去吧。"
+          }
+        }
+      }
     },
-    "等一下" : {
-
+    "現在不行。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not right now."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在不行。"
+          }
+        }
+      }
     },
-    "繼續" : {
-
+    "現在不行。先把事做完。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not right now. Finish what you started."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在不行。先把事做完。"
+          }
+        }
+      }
     },
-    "被抓到了" : {
-
+    "現在嗎？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right now?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "現在嗎？"
+          }
+        }
+      }
     },
-    "要確定欸？" : {
-
+    "等一下": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hold on"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等一下"
+          }
+        }
+      }
     },
-    "記得" : {
-
+    "繼續": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續"
+          }
+        }
+      }
     },
-    "認真的？" : {
-
+    "被抓到了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caught you"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "被抓到了"
+          }
+        }
+      }
     },
-    "這不在你的計畫裡。" : {
-
+    "要確定欸？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Are you sure?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "要確定欸？"
+          }
+        }
+      }
     },
-    "還沒" : {
-
+    "記得": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I remember"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "記得"
+          }
+        }
+      }
     },
-    "還記得當時的承諾嗎？" : {
-
+    "認真的？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seriously?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "認真的？"
+          }
+        }
+      }
+    },
+    "這不在你的計畫裡。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This isn't part of your plan."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這不在你的計畫裡。"
+          }
+        }
+      }
+    },
+    "還沒": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not yet"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還沒"
+          }
+        }
+      }
+    },
+    "還記得當時的承諾嗎？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remember the promise you made?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "還記得當時的承諾嗎？"
+          }
+        }
+      }
     }
   },
-  "version" : "1.1"
+  "version": "1.1"
 }

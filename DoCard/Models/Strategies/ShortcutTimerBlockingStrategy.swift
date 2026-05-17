@@ -22,8 +22,8 @@ class ShortcutTimerBlockingStrategy: BlockingStrategy {
 
   private var emptySelectionMessage: String {
     SharedData.effectiveSubscriptionTier == .free
-      ? "免費版目前只支援封鎖 App。請先選擇要封鎖的 App，才能開始專注"
-      : "請先選擇要封鎖的 App，才能開始專注"
+      ? String(localized: "免費版目前只支援封鎖 App。請先選擇要封鎖的 App，才能開始專注")
+      : String(localized: "請先選擇要封鎖的 App，才能開始專注")
   }
 
   func getIdentifier() -> String {

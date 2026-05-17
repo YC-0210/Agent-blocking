@@ -122,6 +122,14 @@ struct HabitCurveCalculator {
         case deliberate = "刻意執行期"     // autonomyRatio < 0.40
         case transition = "過渡期"         // 0.40 ≤ ratio < 0.75
         case automated = "自動化期"        // ratio ≥ 0.75
+
+        var localizedName: String {
+            switch self {
+            case .deliberate: return String(localized: "刻意執行期")
+            case .transition: return String(localized: "過渡期")
+            case .automated:  return String(localized: "自動化期")
+            }
+        }
     }
 
     /// Main entry point for habit formation analysis.
