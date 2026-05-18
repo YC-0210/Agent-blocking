@@ -1,0 +1,7 @@
+# Xcode String Catalogs are JSON managed by Xcode's own serializer.
+# Use the built-in union merge driver so concurrent additions of
+# different keys from separate branches/worktrees auto-merge instead
+# of producing conflict markers inside the JSON.
+# NOTE: after any auto-merged conflict, re-run the xcodebuild
+# export/import normalization and re-validate the catalog.
+*.xcstrings merge=union
