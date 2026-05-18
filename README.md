@@ -5,7 +5,7 @@
 <h1 align="center">DO</h1>
 
 <p align="center">
-  <strong>Focus, the physical way</strong>
+  <strong>DO, the physical way</strong>
 </p>
 
 <p align="center">
