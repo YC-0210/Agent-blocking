@@ -621,7 +621,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = DoCardDeviceMonitor/DoCardDeviceMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DoCardDeviceMonitor/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DOCardDeviceMonitor;
@@ -652,7 +652,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = DoCardDeviceMonitor/DoCardDeviceMonitor.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DoCardDeviceMonitor/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DOCardDeviceMonitor;
@@ -808,7 +808,7 @@
 				CODE_SIGN_ENTITLEMENTS = DoCard/DoCard.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"DoCard/Preview Content\"";
 				ENABLE_APP_SANDBOX = YES;
@@ -858,7 +858,7 @@
 				CODE_SIGN_ENTITLEMENTS = DoCard/DoCard.entitlements;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"DoCard/Preview Content\"";
 				ENABLE_APP_SANDBOX = YES;
@@ -994,7 +994,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = DoCardShieldConfig/DoCardShieldConfig.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DoCardShieldConfig/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DOCardShieldConfig;
@@ -1021,7 +1021,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = DoCardShieldConfig/DoCardShieldConfig.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DoCardShieldConfig/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DOCardShieldConfig;
@@ -1051,7 +1051,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = DoCardWidget/DoCardWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DoCardWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DOCardWidget;
@@ -1080,7 +1080,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = DoCardWidget/DoCardWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = DoCardWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = DOCardWidget;
