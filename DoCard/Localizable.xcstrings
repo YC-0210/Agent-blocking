@@ -6630,6 +6630,22 @@
         }
       }
     },
+    "iPhone 和 Mac 都在手邊": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Make sure iPhone and computer/laptop are nearby"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 和 Mac 都在手邊"
+          }
+        }
+      }
+    },
     "minute": {
       "extractionState": "stale",
       "localizations": {
@@ -6888,6 +6904,22 @@
         }
       }
     },
+    "了解，來試試": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Got it — let's try"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "了解，來試試"
+          }
+        }
+      }
+    },
     "二": {
       "localizations": {
         "en": {
@@ -6940,8 +6972,8 @@
       "localizations": {
         "en": {
           "stringUnit": {
-            "state": "new",
-            "value": "代碼將在 %1$d:%2$02d 後過期"
+            "state": "translated",
+            "value": "Code expires in %1$d:%2$02d"
           }
         }
       }
@@ -7479,6 +7511,22 @@
         }
       }
     },
+    "先這樣": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maybe later"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先這樣"
+          }
+        }
+      }
+    },
     "免費版最多封鎖 3 個 App，網域需升級 Premium": {
       "extractionState": "stale",
       "localizations": {
@@ -7718,6 +7766,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "共同專注中"
+          }
+        }
+      }
+    },
+    "共同專注怎麼用？": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "How does Co-Focus work?"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "共同專注怎麼用？"
           }
         }
       }
@@ -8128,6 +8192,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "原配對碼將立即失效。"
+          }
+        }
+      }
+    },
+    "去看看": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Check it out"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去看看"
+          }
+        }
+      }
+    },
+    "去設定連接": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Set up in Settings"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "去設定連接"
           }
         }
       }
@@ -8628,6 +8724,38 @@
           "stringUnit": {
             "state": "translated",
             "value": "完成率"
+          }
+        }
+      }
+    },
+    "定時 %lld 分鐘": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timed: %lld min"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定時 %lld 分鐘"
+          }
+        }
+      }
+    },
+    "定時專注中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Timed focus in progress"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "定時專注中"
           }
         }
       }
@@ -9262,8 +9390,8 @@
       "localizations": {
         "en": {
           "stringUnit": {
-            "state": "new",
-            "value": "已配對 %1$lld/%2$lld 張卡片"
+            "state": "translated",
+            "value": "%1$lld/%2$lld cards paired"
           }
         }
       }
@@ -9753,6 +9881,22 @@
         }
       }
     },
+    "找你的朋友一起專注吧": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus together with a friend"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "找你的朋友一起專注吧"
+          }
+        }
+      }
+    },
     "找回專屬你的時間": {
       "extractionState": "stale",
       "localizations": {
@@ -9946,6 +10090,38 @@
         }
       }
     },
+    "排程進行中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule in progress"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排程進行中"
+          }
+        }
+      }
+    },
+    "排程鎖定中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schedule lock active"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "排程鎖定中"
+          }
+        }
+      }
+    },
     "提示": {
       "localizations": {
         "en": {
@@ -10007,6 +10183,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "整類社群 / 娛樂 App"
+          }
+        }
+      }
+    },
+    "新功能來了": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "What's New"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能來了"
           }
         }
       }
@@ -10749,6 +10941,22 @@
         }
       }
     },
+    "正常鎖定中": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus lock active"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正常鎖定中"
+          }
+        }
+      }
+    },
     "此 DO Card 尚未配對，請先完成配對再重新命名": {
       "localizations": {
         "en": {
@@ -11146,6 +11354,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "準備好了嗎？點擊開始專注"
+          }
+        }
+      }
+    },
+    "準備好了，產生代碼": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ready — generate code"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "準備好了，產生代碼"
           }
         }
       }
@@ -13392,6 +13616,22 @@
         }
       }
     },
+    "這條排程正在進行中。請靠卡結束本次專注，或使用緊急解鎖。": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This schedule is currently running. Tap your card to end the session, or use Emergency Unlock."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這條排程正在進行中。請靠卡結束本次專注，或使用緊急解鎖。"
+          }
+        }
+      }
+    },
     "這次將消耗 1 次機會。": {
       "localizations": {
         "en": {
@@ -13452,6 +13692,22 @@
           "stringUnit": {
             "state": "translated",
             "value": "連動裝置"
+          }
+        }
+      }
+    },
+    "連接前先確認": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Things to check before you connect"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連接前先確認"
           }
         }
       }
