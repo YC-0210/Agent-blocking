@@ -73,6 +73,16 @@ final class MacSessionSyncService: ObservableObject {
   /// in case a future "iPhone-pushed default block list" feature reactivates
   /// it; for now the client side is silent on the field.
   func startSession() {
+    // Premium gate (write-layer enforcement, v2.0.6+). Mac/Chrome/Safari sync
+    // is a Premium feature; free users (or premium users past the 16-day
+    // grace period) must not push session-active rows. Mirrors the
+    // SettingsTabView entry-point gate. We deliberately only gate START —
+    // END remains unguarded so any session row created while the user was
+    // premium still cleans up cleanly after a mid-session downgrade.
+    guard SharedData.effectiveSubscriptionTier == .premium else {
+      log.info("startSession: skipping Mac sync — tier is free")
+      return
+    }
     let token = MacPairingService.iphoneToken
     Task {
       await sendStart(token: token)
@@ -151,9 +161,19 @@ final class MacSessionSyncService: ObservableObject {
     }
 
     if hasLocalActive && !supabaseHasActive {
+      // Premium gate: free users SHOULD have no Supabase row matching a
+      // local active session — that's the correct steady-state for free
+      // tier. Don't resend; this branch is only meaningful for premium.
+      guard SharedData.effectiveSubscriptionTier == .premium else {
+        log.info("reconcile: local active but Supabase missing — tier is free, skipping resend")
+        return
+      }
       log.info("reconcile: local active but Supabase missing — resending start")
       await sendStart(token: token)
     } else if !hasLocalActive && supabaseHasActive {
+      // Cleanup path — always run regardless of tier. A free user landing
+      // here means they downgraded after starting a premium session; the
+      // stale Supabase row must still be ended so paired Chromes unblock.
       log.info("reconcile: Supabase active but local cleared — sending end")
       await sendEnd(token: token, fromQueue: true)
     }

@@ -47,6 +47,15 @@ enum MacExtensionSyncWriter {
   /// `active` row to `mac_sessions` so paired Chromes pick it up on their
   /// next poll.
   static func notifySessionStarted() {
+    // Premium gate (write-layer enforcement, v2.0.6+). Mac/Chrome/Safari
+    // sync is a Premium feature; the extension must NOT POST `active`
+    // rows for free users. Mirrors MacSessionSyncService.startSession's
+    // guard. END is intentionally not gated (see notifySessionEnded for
+    // the symmetric rationale — cleanup must always run).
+    guard SharedData.effectiveSubscriptionTier == .premium else {
+      log.info("session start: tier is free, skipping Mac sync")
+      return
+    }
     guard let token = readIphoneToken(), !token.isEmpty else {
       log.info("session start: no iphone_token, skipping Mac sync")
       return
