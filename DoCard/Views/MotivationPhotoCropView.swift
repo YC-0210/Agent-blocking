@@ -21,8 +21,27 @@ struct MotivationPhotoCropView: View {
       let cropH = cropW / targetAspect
       let base = baseSize(cropW: cropW, cropH: cropH)
 
-      ZStack {
-        Color.black.ignoresSafeArea()
+      // Top bar lives at the top of the VStack (inside the safe area); the
+      // black fill is supplied by the .background modifier so it does not pull
+      // the buttons under the status bar.
+      VStack(spacing: 0) {
+        HStack {
+          Button(action: onCancel) {
+            Text(String(localized: "取消"))
+              .font(.system(size: 17))
+              .foregroundColor(.white)
+          }
+          Spacer()
+          Button(action: { confirm(base: base, cropW: cropW, cropH: cropH) }) {
+            Text(String(localized: "使用"))
+              .font(.system(size: 17, weight: .semibold))
+              .foregroundColor(.white)
+          }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+
+        Spacer()
 
         Image(uiImage: image)
           .resizable()
@@ -58,31 +77,14 @@ struct MotivationPhotoCropView: View {
               }
           )
 
-        VStack {
-          HStack {
-            Button(action: onCancel) {
-              Text(String(localized: "取消"))
-                .font(.system(size: 17))
-                .foregroundColor(.white)
-            }
-            Spacer()
-            Button(action: { confirm(base: base, cropW: cropW, cropH: cropH) }) {
-              Text(String(localized: "使用"))
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(.white)
-            }
-          }
-          .padding(.horizontal, 20)
-          .padding(.top, 16)
+        Spacer()
 
-          Spacer()
-
-          Text(String(localized: "縮放、拖動以調整顯示範圍"))
-            .font(.footnote)
-            .foregroundColor(.white.opacity(0.6))
-            .padding(.bottom, 24)
-        }
+        Text(String(localized: "縮放、拖動以調整顯示範圍"))
+          .font(.footnote)
+          .foregroundColor(.white.opacity(0.6))
+          .padding(.bottom, 24)
       }
+      .frame(width: geo.size.width, height: geo.size.height)
     }
     .background(Color.black.ignoresSafeArea())
   }
