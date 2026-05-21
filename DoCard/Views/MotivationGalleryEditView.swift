@@ -81,23 +81,21 @@ struct MotivationGalleryEditView: View {
         Button(String(localized: "移除"), role: .destructive) { delete(photo) }
         Button(String(localized: "取消"), role: .cancel) {}
       }
-      .fullScreenCover(
-        isPresented: Binding(
-          get: { imageToCrop != nil },
-          set: { if !$0 { imageToCrop = nil; editingPhoto = nil } }
+    }
+    // Embedded as an overlay rather than fullScreenCover: a fullScreenCover in
+    // this app presents with a zeroed safe area, which pushed the crop top bar
+    // under the status bar. Staying in this view's hierarchy keeps it intact.
+    .overlay {
+      if let image = imageToCrop {
+        MotivationPhotoCropView(
+          image: image,
+          onCancel: { imageToCrop = nil; editingPhoto = nil },
+          onConfirm: { cropped in
+            saveCropped(cropped)
+            imageToCrop = nil
+            editingPhoto = nil
+          }
         )
-      ) {
-        if let image = imageToCrop {
-          MotivationPhotoCropView(
-            image: image,
-            onCancel: { imageToCrop = nil; editingPhoto = nil },
-            onConfirm: { cropped in
-              saveCropped(cropped)
-              imageToCrop = nil
-              editingPhoto = nil
-            }
-          )
-        }
       }
     }
   }

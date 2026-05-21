@@ -112,12 +112,10 @@ struct OnboardingPhotoGalleryPage: View {
       guard let item else { return }
       Task { await loadPicked(item) }
     }
-    .fullScreenCover(
-      isPresented: Binding(
-        get: { imageToCrop != nil },
-        set: { if !$0 { imageToCrop = nil } }
-      )
-    ) {
+    // Embedded as an overlay (not fullScreenCover): a fullScreenCover in this
+    // app presents with a zeroed safe area, which pushed the crop top bar under
+    // the status bar. Staying in the page hierarchy keeps the safe area intact.
+    .overlay {
       if let image = imageToCrop {
         MotivationPhotoCropView(
           image: image,
