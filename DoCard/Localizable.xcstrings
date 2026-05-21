@@ -592,9 +592,6 @@
         }
       }
     },
-    "2.0.6" : {
-
-    },
     "3 個" : {
       "localizations" : {
         "en" : {
@@ -7079,6 +7076,16 @@
         }
       }
     },
+    "主畫面現在能放進對你有意義的照片——家人、目標、想守護的人。每次打開 App，先想起你為何開始，就更不容易半途放棄。" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your main screen can now hold the photos that matter — family, goals, the people you're doing this for. Open DO and remember your why, so it's harder to give up."
+          }
+        }
+      }
+    },
     "主畫面顯示動力相簿" : {
       "localizations" : {
         "en" : {
@@ -7380,6 +7387,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你每天花多少時間\n在手機上？"
+          }
+        }
+      }
+    },
+    "你為了什麼在堅持呢？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "What/who are you grinding for?"
           }
         }
       }
@@ -8163,6 +8180,16 @@
         }
       }
     },
+    "最新版本" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Latest"
+          }
+        }
+      }
+    },
     "出了一點狀況" : {
       "localizations" : {
         "en" : {
@@ -8583,7 +8610,18 @@
         }
       }
     },
+    "去放第一張照片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add your first photo"
+          }
+        }
+      }
+    },
     "去看看" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8600,6 +8638,7 @@
       }
     },
     "去設定連接" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8616,6 +8655,7 @@
       }
     },
     "取得你的實體 DO Card" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -8762,6 +8802,7 @@
       }
     },
     "同步封鎖 Chrome / Safari" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -9527,6 +9568,7 @@
       }
     },
     "專注開始時，Chrome / Safari 上的網站也一起同步封鎖，也會隨著手機一同解除鎖定" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10310,6 +10352,7 @@
       }
     },
     "找你的朋友一起專注吧" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10359,6 +10402,7 @@
       }
     },
     "把代碼傳給朋友，兩個人各自刷卡，就能一起開始專注。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -13576,6 +13620,7 @@
       }
     },
     "購買 DO Card" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

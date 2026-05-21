@@ -6,7 +6,7 @@ final class WhatsNewManager: ObservableObject {
   static let shared = WhatsNewManager()
 
   private static let store = UserDefaults(suiteName: "group.DO.version3")!
-  private static let seenKey = "whatsNewSeenVersion_2_0_6"
+  private static let seenKey = "whatsNewSeenVersion_2_1_0"
 
   /// `true` until the user dismisses or acts on the modal for this version.
   @Published var shouldShowWhatsNew: Bool

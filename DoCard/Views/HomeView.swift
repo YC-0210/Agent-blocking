@@ -290,19 +290,15 @@ struct HomeView: View {
       }
     ) {
       WhatsNewView(
-        onGoToSettings: {
-          whatsNewDestination = .settings
-          whatsNewManager.markAsSeen()
-        },
-        onGoToCoFocus: {
-          whatsNewDestination = .coFocus
+        onGoToGallery: {
+          whatsNewDestination = .doMain
           whatsNewManager.markAsSeen()
         },
         onDismiss: {
           whatsNewManager.markAsSeen()
         }
       )
-      .presentationDetents([.height(520)])
+      .presentationDetents([.height(440)])
       .presentationDragIndicator(.visible)
     }
     .sheet(item: $shareSessionToPresent) { session in

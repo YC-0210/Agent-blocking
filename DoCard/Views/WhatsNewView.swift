@@ -3,8 +3,7 @@ import SwiftUI
 // MARK: - Root
 
 struct WhatsNewView: View {
-  let onGoToSettings: () -> Void
-  let onGoToCoFocus: () -> Void
+  let onGoToGallery: () -> Void
   let onDismiss: () -> Void
 
   var body: some View {
@@ -12,7 +11,7 @@ struct WhatsNewView: View {
 
       // ── Header ───────────────────────────────────────────────
       VStack(spacing: 8) {
-        Text("2.0.6")
+        Text(String(localized: "最新版本"))
           .font(.caption.weight(.semibold))
           .foregroundStyle(ThemeManager.shared.themeColor)
           .padding(.horizontal, 10)
@@ -27,22 +26,14 @@ struct WhatsNewView: View {
       .padding(.top, 36)
       .padding(.bottom, 28)
 
-      // ── Cards ─────────────────────────────────────────────────
+      // ── Card ──────────────────────────────────────────────────
       VStack(spacing: 14) {
         WhatsNewCard(
-          icon: "globe",
-          title: String(localized: "同步封鎖 Chrome / Safari"),
-          description: String(localized: "專注開始時，Chrome / Safari 上的網站也一起同步封鎖，也會隨著手機一同解除鎖定"),
-          buttonLabel: String(localized: "去設定連接"),
-          onButton: onGoToSettings
-        )
-
-        WhatsNewCard(
-          icon: "person.2.fill",
-          title: String(localized: "找你的朋友一起專注吧"),
-          description: String(localized: "把代碼傳給朋友，兩個人各自刷卡，就能一起開始專注。"),
-          buttonLabel: String(localized: "去看看"),
-          onButton: onGoToCoFocus
+          icon: "photo.on.rectangle.angled",
+          title: String(localized: "你為了什麼在堅持呢？"),
+          description: String(localized: "主畫面現在能放進對你有意義的照片——家人、目標、想守護的人。每次打開 App，先想起你為何開始，就更不容易半途放棄。"),
+          buttonLabel: String(localized: "去放第一張照片"),
+          onButton: onGoToGallery
         )
       }
       .padding(.horizontal, 20)
@@ -104,8 +95,7 @@ private struct WhatsNewCard: View {
 
 #Preview {
   WhatsNewView(
-    onGoToSettings: {},
-    onGoToCoFocus: {},
+    onGoToGallery: {},
     onDismiss: {}
   )
   .preferredColorScheme(.dark)
