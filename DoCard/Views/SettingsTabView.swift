@@ -37,6 +37,10 @@ struct SettingsTabView: View {
   /// `MacPairingView`. Mirrors ScheduleTabView's premium-gated flow.
   @State private var navigateToMacPairing = false
 
+  // TEMP test entry for the Motivation Gallery edit screen (Phase 2).
+  // The real entry point is the pencil on the main screen, added in Phase 3.
+  @State private var showGalleryEditor = false
+
   private let nfcScanner = NFCScannerUtil()
   private let nfcRenameScanner = NFCScannerUtil()
 
@@ -215,6 +219,34 @@ struct SettingsTabView: View {
         }
         .listRowBackground(Color(.systemGray6).opacity(0.08))
 
+        // MARK: - 動力相簿 Section (TEMP test entry — Phase 2)
+        Section {
+          Button(action: { showGalleryEditor = true }) {
+            HStack {
+              Image(systemName: "photo.on.rectangle.angled")
+                .foregroundStyle(themeManager.themeColor)
+                .font(.title3)
+
+              VStack(alignment: .leading, spacing: 2) {
+                Text(String(localized: "我的動力"))
+                  .font(.headline)
+                  .foregroundStyle(.primary)
+                Text(String(localized: "管理主畫面的動力照片"))
+                  .font(.caption)
+                  .foregroundStyle(.secondary)
+              }
+
+              Spacer()
+
+              Image(systemName: "chevron.right")
+                .foregroundStyle(.secondary)
+            }
+          }
+        } header: {
+          Text(String(localized: "動力相簿"))
+        }
+        .listRowBackground(Color(.systemGray6).opacity(0.08))
+
         // MARK: - 通知與提醒 Section
         Section {
           CustomToggle(
@@ -279,6 +311,10 @@ struct SettingsTabView: View {
       .sheet(isPresented: $showPaywall) {
         PremiumUpgradeView()
           .environmentObject(subscriptionManager)
+      }
+      .sheet(isPresented: $showGalleryEditor) {
+        MotivationGalleryEditView()
+          .environmentObject(themeManager)
       }
       .sheet(isPresented: $showRenameSheet, onDismiss: {
         renameNameInput = ""
