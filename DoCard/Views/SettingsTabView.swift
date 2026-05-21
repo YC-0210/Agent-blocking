@@ -146,30 +146,6 @@ struct SettingsTabView: View {
             }
           }
 
-          if let doCardURL = URL(string: "https://www.do-card.online/") {
-            Link(destination: doCardURL) {
-              HStack {
-                Image(systemName: "creditcard.fill")
-                  .foregroundStyle(themeManager.themeColor)
-                  .font(.title3)
-
-                VStack(alignment: .leading, spacing: 2) {
-                  Text(String(localized: "購買 DO Card"))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                  Text(String(localized: "取得你的實體 DO Card"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "arrow.up.right.square")
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-
           CustomToggle(
             title: String(localized: "允許免卡開始"),
             description: String(localized: "在主畫面顯示「直接開始」按鈕，不靠卡也能開始專注"),
