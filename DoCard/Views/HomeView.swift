@@ -45,6 +45,9 @@ struct HomeView: View {
   @State private var alertTitle = ""
   @State private var alertMessage = ""
 
+  // One-time analytics disclosure (opt-out; default on)
+  @State private var showAnalyticsDisclosure = false
+
   // Confetti celebration state
   @State private var showConfetti = false
   @State private var wasBlocking = false
@@ -226,6 +229,11 @@ struct HomeView: View {
         onboardingManager.startTutorial()
       }
       checkSavedTimeBanner()
+
+      // One-time analytics notice (opt-out; default on). Only after onboarding.
+      if !onboardingManager.shouldShowOnboarding && !AnalyticsConsent.disclosureShown {
+        showAnalyticsDisclosure = true
+      }
     }
     .sheet(item: $profileToEdit) { profile in
       BlockedProfileView(profile: profile)
@@ -313,6 +321,23 @@ struct HomeView: View {
       Button(String(localized: "OK"), role: .cancel) { dismissAlert() }
     } message: {
       Text(alertMessage)
+    }
+    .alert(
+      String(localized: "匿名使用統計"),
+      isPresented: $showAnalyticsDisclosure
+    ) {
+      Button(String(localized: "好，我知道了")) {
+        AnalyticsConsent.markDisclosureShown()
+      }
+      Button(String(localized: "關閉收集"), role: .cancel) {
+        AnalyticsConsent.setGeneralEnabled(false)
+        AnalyticsConsent.markDisclosureShown()
+      }
+    } message: {
+      Text(String(localized: "為了改善 App，我們會傳送匿名的使用統計（不含任何個人資料）。你可以隨時在「設定 → 資料與隱私」關閉。"))
+    }
+    .task {
+      await DailyUsageReporter.reportIfNeeded(context: context)
     }
   }
 

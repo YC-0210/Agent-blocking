@@ -23,6 +23,8 @@ struct SettingsTabView: View {
   @AppStorage("globalEnableReminder") private var enableReminder: Bool = false
   @AppStorage("askToShareAfterSession") private var askToShareAfterSession: Bool = true
   @AppStorage("allowCardlessStart") private var allowCardlessStart = false
+  @AppStorage("analyticsEnabled", store: UserDefaults(suiteName: "group.DO.version3"))
+  private var analyticsEnabled = true
 
   @State private var isPairing = false
   @State private var pairSuccess = false
@@ -255,6 +257,19 @@ struct SettingsTabView: View {
 
         } header: {
           Text(String(localized: "通知與提醒"))
+        }
+        .listRowBackground(Color(.systemGray6).opacity(0.08))
+
+        // MARK: - 資料與隱私 Section
+        Section {
+          CustomToggle(
+            title: String(localized: "匿名使用統計"),
+            description: String(
+              localized: "傳送匿名的使用統計，協助我們改善 App。不含任何個人資料，可隨時關閉。"),
+            isOn: $analyticsEnabled
+          )
+        } header: {
+          Text(String(localized: "資料與隱私"))
         }
         .listRowBackground(Color(.systemGray6).opacity(0.08))
 
