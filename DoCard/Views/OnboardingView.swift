@@ -1,7 +1,10 @@
+import FamilyControls
+import SwiftData
 import SwiftUI
 
 struct OnboardingView: View {
   @EnvironmentObject var onboardingManager: OnboardingManager
+  @Environment(\.modelContext) private var modelContext
 
   @State private var currentPage: Int = 0
   @State private var screenTimeYears: Int = 16  // default fallback
@@ -20,7 +23,7 @@ struct OnboardingView: View {
   }
 
   // Total pages — will grow as more pages are added
-  private let totalPages = 15
+  private let totalPages = 16
 
   /// Direction-aware transition: slides from left when going back, from right when going forward
   private var pageTransition: AnyTransition {
@@ -132,16 +135,24 @@ struct OnboardingView: View {
           OnboardingPermissionPage(onContinue: { nextPage() })
             .transition(pageTransition)
         case 12:
+          OnboardingDistractionAppsPage(
+            onContinue: { selection in
+              handleDistractionSelection(selection)
+              nextPage()
+            }
+          )
+          .transition(pageTransition)
+        case 13:
           OnboardingDOCardPairingPage(
             onContinue: { nextPage() }
           )
           .transition(pageTransition)
-        case 13:
+        case 14:
           OnboardingPhotoGalleryPage(
             onContinue: { nextPage() }
           )
           .transition(pageTransition)
-        case 14:
+        case 15:
           OnboardingPromoPage(
             onComplete: {
               onboardingManager.completeOnboarding()
@@ -192,6 +203,29 @@ struct OnboardingView: View {
       navigatingBack = true
       currentPage -= 1
     }
+  }
+
+  /// Persists the user's distracting-app selection, turns on distraction
+  /// tracking + monitoring, marks the analytics disclosure as shown, and
+  /// auto-creates a Classic-mode profile blocking those same apps so the user
+  /// can start a focus session immediately after onboarding.
+  private func handleDistractionSelection(_ selection: FamilyActivitySelection) {
+    let hasAny = !selection.applicationTokens.isEmpty
+      || !selection.categoryTokens.isEmpty
+      || !selection.webDomainTokens.isEmpty
+    guard hasAny else { return }
+
+    DistractionTracking.selection = selection
+    DistractionTracking.setEnabled(true)
+    AnalyticsConsent.markDisclosureShown()
+    DistractionMonitor.start()
+
+    try? BlockedProfiles.createProfile(
+      in: modelContext,
+      name: String(localized: "專注模式"),
+      selection: selection,
+      blockingStrategyId: NFCBlockingStrategy.id
+    )
   }
 }
 

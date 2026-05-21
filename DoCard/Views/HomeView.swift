@@ -329,15 +329,11 @@ struct HomeView: View {
       String(localized: "匿名使用統計"),
       isPresented: $showAnalyticsDisclosure
     ) {
-      Button(String(localized: "好，我知道了")) {
-        AnalyticsConsent.markDisclosureShown()
-      }
-      Button(String(localized: "關閉收集"), role: .cancel) {
-        AnalyticsConsent.setGeneralEnabled(false)
+      Button(String(localized: "了解")) {
         AnalyticsConsent.markDisclosureShown()
       }
     } message: {
-      Text(String(localized: "為了改善 App，我們會傳送匿名的使用統計（不含任何個人資料）。你可以隨時在「設定 → 資料與隱私」關閉。"))
+      Text(String(localized: "為了改善 App，DO 會收集匿名的使用統計，不含任何個人資料。詳情請見隱私權政策。"))
     }
     .task {
       await DailyUsageReporter.reportIfNeeded(context: context)
