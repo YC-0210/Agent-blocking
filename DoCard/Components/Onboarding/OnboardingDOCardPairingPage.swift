@@ -112,7 +112,7 @@ struct OnboardingDOCardPairingPage: View {
         } else {
           Button(action: {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            onboardingManager.completeOnboarding()
+            onContinue()
           }) {
             Text(String(localized: "使用他人卡片"))
               .font(.system(size: 15, weight: .medium))
