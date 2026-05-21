@@ -18,6 +18,12 @@ struct MotivationGalleryView: View {
   private let aspect: CGFloat = 1.585
   private let corner: CGFloat = 24
 
+  private var currentCaption: String? {
+    guard photos.indices.contains(currentIndex) else { return nil }
+    let caption = photos[currentIndex].caption
+    return caption.isEmpty ? nil : caption
+  }
+
   var body: some View {
     ZStack(alignment: .topTrailing) {
       Group {
@@ -32,6 +38,14 @@ struct MotivationGalleryView: View {
     .frame(maxWidth: maxCardWidth)
     .aspectRatio(aspect, contentMode: .fit)
     .frame(maxWidth: .infinity)
+    // Speech bubble floats above the photo (overlay → no layout change).
+    .overlay(alignment: .top) {
+      if !photos.isEmpty, let caption = currentCaption {
+        captionBubble(caption)
+          .alignmentGuide(.top) { $0.height }
+          .animation(.easeInOut(duration: 0.2), value: currentIndex)
+      }
+    }
     .sheet(isPresented: $showEditor) {
       MotivationGalleryEditView()
         .environmentObject(themeManager)
@@ -63,34 +77,25 @@ struct MotivationGalleryView: View {
   }
 
   private func photoCell(_ photo: MotivationPhoto) -> some View {
-    ZStack(alignment: .bottom) {
+    ZStack {
       if let uiImage = UIImage(data: photo.imageData) {
+        // Blurred copy of the same photo fills the letterbox area behind the
+        // full image, so nothing is cropped and the card frame stays fixed.
         Image(uiImage: uiImage)
           .resizable()
           .scaledToFill()
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .clipped()
+          .blur(radius: 18)
+          .overlay(Color.black.opacity(0.12))
+        // Full photo, never cropped.
+        Image(uiImage: uiImage)
+          .resizable()
+          .scaledToFit()
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
       } else {
         Color(.systemGray5)
           .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
-      }
-
-      if !photo.caption.isEmpty {
-        Text(photo.caption)
-          .font(.system(size: 14))
-          .foregroundColor(.white)
-          .lineLimit(2)
-          .frame(maxWidth: .infinity, alignment: .leading)
-          .padding(.horizontal, 14)
-          .padding(.top, 28)
-          .padding(.bottom, photos.count > 1 ? 22 : 12)
-          .background(
-            LinearGradient(
-              colors: [.clear, .black.opacity(0.7)],
-              startPoint: .top,
-              endPoint: .bottom
-            )
-          )
       }
     }
   }
@@ -103,6 +108,30 @@ struct MotivationGalleryView: View {
           .frame(width: 6, height: 6)
       }
     }
+  }
+
+  // MARK: - Caption bubble
+
+  private func captionBubble(_ text: String) -> some View {
+    Text(text)
+      .font(.system(size: 13, weight: .medium))
+      .foregroundColor(.white)
+      .lineLimit(2)
+      .multilineTextAlignment(.center)
+      .fixedSize(horizontal: false, vertical: true)
+      .frame(maxWidth: maxCardWidth - 80)
+      .padding(.horizontal, 12)
+      .padding(.vertical, 7)
+      .background(
+        RoundedRectangle(cornerRadius: 14, style: .continuous)
+          .fill(Color.black.opacity(0.6))
+      )
+      .overlay(alignment: .bottom) {
+        DownTriangle()
+          .fill(Color.black.opacity(0.6))
+          .frame(width: 12, height: 6)
+          .offset(y: 6)
+      }
   }
 
   // MARK: - Empty state
@@ -161,5 +190,18 @@ struct MotivationGalleryView: View {
         .contentShape(Rectangle())
     }
     .padding(6)
+  }
+}
+
+// MARK: - Bubble tail
+
+private struct DownTriangle: Shape {
+  func path(in rect: CGRect) -> Path {
+    var path = Path()
+    path.move(to: CGPoint(x: rect.minX, y: rect.minY))
+    path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+    path.addLine(to: CGPoint(x: rect.midX, y: rect.maxY))
+    path.closeSubpath()
+    return path
   }
 }

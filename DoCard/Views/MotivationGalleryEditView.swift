@@ -134,7 +134,7 @@ private struct MotivationPhotoRow: View {
       }
 
       TextField(
-        String(localized: "寫下這張照片對你的意義…"),
+        String(localized: "想對他說的話…"),
         text: $photo.caption,
         axis: .vertical
       )
