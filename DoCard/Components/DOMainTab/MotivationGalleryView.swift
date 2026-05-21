@@ -1,0 +1,165 @@
+import SwiftData
+import SwiftUI
+
+/// Swipeable motivation photo gallery shown in the centerpiece slot of the
+/// main tab (replaces `DOCardImageView`). Browse-only: swipe to change photo,
+/// pencil (top-right) to open the edit screen. Shows an empty state when the
+/// user has not added any photos yet.
+struct MotivationGalleryView: View {
+  @EnvironmentObject var themeManager: ThemeManager
+
+  @Query(sort: \MotivationPhoto.sortOrder, order: .forward)
+  private var photos: [MotivationPhoto]
+
+  @State private var currentIndex = 0
+  @State private var showEditor = false
+
+  private let maxCardWidth: CGFloat = 300
+  private let aspect: CGFloat = 1.585
+  private let corner: CGFloat = 24
+
+  var body: some View {
+    ZStack(alignment: .topTrailing) {
+      Group {
+        if photos.isEmpty {
+          emptyState
+        } else {
+          galleryContent
+        }
+      }
+      editPencil
+    }
+    .frame(maxWidth: maxCardWidth)
+    .aspectRatio(aspect, contentMode: .fit)
+    .frame(maxWidth: .infinity)
+    .sheet(isPresented: $showEditor) {
+      MotivationGalleryEditView()
+        .environmentObject(themeManager)
+    }
+    .onChange(of: photos.count) { _, count in
+      if currentIndex >= count { currentIndex = max(0, count - 1) }
+    }
+  }
+
+  // MARK: - Gallery
+
+  private var galleryContent: some View {
+    ZStack(alignment: .bottom) {
+      TabView(selection: $currentIndex) {
+        ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
+          photoCell(photo).tag(index)
+        }
+      }
+      .tabViewStyle(.page(indexDisplayMode: .never))
+      .clipShape(RoundedRectangle(cornerRadius: corner))
+      .shadow(color: themeManager.themeColor.opacity(0.35), radius: 40)
+      .shadow(color: themeManager.themeColor.opacity(0.25), radius: 20)
+      .shadow(color: themeManager.themeColor.opacity(0.15), radius: 8)
+
+      if photos.count > 1 {
+        dots.padding(.bottom, 8)
+      }
+    }
+  }
+
+  private func photoCell(_ photo: MotivationPhoto) -> some View {
+    ZStack(alignment: .bottom) {
+      if let uiImage = UIImage(data: photo.imageData) {
+        Image(uiImage: uiImage)
+          .resizable()
+          .scaledToFill()
+          .frame(maxWidth: .infinity, maxHeight: .infinity)
+          .clipped()
+      } else {
+        Color(.systemGray5)
+          .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
+      }
+
+      if !photo.caption.isEmpty {
+        Text(photo.caption)
+          .font(.system(size: 14))
+          .foregroundColor(.white)
+          .lineLimit(2)
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .padding(.horizontal, 14)
+          .padding(.top, 28)
+          .padding(.bottom, photos.count > 1 ? 22 : 12)
+          .background(
+            LinearGradient(
+              colors: [.clear, .black.opacity(0.7)],
+              startPoint: .top,
+              endPoint: .bottom
+            )
+          )
+      }
+    }
+  }
+
+  private var dots: some View {
+    HStack(spacing: 6) {
+      ForEach(photos.indices, id: \.self) { index in
+        Circle()
+          .fill(index == currentIndex ? Color.white : Color.white.opacity(0.4))
+          .frame(width: 6, height: 6)
+      }
+    }
+  }
+
+  // MARK: - Empty state
+
+  private var emptyState: some View {
+    VStack(spacing: 8) {
+      Image(systemName: "photo.on.rectangle.angled")
+        .font(.system(size: 32, weight: .light))
+        .foregroundColor(.white.opacity(0.5))
+
+      Text(String(localized: "放一張讓你繼續做下去的照片"))
+        .font(.system(size: 15, weight: .semibold))
+        .foregroundColor(.white.opacity(0.85))
+        .multilineTextAlignment(.center)
+
+      Text(String(localized: "為了誰？為了什麼？讓它每天提醒你。"))
+        .font(.system(size: 12))
+        .foregroundColor(.white.opacity(0.45))
+        .multilineTextAlignment(.center)
+
+      Button(action: { showEditor = true }) {
+        Text(String(localized: "新增第一張照片"))
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundColor(.white)
+          .padding(.horizontal, 18)
+          .padding(.vertical, 9)
+          .background(Capsule().fill(themeManager.themeColor))
+      }
+      .padding(.top, 4)
+    }
+    .padding(.horizontal, 16)
+    .frame(maxWidth: .infinity, maxHeight: .infinity)
+    .background(
+      RoundedRectangle(cornerRadius: corner)
+        .fill(Color.white.opacity(0.04))
+        .overlay(
+          RoundedRectangle(cornerRadius: corner)
+            .stroke(
+              Color.white.opacity(0.12),
+              style: StrokeStyle(lineWidth: 1, dash: [6])
+            )
+        )
+    )
+  }
+
+  // MARK: - Edit entry
+
+  private var editPencil: some View {
+    Button(action: { showEditor = true }) {
+      Image(systemName: "pencil")
+        .font(.system(size: 14, weight: .semibold))
+        .foregroundColor(.white)
+        .frame(width: 34, height: 34)
+        .background(Circle().fill(Color.black.opacity(0.4)))
+        .frame(width: 44, height: 44)
+        .contentShape(Rectangle())
+    }
+    .padding(6)
+  }
+}

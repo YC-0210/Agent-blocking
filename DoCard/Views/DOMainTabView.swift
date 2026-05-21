@@ -52,10 +52,6 @@ struct DOMainTabView: View {
   @State private var showTutorialComplete: Bool = false
   @State private var showConfetti: Bool = false
 
-  // Card-image tap entry point (Change 2)
-  @GestureState private var isCardPressed = false
-  @State private var showForceStartConfirm = false
-
   // Tutorial Step 5 — NFC timeout state
   @State private var tutorialNFCTimeoutVisible = false
   @State private var nfcTimeoutWorkItem: DispatchWorkItem? = nil
@@ -177,33 +173,9 @@ struct DOMainTabView: View {
         }
         .padding(.bottom, 50)
 
-        // DO logo image — tap to force-start without NFC (Change 2 entry point)
-        DOCardImageView()
-          .scaleEffect(isCardPressed ? 0.96 : 1.0)
-          .animation(.spring(response: 0.3, dampingFraction: 0.7), value: isCardPressed)
-          .gesture(
-            DragGesture(minimumDistance: 0)
-              .updating($isCardPressed) { _, state, _ in state = true }
-              .onEnded { _ in
-                guard !isBlocking, currentProfile != nil else { return }
-                showForceStartConfirm = true
-              }
-          )
-          .confirmationDialog(
-            String(localized: "開始專注？"),
-            isPresented: $showForceStartConfirm,
-            titleVisibility: .visible
-          ) {
-            Button(String(localized: "開始")) {
-              if let profile = currentProfile {
-                strategyManager.forceStartSession(context: context, profile: profile)
-                ratingManager.incrementLaunchCount()
-              }
-            }
-            Button(String(localized: "取消"), role: .cancel) {}
-          } message: {
-            Text(String(localized: "不需要刷卡，直接開始這次專注。"))
-          }
+        // Motivation Gallery — replaces the DO logo card on the main screen.
+        // Browse-only: swipe to change photo, pencil (top-right) to edit.
+        MotivationGalleryView()
           .padding(.bottom, strategyManager.activeCardName != nil ? 8 : 30)
 
         // DO Card name — reflects the most recently tapped card's name
