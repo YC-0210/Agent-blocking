@@ -16,6 +16,8 @@ struct MotivationGalleryEditView: View {
   // When set, the crop screen is re-cropping an existing photo rather than
   // adding a new one.
   @State private var editingPhoto: MotivationPhoto?
+  // Whether the gallery (vs the original DO Card) shows on the main screen.
+  @AppStorage("showMotivationGalleryOnHome") private var showGalleryOnHome = true
 
   private var atLimit: Bool { photos.count >= MotivationPhoto.maxCount }
 
@@ -53,6 +55,14 @@ struct MotivationGalleryEditView: View {
                 .foregroundStyle(themeManager.themeColor)
             }
           }
+        }
+        .listRowBackground(Color(.systemGray6).opacity(0.08))
+
+        Section {
+          Toggle(String(localized: "主畫面顯示動力相簿"), isOn: $showGalleryOnHome)
+            .tint(themeManager.themeColor)
+        } footer: {
+          Text(String(localized: "關閉時改顯示原本的 DO 卡片"))
         }
         .listRowBackground(Color(.systemGray6).opacity(0.08))
       }

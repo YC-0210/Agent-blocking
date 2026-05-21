@@ -22,7 +22,6 @@ struct SettingsTabView: View {
   @AppStorage("globalEnableLiveActivity") private var enableLiveActivity: Bool = false
   @AppStorage("globalEnableReminder") private var enableReminder: Bool = false
   @AppStorage("askToShareAfterSession") private var askToShareAfterSession: Bool = true
-  @AppStorage("showMotivationGalleryOnHome") private var showGalleryOnHome = true
   @AppStorage("allowCardlessStart") private var allowCardlessStart = false
 
   @State private var isPairing = false
@@ -250,12 +249,6 @@ struct SettingsTabView: View {
                 .foregroundStyle(.secondary)
             }
           }
-
-          CustomToggle(
-            title: String(localized: "主畫面顯示動力相簿"),
-            description: String(localized: "關閉時改顯示原本的 DO 卡片"),
-            isOn: $showGalleryOnHome
-          )
         } header: {
           Text(String(localized: "動力相簿"))
         }
