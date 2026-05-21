@@ -24,7 +24,44 @@ struct MotivationGalleryView: View {
     return caption.isEmpty ? nil : caption
   }
 
+  private var hasAnyCaption: Bool {
+    photos.contains { !$0.caption.isEmpty }
+  }
+
   var body: some View {
+    VStack(spacing: 6) {
+      // The bubble lives in its own reserved zone ABOVE the card, so it sits
+      // outside the photo. The zone only appears once some photo has a caption
+      // and keeps a fixed height, so swiping never shifts the card.
+      if !photos.isEmpty && hasAnyCaption {
+        captionZone
+      }
+      cardStack
+    }
+    .frame(maxWidth: .infinity)
+    .sheet(isPresented: $showEditor) {
+      MotivationGalleryEditView()
+        .environmentObject(themeManager)
+    }
+    .onChange(of: photos.count) { _, count in
+      if currentIndex >= count { currentIndex = max(0, count - 1) }
+    }
+  }
+
+  private var captionZone: some View {
+    ZStack(alignment: .bottom) {
+      Color.clear
+      if let caption = currentCaption {
+        captionBubble(caption)
+          .transition(.opacity)
+      }
+    }
+    .frame(height: 44)
+    .frame(maxWidth: .infinity)
+    .animation(.easeInOut(duration: 0.2), value: currentIndex)
+  }
+
+  private var cardStack: some View {
     ZStack(alignment: .topTrailing) {
       Group {
         if photos.isEmpty {
@@ -38,21 +75,6 @@ struct MotivationGalleryView: View {
     .frame(maxWidth: maxCardWidth)
     .aspectRatio(aspect, contentMode: .fit)
     .frame(maxWidth: .infinity)
-    // Speech bubble floats above the photo (overlay → no layout change).
-    .overlay(alignment: .top) {
-      if !photos.isEmpty, let caption = currentCaption {
-        captionBubble(caption)
-          .alignmentGuide(.top) { $0.height }
-          .animation(.easeInOut(duration: 0.2), value: currentIndex)
-      }
-    }
-    .sheet(isPresented: $showEditor) {
-      MotivationGalleryEditView()
-        .environmentObject(themeManager)
-    }
-    .onChange(of: photos.count) { _, count in
-      if currentIndex >= count { currentIndex = max(0, count - 1) }
-    }
   }
 
   // MARK: - Gallery
@@ -77,26 +99,29 @@ struct MotivationGalleryView: View {
   }
 
   private func photoCell(_ photo: MotivationPhoto) -> some View {
-    ZStack {
-      if let uiImage = UIImage(data: photo.imageData) {
-        // Blurred copy of the same photo fills the letterbox area behind the
-        // full image, so nothing is cropped and the card frame stays fixed.
-        Image(uiImage: uiImage)
-          .resizable()
-          .scaledToFill()
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-          .clipped()
-          .blur(radius: 18)
-          .overlay(Color.black.opacity(0.12))
-        // Full photo, never cropped.
-        Image(uiImage: uiImage)
-          .resizable()
-          .scaledToFit()
-          .frame(maxWidth: .infinity, maxHeight: .infinity)
-      } else {
-        Color(.systemGray5)
-          .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
+    GeometryReader { geo in
+      ZStack {
+        if let uiImage = UIImage(data: photo.imageData) {
+          // Blurred copy of the same photo fills the letterbox area behind the
+          // full image, so nothing is cropped and the card frame stays fixed.
+          Image(uiImage: uiImage)
+            .resizable()
+            .scaledToFill()
+            .frame(width: geo.size.width, height: geo.size.height)
+            .clipped()
+            .blur(radius: 18)
+            .overlay(Color.black.opacity(0.12))
+          // Full photo, fit inside the card — never cropped.
+          Image(uiImage: uiImage)
+            .resizable()
+            .scaledToFit()
+            .frame(width: geo.size.width, height: geo.size.height)
+        } else {
+          Color(.systemGray5)
+            .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
+        }
       }
+      .frame(width: geo.size.width, height: geo.size.height)
     }
   }
 
