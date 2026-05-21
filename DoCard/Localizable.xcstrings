@@ -7048,7 +7048,6 @@
       }
     },
     "不需要刷卡，直接開始這次專注。" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -7076,6 +7075,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "中午"
+          }
+        }
+      }
+    },
+    "主畫面顯示動力相簿" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show gallery on the main screen"
           }
         }
       }
@@ -7687,6 +7696,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "儲存模式"
+          }
+        }
+      }
+    },
+    "允許免卡開始" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Allow starting without the card"
           }
         }
       }
@@ -8882,6 +8901,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 Chrome / Safari 中輸入這組代碼"
+          }
+        }
+      }
+    },
+    "在主畫面顯示「直接開始」按鈕，不靠卡也能開始專注" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Adds a Start button to the main screen so you can focus without tapping the card"
           }
         }
       }
@@ -12129,6 +12158,16 @@
         }
       }
     },
+    "直接開始" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Start now"
+          }
+        }
+      }
+    },
     "直接開啟專注模式，需要靠卡才能停止" : {
       "localizations" : {
         "en" : {
@@ -14563,7 +14602,6 @@
       }
     },
     "開始專注？" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -14607,6 +14645,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉"
+          }
+        }
+      }
+    },
+    "關閉時改顯示原本的 DO 卡片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, show the original DO Card instead"
           }
         }
       }

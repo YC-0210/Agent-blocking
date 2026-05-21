@@ -22,6 +22,8 @@ struct SettingsTabView: View {
   @AppStorage("globalEnableLiveActivity") private var enableLiveActivity: Bool = false
   @AppStorage("globalEnableReminder") private var enableReminder: Bool = false
   @AppStorage("askToShareAfterSession") private var askToShareAfterSession: Bool = true
+  @AppStorage("showMotivationGalleryOnHome") private var showGalleryOnHome = true
+  @AppStorage("allowCardlessStart") private var allowCardlessStart = false
 
   @State private var isPairing = false
   @State private var pairSuccess = false
@@ -219,8 +221,14 @@ struct SettingsTabView: View {
         }
         .listRowBackground(Color(.systemGray6).opacity(0.08))
 
-        // MARK: - 動力相簿 Section (TEMP test entry — Phase 2)
+        // MARK: - 動力相簿 Section
         Section {
+          CustomToggle(
+            title: String(localized: "主畫面顯示動力相簿"),
+            description: String(localized: "關閉時改顯示原本的 DO 卡片"),
+            isOn: $showGalleryOnHome
+          )
+
           Button(action: { showGalleryEditor = true }) {
             HStack {
               Image(systemName: "photo.on.rectangle.angled")
@@ -242,6 +250,12 @@ struct SettingsTabView: View {
                 .foregroundStyle(.secondary)
             }
           }
+
+          CustomToggle(
+            title: String(localized: "允許免卡開始"),
+            description: String(localized: "在主畫面顯示「直接開始」按鈕，不靠卡也能開始專注"),
+            isOn: $allowCardlessStart
+          )
         } header: {
           Text(String(localized: "動力相簿"))
         }

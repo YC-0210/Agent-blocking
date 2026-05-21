@@ -61,6 +61,11 @@ struct DOMainTabView: View {
   @AppStorage("hasShownCardNamingNudge") private var hasShownCardNamingNudge: Bool = false
   @State private var showCardNamingNudge = false
 
+  // Motivation Gallery display + cardless start (user-configurable in Settings)
+  @AppStorage("showMotivationGalleryOnHome") private var showGalleryOnHome = true
+  @AppStorage("allowCardlessStart") private var allowCardlessStart = false
+  @State private var showForceStartConfirm = false
+
   // Callbacks to HomeView
   var onEditProfile: (BlockedProfiles) -> Void
   var onManageProfiles: () -> Void
@@ -173,10 +178,16 @@ struct DOMainTabView: View {
         }
         .padding(.bottom, 50)
 
-        // Motivation Gallery — replaces the DO logo card on the main screen.
-        // Browse-only: swipe to change photo, pencil (top-right) to edit.
-        MotivationGalleryView()
-          .padding(.bottom, strategyManager.activeCardName != nil ? 8 : 30)
+        // Centerpiece: the motivation gallery (default) or the original DO Card,
+        // per the user's setting in Settings → Motivation Gallery.
+        Group {
+          if showGalleryOnHome {
+            MotivationGalleryView()
+          } else {
+            DOCardImageView()
+          }
+        }
+        .padding(.bottom, strategyManager.activeCardName != nil ? 8 : 30)
 
         // DO Card name — reflects the most recently tapped card's name
         if let cardName = strategyManager.activeCardName {
@@ -263,6 +274,31 @@ struct DOMainTabView: View {
                 .foregroundColor(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
                 .transition(.opacity.combined(with: .move(edge: .bottom)))
+            }
+
+            // Cardless start — shown only when enabled in Settings and idle.
+            if allowCardlessStart && !isBlocking {
+              Button(action: { showForceStartConfirm = true }) {
+                Text(String(localized: "直接開始"))
+                  .font(.system(size: 15, weight: .medium))
+                  .foregroundColor(.white.opacity(0.6))
+              }
+              .padding(.top, 2)
+              .confirmationDialog(
+                String(localized: "開始專注？"),
+                isPresented: $showForceStartConfirm,
+                titleVisibility: .visible
+              ) {
+                Button(String(localized: "開始")) {
+                  if let profile = currentProfile {
+                    strategyManager.forceStartSession(context: context, profile: profile)
+                    ratingManager.incrementLaunchCount()
+                  }
+                }
+                Button(String(localized: "取消"), role: .cancel) {}
+              } message: {
+                Text(String(localized: "不需要刷卡，直接開始這次專注。"))
+              }
             }
 
           } else {
