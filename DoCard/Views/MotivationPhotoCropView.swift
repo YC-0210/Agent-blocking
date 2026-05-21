@@ -5,10 +5,13 @@ import UIKit
 /// can be pinch-zoomed and dragged behind a fixed-aspect crop window; "使用"
 /// renders the visible window to a new image at the card's aspect ratio.
 ///
-/// The root is a plain VStack (not a GeometryReader): a root GeometryReader in
-/// a fullScreenCover fills the whole screen and zeroes the safe area, which is
-/// what pushed the top bar under the status bar before. The width needed for
-/// the crop window is read by a GeometryReader in the background instead.
+/// Layout matches the app's OnboardingView idiom: a root ZStack with a
+/// `Color.black.ignoresSafeArea()` *background layer* and a plain content
+/// VStack sibling. Only the background ignores the safe area, so the content
+/// (top bar included) stays inside it and never overlaps the status bar.
+/// Earlier versions wrongly put a GeometryReader at the root, or applied
+/// `.frame(maxHeight: .infinity) + .background(...ignoresSafeArea())` to the
+/// content itself, which made the content ignore the safe area too.
 struct MotivationPhotoCropView: View {
   let image: UIImage
   var targetAspect: CGFloat = 1.585
@@ -33,77 +36,80 @@ struct MotivationPhotoCropView: View {
   }
 
   var body: some View {
-    VStack(spacing: 0) {
-      HStack {
-        Button(action: onCancel) {
-          Text(String(localized: "取消"))
-            .font(.system(size: 17))
-            .foregroundColor(.white)
+    ZStack {
+      Color.black.ignoresSafeArea()
+
+      VStack(spacing: 0) {
+        HStack {
+          Button(action: onCancel) {
+            Text(String(localized: "取消"))
+              .font(.system(size: 17))
+              .foregroundColor(.white)
+          }
+          Spacer()
+          Button(action: confirm) {
+            Text(String(localized: "使用"))
+              .font(.system(size: 17, weight: .semibold))
+              .foregroundColor(.white)
+          }
         }
-        Spacer()
-        Button(action: confirm) {
-          Text(String(localized: "使用"))
-            .font(.system(size: 17, weight: .semibold))
-            .foregroundColor(.white)
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+
+        Spacer(minLength: 0)
+
+        if cropW > 0 {
+          Image(uiImage: image)
+            .resizable()
+            .frame(width: base.width * scale, height: base.height * scale)
+            .offset(offset)
+            .frame(width: cropW, height: cropH)
+            .clipShape(RoundedRectangle(cornerRadius: 24))
+            .overlay(
+              RoundedRectangle(cornerRadius: 24)
+                .strokeBorder(Color.white.opacity(0.6), lineWidth: 1)
+            )
+            .contentShape(Rectangle())
+            .gesture(
+              DragGesture()
+                .onChanged { value in
+                  let proposed = CGSize(
+                    width: lastOffset.width + value.translation.width,
+                    height: lastOffset.height + value.translation.height
+                  )
+                  offset = clamp(proposed)
+                }
+                .onEnded { _ in lastOffset = offset }
+            )
+            .simultaneousGesture(
+              MagnificationGesture()
+                .onChanged { value in
+                  scale = min(5, max(1, lastScale * value))
+                  offset = clamp(offset)
+                }
+                .onEnded { _ in
+                  lastScale = scale
+                  lastOffset = offset
+                }
+            )
         }
+
+        Spacer(minLength: 0)
+
+        Text(String(localized: "縮放、拖動以調整顯示範圍"))
+          .font(.footnote)
+          .foregroundColor(.white.opacity(0.6))
+          .padding(.bottom, 12)
       }
-      .padding(.horizontal, 20)
-      .padding(.vertical, 12)
-
-      Spacer(minLength: 0)
-
-      if cropW > 0 {
-        Image(uiImage: image)
-          .resizable()
-          .frame(width: base.width * scale, height: base.height * scale)
-          .offset(offset)
-          .frame(width: cropW, height: cropH)
-          .clipShape(RoundedRectangle(cornerRadius: 24))
-          .overlay(
-            RoundedRectangle(cornerRadius: 24)
-              .strokeBorder(Color.white.opacity(0.6), lineWidth: 1)
-          )
-          .contentShape(Rectangle())
-          .gesture(
-            DragGesture()
-              .onChanged { value in
-                let proposed = CGSize(
-                  width: lastOffset.width + value.translation.width,
-                  height: lastOffset.height + value.translation.height
-                )
-                offset = clamp(proposed)
-              }
-              .onEnded { _ in lastOffset = offset }
-          )
-          .simultaneousGesture(
-            MagnificationGesture()
-              .onChanged { value in
-                scale = min(5, max(1, lastScale * value))
-                offset = clamp(offset)
-              }
-              .onEnded { _ in
-                lastScale = scale
-                lastOffset = offset
-              }
-          )
-      }
-
-      Spacer(minLength: 0)
-
-      Text(String(localized: "縮放、拖動以調整顯示範圍"))
-        .font(.footnote)
-        .foregroundColor(.white.opacity(0.6))
-        .padding(.bottom, 12)
+      .background(
+        // Width-only reader — no ignoresSafeArea, so it doesn't affect layout.
+        GeometryReader { geo in
+          Color.clear
+            .onAppear { contentWidth = geo.size.width }
+            .onChange(of: geo.size.width) { _, newWidth in contentWidth = newWidth }
+        }
+      )
     }
-    .frame(maxWidth: .infinity, maxHeight: .infinity)
-    .background(
-      GeometryReader { geo in
-        Color.black
-          .onAppear { contentWidth = geo.size.width }
-          .onChange(of: geo.size.width) { _, newWidth in contentWidth = newWidth }
-      }
-      .ignoresSafeArea()
-    )
   }
 
   /// Keeps the (possibly zoomed) image covering the crop window so no empty
