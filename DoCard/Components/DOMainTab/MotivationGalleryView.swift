@@ -102,20 +102,13 @@ struct MotivationGalleryView: View {
     GeometryReader { geo in
       ZStack {
         if let uiImage = UIImage(data: photo.imageData) {
-          // Blurred copy of the same photo fills the letterbox area behind the
-          // full image, so nothing is cropped and the card frame stays fixed.
+          // Photos are pre-cropped to the card aspect on add, so fill exactly
+          // fills the frame with no bars.
           Image(uiImage: uiImage)
             .resizable()
             .scaledToFill()
             .frame(width: geo.size.width, height: geo.size.height)
             .clipped()
-            .blur(radius: 18)
-            .overlay(Color.black.opacity(0.12))
-          // Full photo, fit inside the card — never cropped.
-          Image(uiImage: uiImage)
-            .resizable()
-            .scaledToFit()
-            .frame(width: geo.size.width, height: geo.size.height)
         } else {
           Color(.systemGray5)
             .overlay(Image(systemName: "photo").foregroundStyle(.secondary))

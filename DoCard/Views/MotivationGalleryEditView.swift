@@ -12,6 +12,7 @@ struct MotivationGalleryEditView: View {
 
   @State private var pickerItem: PhotosPickerItem?
   @State private var photoToDelete: MotivationPhoto?
+  @State private var imageToCrop: UIImage?
 
   private var atLimit: Bool { photos.count >= MotivationPhoto.maxCount }
 
@@ -75,6 +76,23 @@ struct MotivationGalleryEditView: View {
         Button(String(localized: "移除"), role: .destructive) { delete(photo) }
         Button(String(localized: "取消"), role: .cancel) {}
       }
+      .fullScreenCover(
+        isPresented: Binding(
+          get: { imageToCrop != nil },
+          set: { if !$0 { imageToCrop = nil } }
+        )
+      ) {
+        if let image = imageToCrop {
+          MotivationPhotoCropView(
+            image: image,
+            onCancel: { imageToCrop = nil },
+            onConfirm: { cropped in
+              saveCropped(cropped)
+              imageToCrop = nil
+            }
+          )
+        }
+      }
     }
   }
 
@@ -84,8 +102,14 @@ struct MotivationGalleryEditView: View {
     defer { pickerItem = nil }
     guard photos.count < MotivationPhoto.maxCount,
       let data = try? await item.loadTransferable(type: Data.self),
-      let uiImage = UIImage(data: data),
-      let storable = MotivationImageProcessor.makeStorableData(from: uiImage)
+      let uiImage = UIImage(data: data)
+    else { return }
+    imageToCrop = uiImage
+  }
+
+  private func saveCropped(_ image: UIImage) {
+    guard photos.count < MotivationPhoto.maxCount,
+      let storable = MotivationImageProcessor.makeStorableData(from: image)
     else { return }
 
     let nextOrder = (photos.map(\.sortOrder).max() ?? -1) + 1
