@@ -20,7 +20,7 @@ struct OnboardingView: View {
   }
 
   // Total pages — will grow as more pages are added
-  private let totalPages = 14
+  private let totalPages = 15
 
   /// Direction-aware transition: slides from left when going back, from right when going forward
   private var pageTransition: AnyTransition {
@@ -137,6 +137,11 @@ struct OnboardingView: View {
           )
           .transition(pageTransition)
         case 13:
+          OnboardingPhotoGalleryPage(
+            onContinue: { nextPage() }
+          )
+          .transition(pageTransition)
+        case 14:
           OnboardingPromoPage(
             onComplete: {
               onboardingManager.completeOnboarding()
