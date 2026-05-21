@@ -1,3 +1,4 @@
+import FamilyControls
 import OSLog
 import SwiftData
 import SwiftUI
@@ -25,6 +26,11 @@ struct SettingsTabView: View {
   @AppStorage("allowCardlessStart") private var allowCardlessStart = false
   @AppStorage("analyticsEnabled", store: UserDefaults(suiteName: "group.DO.version3"))
   private var analyticsEnabled = true
+  @AppStorage("distractionTrackingEnabled", store: UserDefaults(suiteName: "group.DO.version3"))
+  private var distractionEnabled = false
+
+  @State private var showDistractionPicker = false
+  @State private var distractionSelection = FamilyActivitySelection()
 
   @State private var isPairing = false
   @State private var pairSuccess = false
@@ -48,6 +54,12 @@ struct SettingsTabView: View {
   private let nfcRenameScanner = NFCScannerUtil()
 
   var onEmergencyTapped: () -> Void
+
+  private var distractionSelectionCount: Int {
+    distractionSelection.applicationTokens.count
+      + distractionSelection.categoryTokens.count
+      + distractionSelection.webDomainTokens.count
+  }
 
   var body: some View {
     NavigationStack {
@@ -268,6 +280,37 @@ struct SettingsTabView: View {
               localized: "傳送匿名的使用統計，協助我們改善 App。不含任何個人資料，可隨時關閉。"),
             isOn: $analyticsEnabled
           )
+
+          CustomToggle(
+            title: String(localized: "追蹤干擾 App 的使用時間"),
+            description: String(
+              localized: "選擇最困擾你的 App，DO 會以匿名的「使用時間區間」記錄它們，幫你看見自己的進步。預設關閉，可隨時關掉。"),
+            isOn: $distractionEnabled
+          )
+
+          if distractionEnabled {
+            Button(action: { showDistractionPicker = true }) {
+              HStack {
+                Image(systemName: "hand.raised.app")
+                  .foregroundStyle(themeManager.themeColor)
+                  .font(.title3)
+
+                VStack(alignment: .leading, spacing: 2) {
+                  Text(String(localized: "選擇要追蹤的 App"))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                  Text(String(localized: "已選擇 \(distractionSelectionCount) 個"))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                  .foregroundStyle(.secondary)
+              }
+            }
+          }
         } header: {
           Text(String(localized: "資料與隱私"))
         }
@@ -330,6 +373,20 @@ struct SettingsTabView: View {
       }
       .onChange(of: enableReminder) { _, newValue in
         syncReminderToAllProfiles(enabled: newValue)
+      }
+      .familyActivityPicker(
+        isPresented: $showDistractionPicker,
+        selection: $distractionSelection
+      )
+      .onChange(of: distractionSelection) { _, newValue in
+        DistractionTracking.selection = newValue
+        DistractionMonitor.reconcile()
+      }
+      .onChange(of: distractionEnabled) { _, _ in
+        DistractionMonitor.reconcile()
+      }
+      .onAppear {
+        distractionSelection = DistractionTracking.selection
       }
     }
   }

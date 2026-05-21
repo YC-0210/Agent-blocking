@@ -70,6 +70,11 @@ enum DailyUsageAggregator {
       return defaults.bool(forKey: "showMotivationGalleryOnHome")
     }()
 
+    // --- Distraction usage (opt-in; nil when not opted in or that day untracked) ---
+    let distractionBucket: Int? = DistractionTracking.isEnabled
+      ? DistractionTrackingShared.bucket(for: dayStart)
+      : nil
+
     // --- Context ---
     let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
 
@@ -97,7 +102,8 @@ enum DailyUsageAggregator {
       emergencyUnlockCount: emergencyCount,
       // Phase 2: focus_score left nil to avoid diverging from the in-app weekly
       // score; wired from the canonical ReportViewModel calc as a follow-up.
-      focusScore: nil
+      focusScore: nil,
+      distractionUsageBucket: distractionBucket
     )
   }
 }

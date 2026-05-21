@@ -234,6 +234,9 @@ struct HomeView: View {
       if !onboardingManager.shouldShowOnboarding && !AnalyticsConsent.disclosureShown {
         showAnalyticsDisclosure = true
       }
+
+      // Re-assert distraction-usage monitoring (no-op unless opted in + apps chosen).
+      DistractionMonitor.reconcile()
     }
     .sheet(item: $profileToEdit) { profile in
       BlockedProfileView(profile: profile)

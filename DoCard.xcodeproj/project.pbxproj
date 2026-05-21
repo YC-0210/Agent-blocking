@@ -142,6 +142,7 @@
 				Utils/DebugLogStore.swift,
 				Utils/KeychainHelper.swift,
 				Utils/MacSync/MacExtensionSyncWriter.swift,
+				Utils/Analytics/DistractionTrackingShared.swift,
 			);
 			target = 801713092DE6C78C00B77FE1 /* DoCardDeviceMonitor */;
 		};

@@ -41,6 +41,9 @@ struct UsageDailyRow: Encodable {
   let emergencyUnlockCount: Int
   let focusScore: Double?
 
+  // distraction tracking (opt-in; nil when not opted in or no data)
+  let distractionUsageBucket: Int?
+
   enum CodingKeys: String, CodingKey {
     case installID = "install_id"
     case date
@@ -62,6 +65,7 @@ struct UsageDailyRow: Encodable {
     case galleryShownOnMain = "gallery_shown_on_main"
     case emergencyUnlockCount = "emergency_unlock_count"
     case focusScore = "focus_score"
+    case distractionUsageBucket = "distraction_usage_bucket"
   }
 }
 
