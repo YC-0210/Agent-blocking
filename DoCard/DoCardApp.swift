@@ -11,7 +11,7 @@ import SwiftData
 import SwiftUI
 
 private let container: ModelContainer = {
-  let schema = Schema(versionedSchema: AppSchemaV3.self)
+  let schema = Schema(versionedSchema: AppSchemaV4.self)
   let config = ModelConfiguration(schema: schema)
   do {
     return try ModelContainer(

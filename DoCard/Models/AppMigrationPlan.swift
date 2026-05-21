@@ -364,24 +364,43 @@ enum AppSchemaV3: VersionedSchema {
   ]
 }
 
+// MARK: - Schema V4 (2.1.0) — Motivation Gallery
+//
+// Changes from V3:
+//   New entity: MotivationPhoto (standalone — no relationships to existing
+//   entities). Adding a brand-new entity table is purely additive: existing
+//   entity checksums are unchanged, so V3→V4 is a lightweight migration.
+
+enum AppSchemaV4: VersionedSchema {
+  static var versionIdentifier = Schema.Version(2, 1, 0)
+
+  static var models: [any PersistentModel.Type] = [
+    BlockedProfileSession.self,
+    BlockedProfiles.self,
+    NFCTapEvent.self,
+    EmergencyUnlockEvent.self,
+    MotivationPhoto.self,
+  ]
+}
+
 // MARK: - Migration Plan
 //
 // SwiftData prohibits migration stages between schema versions with identical
-// entity checksums. Since v2.0.3 has no structural model changes from v2.0.2,
-// AppSchemaV3 (2.0.2) serves as the final schema node. All stores end up
-// stamped "2.0.2" regardless of marketing version — this is intentional.
+// entity checksums. AppSchemaV4 (2.1.0) adds the MotivationPhoto entity and is
+// the current final schema node. All pre-gallery stores end up stamped "2.1.0".
 //
 // Migration paths:
-//   v1.30.1 (stamp "1.0.0") → V1→V2→V3 → stamp "2.0.2" ✓
-//   v1.40.1 (stamp "1.40.1") → V2→V3 → stamp "2.0.2" ✓
-//   v2.0.2  (stamp "2.0.2")  → no migration → stamp "2.0.2" ✓
-//   fresh install             → stamp "2.0.2" ✓
+//   v1.30.1 (stamp "1.0.0") → V1→V2→V3→V4 → stamp "2.1.0" ✓
+//   v1.40.1 (stamp "1.40.1") → V2→V3→V4 → stamp "2.1.0" ✓
+//   v2.0.2  (stamp "2.0.2")  → V3→V4 → stamp "2.1.0" ✓
+//   fresh install             → stamp "2.1.0" ✓
 
 enum AppMigrationPlan: SchemaMigrationPlan {
   static var schemas: [any VersionedSchema.Type] = [
     AppSchemaV1.self,
     AppSchemaV2.self,
     AppSchemaV3.self,
+    AppSchemaV4.self,
   ]
 
   // V1 → V2 (v1.30.1 → v1.40.1): lightweight
@@ -400,8 +419,16 @@ enum AppMigrationPlan: SchemaMigrationPlan {
     toVersion: AppSchemaV3.self
   )
 
+  // V3 → V4 (v2.0.2 → v2.1.0): lightweight
+  //   New entity MotivationPhoto added (ZMOTIVATIONPHOTO table)
+  static let migrateV3toV4 = MigrationStage.lightweight(
+    fromVersion: AppSchemaV3.self,
+    toVersion: AppSchemaV4.self
+  )
+
   static var stages: [MigrationStage] = [
     migrateV1toV2,
     migrateV2toV3,
+    migrateV3toV4,
   ]
 }
