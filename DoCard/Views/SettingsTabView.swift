@@ -170,6 +170,12 @@ struct SettingsTabView: View {
               }
             }
           }
+
+          CustomToggle(
+            title: String(localized: "允許免卡開始"),
+            description: String(localized: "在主畫面顯示「直接開始」按鈕，不靠卡也能開始專注"),
+            isOn: $allowCardlessStart
+          )
         } header: {
           Text(String(localized: "DO Card 設定"))
         }
@@ -223,12 +229,6 @@ struct SettingsTabView: View {
 
         // MARK: - 動力相簿 Section
         Section {
-          CustomToggle(
-            title: String(localized: "主畫面顯示動力相簿"),
-            description: String(localized: "關閉時改顯示原本的 DO 卡片"),
-            isOn: $showGalleryOnHome
-          )
-
           Button(action: { showGalleryEditor = true }) {
             HStack {
               Image(systemName: "photo.on.rectangle.angled")
@@ -252,9 +252,9 @@ struct SettingsTabView: View {
           }
 
           CustomToggle(
-            title: String(localized: "允許免卡開始"),
-            description: String(localized: "在主畫面顯示「直接開始」按鈕，不靠卡也能開始專注"),
-            isOn: $allowCardlessStart
+            title: String(localized: "主畫面顯示動力相簿"),
+            description: String(localized: "關閉時改顯示原本的 DO 卡片"),
+            isOn: $showGalleryOnHome
           )
         } header: {
           Text(String(localized: "動力相簿"))
