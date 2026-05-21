@@ -21,28 +21,7 @@ struct MotivationPhotoCropView: View {
       let cropH = cropW / targetAspect
       let base = baseSize(cropW: cropW, cropH: cropH)
 
-      // Top bar lives at the top of the VStack (inside the safe area); the
-      // black fill is supplied by the .background modifier so it does not pull
-      // the buttons under the status bar.
-      VStack(spacing: 0) {
-        HStack {
-          Button(action: onCancel) {
-            Text(String(localized: "取消"))
-              .font(.system(size: 17))
-              .foregroundColor(.white)
-          }
-          Spacer()
-          Button(action: { confirm(base: base, cropW: cropW, cropH: cropH) }) {
-            Text(String(localized: "使用"))
-              .font(.system(size: 17, weight: .semibold))
-              .foregroundColor(.white)
-          }
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
-
-        Spacer()
-
+      ZStack {
         Image(uiImage: image)
           .resizable()
           .frame(width: base.width * scale, height: base.height * scale)
@@ -76,15 +55,33 @@ struct MotivationPhotoCropView: View {
                 lastOffset = offset
               }
           )
-
-        Spacer()
-
+      }
+      .frame(width: geo.size.width, height: geo.size.height)
+      // safeAreaInset positions these inside the device safe area, so the bar
+      // never overlaps the status bar regardless of the cover's full-screen size.
+      .safeAreaInset(edge: .top) {
+        HStack {
+          Button(action: onCancel) {
+            Text(String(localized: "取消"))
+              .font(.system(size: 17))
+              .foregroundColor(.white)
+          }
+          Spacer()
+          Button(action: { confirm(base: base, cropW: cropW, cropH: cropH) }) {
+            Text(String(localized: "使用"))
+              .font(.system(size: 17, weight: .semibold))
+              .foregroundColor(.white)
+          }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+      }
+      .safeAreaInset(edge: .bottom) {
         Text(String(localized: "縮放、拖動以調整顯示範圍"))
           .font(.footnote)
           .foregroundColor(.white.opacity(0.6))
-          .padding(.bottom, 24)
+          .padding(.bottom, 12)
       }
-      .frame(width: geo.size.width, height: geo.size.height)
     }
     .background(Color.black.ignoresSafeArea())
   }
