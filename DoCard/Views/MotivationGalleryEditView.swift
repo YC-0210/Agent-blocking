@@ -13,6 +13,9 @@ struct MotivationGalleryEditView: View {
   @State private var pickerItem: PhotosPickerItem?
   @State private var photoToDelete: MotivationPhoto?
   @State private var imageToCrop: UIImage?
+  // When set, the crop screen is re-cropping an existing photo rather than
+  // adding a new one.
+  @State private var editingPhoto: MotivationPhoto?
 
   private var atLimit: Bool { photos.count >= MotivationPhoto.maxCount }
 
@@ -28,9 +31,11 @@ struct MotivationGalleryEditView: View {
       List {
         Section {
           ForEach(photos) { photo in
-            MotivationPhotoRow(photo: photo) {
-              photoToDelete = photo
-            }
+            MotivationPhotoRow(
+              photo: photo,
+              onEdit: { startEditing(photo) },
+              onDelete: { photoToDelete = photo }
+            )
           }
           .onMove(perform: move)
         } header: {
@@ -79,16 +84,17 @@ struct MotivationGalleryEditView: View {
       .fullScreenCover(
         isPresented: Binding(
           get: { imageToCrop != nil },
-          set: { if !$0 { imageToCrop = nil } }
+          set: { if !$0 { imageToCrop = nil; editingPhoto = nil } }
         )
       ) {
         if let image = imageToCrop {
           MotivationPhotoCropView(
             image: image,
-            onCancel: { imageToCrop = nil },
+            onCancel: { imageToCrop = nil; editingPhoto = nil },
             onConfirm: { cropped in
               saveCropped(cropped)
               imageToCrop = nil
+              editingPhoto = nil
             }
           )
         }
@@ -107,13 +113,32 @@ struct MotivationGalleryEditView: View {
     imageToCrop = uiImage
   }
 
-  private func saveCropped(_ image: UIImage) {
-    guard photos.count < MotivationPhoto.maxCount,
-      let storable = MotivationImageProcessor.makeStorableData(from: image)
-    else { return }
+  private func startEditing(_ photo: MotivationPhoto) {
+    let sourceData = photo.originalImageData ?? photo.imageData
+    guard let uiImage = UIImage(data: sourceData) else { return }
+    editingPhoto = photo
+    imageToCrop = uiImage
+  }
 
-    let nextOrder = (photos.map(\.sortOrder).max() ?? -1) + 1
-    modelContext.insert(MotivationPhoto(imageData: storable, sortOrder: nextOrder))
+  private func saveCropped(_ cropped: UIImage) {
+    guard let display = MotivationImageProcessor.makeStorableData(from: cropped) else { return }
+
+    if let editing = editingPhoto {
+      // Re-crop of an existing photo: keep the stored original, refresh display.
+      editing.imageData = display
+    } else {
+      guard photos.count < MotivationPhoto.maxCount else { return }
+      let original = imageToCrop.flatMap {
+        MotivationImageProcessor.makeStorableData(
+          from: $0,
+          maxDimension: MotivationImageProcessor.originalMaxDimension
+        )
+      }
+      let nextOrder = (photos.map(\.sortOrder).max() ?? -1) + 1
+      modelContext.insert(
+        MotivationPhoto(imageData: display, originalImageData: original, sortOrder: nextOrder)
+      )
+    }
     try? modelContext.save()
   }
 
@@ -140,22 +165,35 @@ struct MotivationGalleryEditView: View {
 
 private struct MotivationPhotoRow: View {
   @Bindable var photo: MotivationPhoto
+  let onEdit: () -> Void
   let onDelete: () -> Void
 
   var body: some View {
     HStack(spacing: 12) {
-      if let uiImage = UIImage(data: photo.imageData) {
-        Image(uiImage: uiImage)
-          .resizable()
-          .scaledToFill()
-          .frame(width: 56, height: 56)
-          .clipShape(RoundedRectangle(cornerRadius: 8))
-      } else {
-        RoundedRectangle(cornerRadius: 8)
-          .fill(Color(.systemGray5))
-          .frame(width: 56, height: 56)
-          .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
+      Button(action: onEdit) {
+        ZStack(alignment: .bottomTrailing) {
+          if let uiImage = UIImage(data: photo.imageData) {
+            Image(uiImage: uiImage)
+              .resizable()
+              .scaledToFill()
+              .frame(width: 56, height: 56)
+              .clipShape(RoundedRectangle(cornerRadius: 8))
+          } else {
+            RoundedRectangle(cornerRadius: 8)
+              .fill(Color(.systemGray5))
+              .frame(width: 56, height: 56)
+              .overlay(Image(systemName: "photo").foregroundStyle(.secondary))
+          }
+
+          Image(systemName: "crop")
+            .font(.system(size: 10, weight: .bold))
+            .foregroundColor(.white)
+            .padding(3)
+            .background(Circle().fill(Color.black.opacity(0.55)))
+            .padding(3)
+        }
       }
+      .buttonStyle(.plain)
 
       TextField(
         String(localized: "想對他說的話…"),

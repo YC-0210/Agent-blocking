@@ -370,9 +370,57 @@ enum AppSchemaV3: VersionedSchema {
 //   New entity: MotivationPhoto (standalone — no relationships to existing
 //   entities). Adding a brand-new entity table is purely additive: existing
 //   entity checksums are unchanged, so V3→V4 is a lightweight migration.
+//
+// MotivationPhoto is snapshotted inline here (without originalImageData) so
+// V4's entity hash stays fixed now that the live MotivationPhoto has gained a
+// property in V5. The other four entities are unchanged across V3/V4/V5, so
+// they keep referencing the live classes.
 
 enum AppSchemaV4: VersionedSchema {
   static var versionIdentifier = Schema.Version(2, 1, 0)
+
+  static var models: [any PersistentModel.Type] = [
+    BlockedProfileSession.self,
+    BlockedProfiles.self,
+    NFCTapEvent.self,
+    EmergencyUnlockEvent.self,
+    AppSchemaV4.MotivationPhoto.self,
+  ]
+
+  // v2.1.0 MotivationPhoto — before originalImageData (added in v2.2.0).
+  @Model
+  final class MotivationPhoto {
+    @Attribute(.unique) var id: String
+    @Attribute(.externalStorage) var imageData: Data
+    var caption: String
+    var sortOrder: Int
+    var createdAt: Date
+
+    init(
+      id: String = UUID().uuidString,
+      imageData: Data = Data(),
+      caption: String = "",
+      sortOrder: Int = 0,
+      createdAt: Date = Date()
+    ) {
+      self.id = id
+      self.imageData = imageData
+      self.caption = caption
+      self.sortOrder = sortOrder
+      self.createdAt = createdAt
+    }
+  }
+}
+
+// MARK: - Schema V5 (2.2.0) — Editable photo originals
+//
+// Changes from V4:
+//   MotivationPhoto gains `originalImageData: Data?` (externalStorage), so a
+//   stored photo can be re-cropped from its source later. Adding an optional
+//   property is a lightweight migration. V5 references the live MotivationPhoto.
+
+enum AppSchemaV5: VersionedSchema {
+  static var versionIdentifier = Schema.Version(2, 2, 0)
 
   static var models: [any PersistentModel.Type] = [
     BlockedProfileSession.self,
@@ -386,14 +434,15 @@ enum AppSchemaV4: VersionedSchema {
 // MARK: - Migration Plan
 //
 // SwiftData prohibits migration stages between schema versions with identical
-// entity checksums. AppSchemaV4 (2.1.0) adds the MotivationPhoto entity and is
-// the current final schema node. All pre-gallery stores end up stamped "2.1.0".
+// entity checksums. AppSchemaV5 (2.2.0) adds MotivationPhoto.originalImageData
+// and is the current final schema node.
 //
 // Migration paths:
-//   v1.30.1 (stamp "1.0.0") → V1→V2→V3→V4 → stamp "2.1.0" ✓
-//   v1.40.1 (stamp "1.40.1") → V2→V3→V4 → stamp "2.1.0" ✓
-//   v2.0.2  (stamp "2.0.2")  → V3→V4 → stamp "2.1.0" ✓
-//   fresh install             → stamp "2.1.0" ✓
+//   v1.30.1 (stamp "1.0.0") → V1→V2→V3→V4→V5 → stamp "2.2.0" ✓
+//   v1.40.1 (stamp "1.40.1") → V2→V3→V4→V5 → stamp "2.2.0" ✓
+//   v2.0.2  (stamp "2.0.2")  → V3→V4→V5 → stamp "2.2.0" ✓
+//   v2.1.0  (stamp "2.1.0")  → V4→V5 → stamp "2.2.0" ✓
+//   fresh install             → stamp "2.2.0" ✓
 
 enum AppMigrationPlan: SchemaMigrationPlan {
   static var schemas: [any VersionedSchema.Type] = [
@@ -401,6 +450,7 @@ enum AppMigrationPlan: SchemaMigrationPlan {
     AppSchemaV2.self,
     AppSchemaV3.self,
     AppSchemaV4.self,
+    AppSchemaV5.self,
   ]
 
   // V1 → V2 (v1.30.1 → v1.40.1): lightweight
@@ -426,9 +476,17 @@ enum AppMigrationPlan: SchemaMigrationPlan {
     toVersion: AppSchemaV4.self
   )
 
+  // V4 → V5 (v2.1.0 → v2.2.0): lightweight
+  //   MotivationPhoto.originalImageData added (optional, externalStorage)
+  static let migrateV4toV5 = MigrationStage.lightweight(
+    fromVersion: AppSchemaV4.self,
+    toVersion: AppSchemaV5.self
+  )
+
   static var stages: [MigrationStage] = [
     migrateV1toV2,
     migrateV2toV3,
     migrateV3toV4,
+    migrateV4toV5,
   ]
 }

@@ -5,9 +5,13 @@ import UIKit
 // there is no need to keep a multi-megapixel original.
 enum MotivationImageProcessor {
     static let maxDimension: CGFloat = 1600
+    static let originalMaxDimension: CGFloat = 2000
     static let jpegQuality: CGFloat = 0.8
 
-    static func makeStorableData(from image: UIImage) -> Data? {
+    static func makeStorableData(
+        from image: UIImage,
+        maxDimension: CGFloat = maxDimension
+    ) -> Data? {
         downscaled(image, maxDimension: maxDimension)
             .jpegData(compressionQuality: jpegQuality)
     }
