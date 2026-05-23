@@ -125,7 +125,7 @@ struct OnboardingPermissionPage: View {
         )
         permissionRow(
           icon: "lock.shield",
-          text: String(localized: "資料安全地儲存在你的裝置上")
+          text: String(localized: "你選擇的 App 清單只留在你的裝置上")
         )
         permissionRow(
           icon: "hand.raised",
