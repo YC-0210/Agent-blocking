@@ -27,7 +27,7 @@ struct OnboardingPhotoGalleryPage: View {
           .multilineTextAlignment(.center)
           .padding(.bottom, 8)
 
-        Text(String(localized: "一個人？一個目標？"))
+        Text(String(localized: "放上一張讓你更有動力的照片"))
           .font(.system(size: 16, weight: .regular))
           .foregroundColor(.white.opacity(0.5))
           .multilineTextAlignment(.center)

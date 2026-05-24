@@ -6915,6 +6915,7 @@
       }
     },
     "一個人？一個目標？" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -10753,6 +10754,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Add a photo that keeps you going"
+          }
+        }
+      }
+    },
+    "放上一張讓你更有動力的照片" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Add a photo that keeps you motivated"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放上一張讓你更有動力的照片"
           }
         }
       }
