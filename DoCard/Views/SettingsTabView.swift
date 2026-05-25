@@ -299,6 +299,12 @@ struct SettingsTabView: View {
           Button("🔧 立即上傳今日彙總 (DEBUG)") {
             runDebugUpload()
           }
+          Button("🔓 重置 Emergency Unlock (DEBUG)") {
+            strategyManager.resetEmergencyUnblocks()
+            debugUploadMessage =
+              "Emergency Unlock 已重置為 \(strategyManager.getRemainingEmergencyUnblocks()) 次"
+            showDebugUploadResult = true
+          }
         } header: {
           Text("DEBUG")
         }
@@ -309,7 +315,7 @@ struct SettingsTabView: View {
       .scrollContentBackground(.hidden)
       .navigationTitle(String(localized: "設定"))
       #if DEBUG
-      .alert("DEBUG 上傳", isPresented: $showDebugUploadResult) {
+      .alert("DEBUG", isPresented: $showDebugUploadResult) {
         Button("OK", role: .cancel) {}
       } message: {
         Text(debugUploadMessage)
