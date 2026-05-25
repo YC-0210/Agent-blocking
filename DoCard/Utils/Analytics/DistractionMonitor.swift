@@ -22,6 +22,12 @@ enum DistractionMonitor {
   /// every launch and after the user changes the setting.
   static func reconcile() {
     if DistractionTracking.isConfigured {
+      // Already monitoring → do nothing. Restarting (stop+start) would reset the
+      // day's accumulated threshold progress, undercounting the usage bucket.
+      // Monitoring persists across launches/reboots, so re-asserting it here is
+      // only needed when it isn't already running. A genuine selection change
+      // calls start() directly, which does the intended stop+restart.
+      if DeviceActivityCenter().activities.contains(activityName) { return }
       start()
     } else {
       stop()
