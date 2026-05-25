@@ -42,11 +42,6 @@ struct SettingsTabView: View {
   // The real entry point is the pencil on the main screen, added in Phase 3.
   @State private var showGalleryEditor = false
 
-  #if DEBUG
-  @State private var showDebugUploadResult = false
-  @State private var debugUploadMessage = ""
-  #endif
-
   private let nfcScanner = NFCScannerUtil()
   private let nfcRenameScanner = NFCScannerUtil()
 
@@ -293,34 +288,9 @@ struct SettingsTabView: View {
           .listRowBackground(Color(.systemGray6).opacity(0.08))
         }
 
-        #if DEBUG
-        // MARK: - DEBUG Section (compiled out of release builds)
-        Section {
-          Button("🔧 立即上傳今日彙總 (DEBUG)") {
-            runDebugUpload()
-          }
-          Button("🔓 重置 Emergency Unlock (DEBUG)") {
-            strategyManager.resetEmergencyUnblocks()
-            debugUploadMessage =
-              "Emergency Unlock 已重置為 \(strategyManager.getRemainingEmergencyUnblocks()) 次"
-            showDebugUploadResult = true
-          }
-        } header: {
-          Text("DEBUG")
-        }
-        .listRowBackground(Color(.systemGray6).opacity(0.08))
-        #endif
-
       }
       .scrollContentBackground(.hidden)
       .navigationTitle(String(localized: "設定"))
-      #if DEBUG
-      .alert("DEBUG", isPresented: $showDebugUploadResult) {
-        Button("OK", role: .cancel) {}
-      } message: {
-        Text(debugUploadMessage)
-      }
-      #endif
       .sheet(isPresented: $showPaywall) {
         PremiumUpgradeView()
           .environmentObject(subscriptionManager)
@@ -480,38 +450,6 @@ struct SettingsTabView: View {
     // requirePaired: true — only allow renaming a card that is already paired.
     nfcRenameScanner.scanAndWrite(name: name, requirePaired: true)
   }
-
-  #if DEBUG
-  // MARK: - DEBUG: force a usage rollup upload now
-
-  @MainActor
-  private func runDebugUpload() {
-    guard let row = DailyUsageAggregator.buildRow(for: Date(), context: modelContext) else {
-      debugUploadMessage = "buildRow 失敗（無法建立今日彙總）"
-      showDebugUploadResult = true
-      return
-    }
-    let summary = """
-      install: \(row.installID.prefix(8))…
-      專注 \(row.focusMinutesTotal) 分 · session \(row.focusSessionCount) · 靠卡 \(row.nfcTapCount)
-      排程 觸發\(row.scheduledFired)/完成\(row.scheduledCompleted)/中斷\(row.scheduledInterrupted)
-      緊急 \(row.emergencyUnlockCount) · 相簿 \(row.galleryPhotoCount) 張
-      干擾桶 \(row.distractionUsageBucket.map(String.init) ?? "—")
-      \(row.subscriptionTier ?? "?") · v\(row.appVersion ?? "?")
-      """
-    Task { @MainActor in
-      var result = summary
-      do {
-        try await UsageAnalyticsClient.upload(row)
-        result += "\n上傳 Supabase：成功（或今日已存在）"
-      } catch {
-        result += "\n上傳 Supabase：失敗 \(error.localizedDescription)"
-      }
-      debugUploadMessage = result
-      showDebugUploadResult = true
-    }
-  }
-  #endif
 }
 
 // MARK: - Rename Card Sheet
