@@ -25,11 +25,21 @@ mkdir -p "$DEST"
   echo
   echo "==== $(date "+%Y-%m-%d %H:%M:%S %z") ===="
   cd "$REPO" || { echo "repo missing at $REPO"; exit 1; }
-  git -c http.version=HTTP/1.1 fetch origin main
+  # Retry fetch a few times — GitHub HTTPS occasionally drops the connection.
+  for attempt in 1 2 3; do
+    if git -c http.version=HTTP/1.1 fetch origin main; then
+      break
+    fi
+    echo "fetch attempt $attempt failed, retrying in 5s..."
+    sleep 5
+  done
   if ! git merge --ff-only FETCH_HEAD; then
     echo "non-fast-forward in mirror; resolve manually. aborting pull."
     exit 1
   fi
-  rsync -av --include='*.md' --exclude='*' "$REPO/reports/" "$DEST/"
+  # --delete keeps the destination as a faithful mirror of weekly/. Reports are
+  # immutable once committed, so removing files locally that vanish upstream is
+  # safe and prevents stale artifacts from accumulating.
+  rsync -av --delete --include='*.md' --exclude='*' "$REPO/weekly/" "$DEST/"
   echo "done."
 } >> "$LOG" 2>&1

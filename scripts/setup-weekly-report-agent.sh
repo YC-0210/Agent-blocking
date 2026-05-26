@@ -17,7 +17,7 @@
 
 set -eu
 
-REPO_URL="https://github.com/YC-0210/DO-IOS-Claude-"
+REPO_URL="https://github.com/YC-0210/do-card-report"
 APP_SUPPORT="$HOME/Library/Application Support/do-card"
 MIRROR="$APP_SUPPORT/reports-mirror"
 SCRIPT_DEST="$APP_SUPPORT/weekly-report-pull.sh"
@@ -42,7 +42,7 @@ chmod +x "$SCRIPT_DEST"
 echo "==> setting up sparse-checkout mirror at $MIRROR"
 if [ ! -d "$MIRROR/.git" ]; then
   git -c http.version=HTTP/1.1 clone --filter=blob:none --sparse "$REPO_URL" "$MIRROR"
-  git -C "$MIRROR" sparse-checkout set reports
+  git -C "$MIRROR" sparse-checkout set weekly
 else
   echo "    mirror already present; fetching"
   git -C "$MIRROR" -c http.version=HTTP/1.1 fetch origin main

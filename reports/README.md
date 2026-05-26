@@ -1,14 +1,13 @@
-# DO Card Weekly Reports
+# Reports moved to YC-0210/do-card-report
 
-Auto-generated weekly analytics reports produced by the cloud routine
-`do-card-weekly-report` (claude.ai/code/routines). Each `weekly-YYYY-MM-DD.md`
-is a snapshot of the previous 28 days, pulled from Supabase via the
-`public.get_weekly_usage_summary()` RPC.
+As of **2026-05-27**, weekly analytics reports are written to a separate
+repository: **<https://github.com/YC-0210/do-card-report>**, under
+`weekly/YYYY-MM-DD.md`. **Future reports do NOT land here** — the cloud
+routine pushes to that repo instead.
 
-- Cadence: every Monday 09:00 Asia/Taipei.
-- Data source: `usage_daily` (anonymous, insert-only). The RPC is
-  `SECURITY DEFINER` and exposes only pre-aggregated counts.
-- Mirror: a local launchd job pulls this folder to
-  `~/Desktop/Weekly report/` Monday 09:30 Asia/Taipei.
+The single file `weekly-2026-05-26.md` in this folder is kept as the
+historical first report (originally produced when reports lived in the
+app repo).
 
-Do not hand-edit reports — they are reproducible by re-running the RPC.
+The setup scripts at `scripts/setup-weekly-report-agent.sh` already
+point to the new repo.
