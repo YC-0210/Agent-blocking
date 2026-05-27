@@ -39,12 +39,12 @@ mkdir -p "$DEST"
   fi
   # --delete keeps each destination as a faithful mirror of its source folder.
   # Reports are immutable once committed, so removing files locally that vanish
-  # upstream is safe. --exclude='*' protects sibling sub-directories in $DEST
-  # (e.g. "DO App/") from being touched by the weekly/ mirror — they're handled
-  # by separate rsync passes below.
-  rsync -av --delete --include='*.md' --exclude='*' "$REPO/weekly/" "$DEST/"
-  # Website report (GA4 + Clarity) → DO App/ subfolder.
-  mkdir -p "$DEST/DO App"
-  rsync -av --delete --include='*.md' --exclude='*' "$REPO/reports/" "$DEST/DO App/"
+  # upstream is safe. --exclude='*' confines each rsync to its own subtree, so
+  # the two passes don't touch each other's destination.
+  #   app/      → ~/Weekly report/App/      (iOS in-app analytics)
+  #   website/  → ~/Weekly report/Website/  (GA4 + Microsoft Clarity)
+  mkdir -p "$DEST/App" "$DEST/Website"
+  rsync -av --delete --include='*.md' --exclude='*' "$REPO/app/"     "$DEST/App/"
+  rsync -av --delete --include='*.md' --exclude='*' "$REPO/website/" "$DEST/Website/"
   echo "done."
 } >> "$LOG" 2>&1
