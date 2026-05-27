@@ -37,9 +37,14 @@ mkdir -p "$DEST"
     echo "non-fast-forward in mirror; resolve manually. aborting pull."
     exit 1
   fi
-  # --delete keeps the destination as a faithful mirror of weekly/. Reports are
-  # immutable once committed, so removing files locally that vanish upstream is
-  # safe and prevents stale artifacts from accumulating.
+  # --delete keeps each destination as a faithful mirror of its source folder.
+  # Reports are immutable once committed, so removing files locally that vanish
+  # upstream is safe. --exclude='*' protects sibling sub-directories in $DEST
+  # (e.g. "DO App/") from being touched by the weekly/ mirror — they're handled
+  # by separate rsync passes below.
   rsync -av --delete --include='*.md' --exclude='*' "$REPO/weekly/" "$DEST/"
+  # Website report (GA4 + Clarity) → DO App/ subfolder.
+  mkdir -p "$DEST/DO App"
+  rsync -av --delete --include='*.md' --exclude='*' "$REPO/reports/" "$DEST/DO App/"
   echo "done."
 } >> "$LOG" 2>&1

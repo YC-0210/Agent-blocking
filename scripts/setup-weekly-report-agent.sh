@@ -42,7 +42,7 @@ chmod +x "$SCRIPT_DEST"
 echo "==> setting up sparse-checkout mirror at $MIRROR"
 if [ ! -d "$MIRROR/.git" ]; then
   git -c http.version=HTTP/1.1 clone --filter=blob:none --sparse "$REPO_URL" "$MIRROR"
-  git -C "$MIRROR" sparse-checkout set weekly
+  git -C "$MIRROR" sparse-checkout set weekly reports
 else
   echo "    mirror already present; fetching"
   git -C "$MIRROR" -c http.version=HTTP/1.1 fetch origin main
