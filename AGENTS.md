@@ -204,3 +204,25 @@ strategy.onSessionCreation = { [weak self] status in
 - Mock dependencies for unit tests
 - Test both success and failure paths
 - Name tests descriptively: `testGivenX_WhenY_ThenZ()`
+
+## Agent Skills
+
+Skills are installed in `.claude/skills/`. Invoke with `/skill-name` at the start of a session.
+
+| Skill | When to use |
+|-------|-------------|
+| `/grill-me` | Start of any new feature — get aligned before writing a line of code |
+| `/to-prd` | After grilling — turn the conversation into a destination document |
+| `/to-issues` | After PRD — split into vertical-slice GitHub Issues with blocking relationships |
+| `/tdd` | During implementation — red-green-refactor loop per issue |
+| `/improve-codebase-architecture` | When AI output quality drops — find shallow modules to deepen |
+| `/diagnosing-bugs` | When a bug is unclear — structured investigation before changing code |
+| `/code-review` | After implementation — review commits before merging |
+| `/qa` | Manual QA pass — links findings back to GitHub Issues |
+
+**Config files read by skills:**
+- `docs/agents/issue-tracker.md` — GitHub Issues on YC-0210/DO-IOS-Claude-
+- `docs/agents/triage-labels.md` — label vocabulary
+- `docs/agents/domain-docs.md` — where CONTEXT.md and ADRs live
+
+**Smart zone target:** keep each session under ~100k tokens. Clear context (don't compact) between phases.
