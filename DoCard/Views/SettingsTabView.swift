@@ -166,7 +166,7 @@ struct SettingsTabView: View {
           // for free users (mirrors ScheduleTabView's pattern: tap a free
           // card → paywall sheet).
           Button {
-            if subscriptionManager.isPremium {
+            if subscriptionManager.entitlements.canSyncExternalDevices {
               navigateToMacPairing = true
             } else {
               showPaywall = true
@@ -288,6 +288,28 @@ struct SettingsTabView: View {
           .listRowBackground(Color(.systemGray6).opacity(0.08))
         }
 
+        #if DEBUG
+          // MARK: - Debug Section (test builds only — never ships to the App Store)
+          // verbatim: debug-only strings must not enter the localization catalog
+          Section {
+            Picker(selection: debugForcedTierBinding) {
+              Text(verbatim: "真實訂閱").tag("real")
+              Text(verbatim: "免費 Free").tag("free")
+              Text(verbatim: "付費 Premium").tag("premium")
+            } label: {
+              Text(verbatim: "強制訂閱層級")
+            }
+          } header: {
+            Text(verbatim: "🛠 Debug")
+          } footer: {
+            Text(
+              verbatim:
+                "僅 Debug 版本顯示，永遠不會進到 App Store。模擬免費／付費體驗，不會更動你的真實訂閱。"
+            )
+          }
+          .listRowBackground(Color(.systemGray6).opacity(0.08))
+        #endif
+
       }
       .scrollContentBackground(.hidden)
       .navigationTitle(String(localized: "設定"))
@@ -318,6 +340,32 @@ struct SettingsTabView: View {
       }
     }
   }
+
+  #if DEBUG
+    /// Debug-only binding for the "force subscription tier" picker. Writes the
+    /// override into the App Group (so the extensions honor it too) and nudges the
+    /// subscription manager so the UI re-reads immediately. Compiled out of release.
+    private var debugForcedTierBinding: Binding<String> {
+      let mgr = subscriptionManager
+      return Binding(
+        get: {
+          switch SharedData.debugForcedTier {
+          case .free: return "free"
+          case .premium: return "premium"
+          case nil: return "real"
+          }
+        },
+        set: { newValue in
+          switch newValue {
+          case "free": SharedData.debugForcedTier = .free
+          case "premium": SharedData.debugForcedTier = .premium
+          default: SharedData.debugForcedTier = nil
+          }
+          mgr.objectWillChange.send()
+        }
+      )
+    }
+  #endif
 
   // MARK: - Sync Global Settings to All Profiles
 

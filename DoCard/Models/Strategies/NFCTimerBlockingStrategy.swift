@@ -22,7 +22,7 @@ class NFCTimerBlockingStrategy: BlockingStrategy {
   private let appBlocker: AppBlockerUtil = AppBlockerUtil()
 
   private var emptySelectionMessage: String {
-    SharedData.effectiveSubscriptionTier == .free
+    !Entitlements.current.canBlockCategories
       ? String(localized: "免費版目前只支援封鎖 App。請先選擇要封鎖的 App，才能開始專注")
       : String(localized: "請先選擇要封鎖的 App，才能開始專注")
   }

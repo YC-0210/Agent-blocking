@@ -79,7 +79,7 @@ final class MacSessionSyncService: ObservableObject {
     // SettingsTabView entry-point gate. We deliberately only gate START —
     // END remains unguarded so any session row created while the user was
     // premium still cleans up cleanly after a mid-session downgrade.
-    guard SharedData.effectiveSubscriptionTier == .premium else {
+    guard Entitlements.current.canSyncExternalDevices else {
       log.info("startSession: skipping Mac sync — tier is free")
       return
     }
@@ -164,7 +164,7 @@ final class MacSessionSyncService: ObservableObject {
       // Premium gate: free users SHOULD have no Supabase row matching a
       // local active session — that's the correct steady-state for free
       // tier. Don't resend; this branch is only meaningful for premium.
-      guard SharedData.effectiveSubscriptionTier == .premium else {
+      guard Entitlements.current.canSyncExternalDevices else {
         log.info("reconcile: local active but Supabase missing — tier is free, skipping resend")
         return
       }

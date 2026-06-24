@@ -30,17 +30,18 @@ class AppBlockerUtil {
     var webDomainTokens = selection.webDomainTokens
 
     let tier = SharedData.effectiveSubscriptionTier
-    if tier == .free && !allowOnlyApps {
-      let limit = 3
-      if applicationTokens.count > limit {
-        applicationTokens = Set(Array(applicationTokens).prefix(limit))
+    let entitlements = Entitlements.forTier(tier)
+    // Allow mode is an inverse selection ("only these apps run") and is never
+    // tier-limited; the rule book governs the normal block selection only.
+    if !allowOnlyApps {
+      if applicationTokens.count > entitlements.appLimit {
+        applicationTokens = Set(Array(applicationTokens).prefix(entitlements.appLimit))
       }
-      categoryTokens = []
-      webDomainTokens = []
-    } else if !allowOnlyApps {
-      let premiumLimit = 50
-      if applicationTokens.count > premiumLimit {
-        applicationTokens = Set(Array(applicationTokens).prefix(premiumLimit))
+      if !entitlements.canBlockCategories {
+        categoryTokens = []
+      }
+      if !entitlements.canBlockWebDomains {
+        webDomainTokens = []
       }
     }
 

@@ -45,7 +45,7 @@ struct ReportView: View {
     }
 
     private func loadReport() {
-        viewModel.load(context: context, isPremium: subscriptionManager.isPremium)
+        viewModel.load(context: context, isPremium: subscriptionManager.entitlements.canSeeDeepReport)
     }
 
     // MARK: - Empty State
@@ -69,7 +69,7 @@ struct ReportView: View {
     // MARK: - Report Content
 
     private var reportContent: some View {
-        let isPremium = subscriptionManager.isPremium
+        let isPremium = subscriptionManager.entitlements.canSeeDeepReport
 
         return ScrollView {
             VStack(spacing: 16) {
@@ -144,7 +144,7 @@ struct ReportView: View {
         let endStr = formatter.string(
             from: calendar.date(byAdding: .day, value: -1, to: weekInterval?.end ?? Date()) ?? Date()
         )
-        let isPremium = subscriptionManager.isPremium
+        let isPremium = subscriptionManager.entitlements.canSeeDeepReport
 
         return Group {
             if isPremium {

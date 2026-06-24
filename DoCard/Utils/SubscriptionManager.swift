@@ -176,8 +176,18 @@ class SubscriptionManager: ObservableObject {
 
     // MARK: - Helpers
 
+    /// Grace-aware premium status. Reads `SharedData.effectiveSubscriptionTier` —
+    /// the same source the enforcement gate uses — so the UI and the blocking engine
+    /// agree, including during the 16-day billing grace period after a lapsed renewal.
     var isPremium: Bool {
-        return tier == .premium
+        return SharedData.effectiveSubscriptionTier == .premium
+    }
+
+    /// The current user's entitlements (grace-aware). UI gates should ask this rule
+    /// book — e.g. `subscriptionManager.entitlements.canSchedule` — instead of
+    /// re-deriving the free/premium rules at each call site.
+    var entitlements: Entitlements {
+        return Entitlements.current
     }
 
     var monthlyProduct: Product? {
@@ -188,9 +198,6 @@ class SubscriptionManager: ObservableObject {
         products.first { $0.id == SubscriptionProduct.annual }
     }
 
-    /// Free tier app limit
-    static let freeAppLimit = 3
-
-    /// Premium tier app limit (Apple hard limit)
-    static let premiumAppLimit = 50
+    // App-block limits now live on the `Entitlements` rule book
+    // (`Entitlements.freeAppLimit` / `Entitlements.premiumAppLimit`).
 }
