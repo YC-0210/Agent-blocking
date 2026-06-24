@@ -195,4 +195,19 @@ final class TodaysTasksStoreTests: XCTestCase {
     let reloaded = TodaysTasksStore(defaults: defaults, now: { today })
     XCTAssertEqual(reloaded.goals.map(\.name), ["C", "A", "B"])
   }
+
+  // MARK: - Behavior 12: reordering forward (the offset a List's .onMove produces)
+
+  func testReorderForwardRewritesOrder() {
+    let today = day(2026, 6, 24)
+    let store = TodaysTasksStore(defaults: defaults, now: { today })
+    store.addGoal(name: "A")
+    store.addGoal(name: "B")
+    store.addGoal(name: "C")
+
+    // Moving "A" (index 0) toward the end: List .onMove passes a toOffset
+    // past the source index, unlike the backward case above.
+    store.move(fromOffsets: IndexSet(integer: 0), toOffset: 2)
+    XCTAssertEqual(store.goals.map(\.name), ["B", "A", "C"])
+  }
 }
