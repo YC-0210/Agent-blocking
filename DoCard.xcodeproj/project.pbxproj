@@ -119,6 +119,7 @@
 				Models/Shared.swift,
 				Utils/AppBlockerUtil.swift,
 				Utils/Entitlements.swift,
+				Utils/SuppressionRegistry.swift,
 			);
 			target = 80FF388C2D80DB540032BC5E /* DoCardWidgetExtension */;
 		};
@@ -142,6 +143,7 @@
 				Utils/Analytics/DistractionTrackingShared.swift,
 				Utils/AppBlockerUtil.swift,
 				Utils/Entitlements.swift,
+				Utils/SuppressionRegistry.swift,
 				Utils/DebugLogStore.swift,
 				Utils/KeychainHelper.swift,
 				Utils/MacSync/MacExtensionSyncWriter.swift,

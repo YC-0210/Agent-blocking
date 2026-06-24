@@ -19,12 +19,6 @@ private let log = Logger(
 // Make sure that your class name matches the NSExtensionPrincipalClass in your Info.plist.
 class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   private let appBlocker = AppBlockerUtil()
-  private static let emergencyUnlockedSchedulePrefix = "emergencyUnlockedSchedule_"
-  private static let cardTapSuppressedSchedulePrefix = "cardTapSuppressedSchedule_"
-  private static let scheduleSuppressionPrefixes = [
-    emergencyUnlockedSchedulePrefix,
-    cardTapSuppressedSchedulePrefix,
-  ]
 
   override init() {
     super.init()
@@ -46,17 +40,9 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
     // EMERGENCY_UNLOCK_AUDIT: respect app-written suppression for the current
     // scheduled activity window so intervalDidStart cannot immediately re-block.
-    for prefix in Self.scheduleSuppressionPrefixes {
-      let suppressKey = prefix + activity.rawValue
-      if let windowEndTimestamp = SharedData.readVerifiedDouble(forKey: suppressKey) {
-        let windowEnd = Date(timeIntervalSince1970: windowEndTimestamp)
-        if Date() < windowEnd {
-          log.info("intervalDidStart suppressed for activity: \(activity.rawValue) until \(windowEnd, privacy: .public)")
-          return
-        }
-
-        SharedData.removeSignedValue(forKey: suppressKey)
-      }
+    if SuppressionRegistry.isSuppressed(activityId: activity.rawValue) {
+      log.info("intervalDidStart suppressed for activity: \(activity.rawValue, privacy: .public)")
+      return
     }
 
     let snapshotCount = SharedData.profileSnapshots.count

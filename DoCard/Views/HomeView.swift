@@ -79,7 +79,7 @@ struct HomeView: View {
   }
 
   var isBlocking: Bool {
-    return strategyManager.isBlocking
+    return strategyManager.activeSessionStatus.isBlocking
   }
 
   var body: some View {

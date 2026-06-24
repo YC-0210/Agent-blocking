@@ -107,13 +107,15 @@ struct BlockedProfileListView: View {
   }
 
   private func deleteProfiles(at offsets: IndexSet) {
-    let activeSession = BlockedProfileSession.mostRecentActiveSession(
-      in: context)
+    // Block deleting whichever profile the unified status reports as active — this honours
+    // manual-beats-scheduled precedence and a scheduled cold start, rather than the
+    // most-recent-by-time SwiftData query this guard used before.
+    let activeProfileId = strategyManager.activeSessionStatus.activeProfileId
 
     // Check if any of the profiles to delete are active
     for index in offsets {
       let profile = profiles[index]
-      if profile.id == activeSession?.blockedProfile.id {
+      if profile.id == activeProfileId {
         showErrorAlert = true
         return
       }

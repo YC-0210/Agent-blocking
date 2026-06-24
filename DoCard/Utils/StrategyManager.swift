@@ -8,12 +8,6 @@ private let smLogger = Logger(subsystem: "app.docard", category: "StrategyManage
 @MainActor
 class StrategyManager: ObservableObject {
   static let shared = StrategyManager()
-  private static let emergencyUnlockedSchedulePrefix = "emergencyUnlockedSchedule_"
-  private static let cardTapSuppressedSchedulePrefix = "cardTapSuppressedSchedule_"
-  private static let scheduleSuppressionPrefixes = [
-    emergencyUnlockedSchedulePrefix,
-    cardTapSuppressedSchedulePrefix,
-  ]
 
   static let availableStrategies: [BlockingStrategy] = [
     NFCBlockingStrategy(),
@@ -80,6 +74,37 @@ class StrategyManager: ObservableObject {
 
   var isBlocking: Bool {
     return activeSession?.isActive == true
+  }
+
+  /// The single in-app status of the current session — what screens should read instead of
+  /// re-deriving from `activeSession`. A live in-memory session is used first (its
+  /// manual-vs-scheduled precedence is already settled upstream by `getActiveSession`, and the
+  /// kind comes from the session's trigger source). When no live session has synced yet, the App
+  /// Group schedule snapshot is consulted so a freshly-opened scheduled window still reports
+  /// active — the ADR-0002 cold-start invariant. See `docs/adr/0002-active-session-status-read-api.md`.
+  var activeSessionStatus: ActiveSessionStatus {
+    if let session = activeSession, session.isActive {
+      let facts = ActiveSessionStatus.SessionFacts(
+        profileId: session.blockedProfile.id,
+        plannedDurationMinutes: SharedData.getActiveStrategySharedSession()?.plannedDurationMinutes
+      )
+      if session.triggerSource == "scheduled" {
+        return ActiveSessionStatus.resolve(manual: nil, scheduled: facts)
+      }
+      return ActiveSessionStatus.resolve(manual: facts, scheduled: nil)
+    }
+    // Cold start: a scheduled window can open out-of-process (the DeviceActivity extension writes
+    // the App Group snapshot) before `syncScheduleSessions()` upserts it into SwiftData. Report
+    // that schedule as active. Manual sessions have no such gap — they start in-process — so only
+    // the schedule snapshot is consulted here.
+    if let scheduled = SharedData.getActiveScheduleSharedSession() {
+      let facts = ActiveSessionStatus.SessionFacts(
+        profileId: scheduled.blockedProfileId,
+        plannedDurationMinutes: scheduled.plannedDurationMinutes
+      )
+      return ActiveSessionStatus.resolve(manual: nil, scheduled: facts)
+    }
+    return .none
   }
 
   var isBreakActive: Bool {
@@ -1193,7 +1218,7 @@ class StrategyManager: ObservableObject {
   }
 
   func restoreScheduledSessionIfNeeded() {
-    cleanUpExpiredScheduleSuppressions()
+    SuppressionRegistry.cleanupExpired()
 
     guard activeSession == nil else {
       smLogger.debug("restoreScheduledSessionIfNeeded: active manual/NFC session present — skipping scheduled restore")
@@ -1257,31 +1282,6 @@ class StrategyManager: ObservableObject {
       for: BlockedProfiles.getSnapshot(for: session.blockedProfile),
       triggerSource: session.triggerSource
     )
-  }
-
-  private func cleanUpExpiredScheduleSuppressions(
-    now: Date = Date(),
-    suite: UserDefaults? = UserDefaults(suiteName: "group.DO.version3")
-  ) {
-    suite?.dictionaryRepresentation().keys
-      .filter { key in
-        Self.scheduleSuppressionPrefixes.contains { prefix in
-          key.hasPrefix(prefix)
-        }
-      }
-      .forEach { key in
-        guard let timestamp = suite?.object(forKey: key) as? Data else {
-          suite?.removeObject(forKey: key)
-          suite?.removeObject(forKey: key + ".hmac")
-          return
-        }
-
-        let decodedTimestamp = (try? JSONDecoder().decode(Double.self, from: timestamp)) ?? 0
-        if now >= Date(timeIntervalSince1970: decodedTimestamp) {
-          suite?.removeObject(forKey: key)
-          suite?.removeObject(forKey: key + ".hmac")
-        }
-      }
   }
 
   func reconcileScheduleRegistrations(context: ModelContext) {

@@ -13,12 +13,9 @@ enum SubscriptionTier: String, Codable {
 }
 
 enum SharedData {
-  private static let emergencyUnlockedSchedulePrefix = "emergencyUnlockedSchedule_"
-  private static let cardTapSuppressedSchedulePrefix = "cardTapSuppressedSchedule_"
-  private static let scheduleSuppressionPrefixes = [
-    emergencyUnlockedSchedulePrefix,
-    cardTapSuppressedSchedulePrefix,
-  ]
+  // Suppression-flag prefixes, key construction, and HMAC signing live in
+  // `SuppressionRegistry` — the single owner of the suppression *storage* contract.
+  // The scheduling-clock logic below (which window is active, when it ends) stays here.
 
   private static let suite: UserDefaults = {
     guard let defaults = UserDefaults(suiteName: "group.DO.version3") else {
@@ -514,20 +511,12 @@ enum SharedData {
         return false
       }
 
-      let activityId = "\(snapshot.id.uuidString).\(schedule.id.uuidString)_\(activityWeekday.rawValue)"
-
-      for prefix in scheduleSuppressionPrefixes {
-        let suppressKey = prefix + activityId
-        guard let windowEndTimestamp = readVerifiedDouble(forKey: suppressKey) else { continue }
-
-        if now < Date(timeIntervalSince1970: windowEndTimestamp) {
-          return false
-        }
-
-        removeSignedValue(forKey: suppressKey)
-      }
-
-      return true
+      let activityId = SuppressionRegistry.activityId(
+        profileId: snapshot.id,
+        scheduleId: schedule.id,
+        weekday: activityWeekday
+      )
+      return !SuppressionRegistry.isSuppressed(activityId: activityId, now: now)
     }
   }
 
@@ -609,21 +598,24 @@ enum SharedData {
         return
       }
 
-      let activityId = "\(profile.id.uuidString).\(schedule.id.uuidString)_\(activityWeekday.rawValue)"
+      let activityId = SuppressionRegistry.activityId(
+        profileId: profile.id,
+        scheduleId: schedule.id,
+        weekday: activityWeekday
+      )
       suppressions[activityId] = windowEnd
     }
   }
 
   private static func writeScheduleSuppressionFlags(
     for profile: ProfileSnapshot,
-    prefix: String,
+    reason: SuppressionRegistry.Reason,
     now: Date = Date(),
     calendar: Calendar = .current
   ) {
     let suppressions = currentScheduleSuppressionWindows(for: profile, now: now, calendar: calendar)
     for (activityId, windowEnd) in suppressions {
-      let suppressKey = prefix + activityId
-      writeSignedDouble(windowEnd.timeIntervalSince1970, forKey: suppressKey)
+      SuppressionRegistry.suppress(activityId: activityId, reason: reason, until: windowEnd)
     }
   }
 
@@ -634,7 +626,7 @@ enum SharedData {
     guard triggerSource == "scheduled" else { return }
     writeScheduleSuppressionFlags(
       for: profile,
-      prefix: emergencyUnlockedSchedulePrefix
+      reason: .emergencyUnlock
     )
   }
 
@@ -646,7 +638,7 @@ enum SharedData {
     guard triggerSource == "scheduled", endReason == "card_tap" else { return }
     writeScheduleSuppressionFlags(
       for: profile,
-      prefix: cardTapSuppressedSchedulePrefix
+      reason: .cardTap
     )
   }
 

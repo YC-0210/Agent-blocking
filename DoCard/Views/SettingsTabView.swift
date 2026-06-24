@@ -259,7 +259,7 @@ struct SettingsTabView: View {
         .listRowBackground(Color(.systemGray6).opacity(0.08))
 
         // MARK: - Emergency Section (untouched — always-free safety feature)
-        if strategyManager.isBlocking {
+        if strategyManager.activeSessionStatus.isBlocking {
           Section {
             Button(action: onEmergencyTapped) {
               HStack {
