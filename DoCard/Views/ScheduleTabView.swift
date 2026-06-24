@@ -381,6 +381,7 @@ struct ScheduleEditSheet: View {
   @State private var showConflictAlert = false
   @State private var conflictProfileName = ""
   @State private var showDeleteConfirmation = false
+  @State private var showActiveScheduleBlockAlert = false
   @State private var showTimerConflictAlert = false
   @State private var showEndBeforeStartAlert = false
   @State private var showNextDayMismatchAlert = false
@@ -564,7 +565,15 @@ struct ScheduleEditSheet: View {
 
           // Delete button (edit mode)
           if isEditing {
-            Button(action: { showDeleteConfirmation = true }) {
+            Button(action: {
+              // Refuse to delete a schedule that is currently driving a live block — show the
+              // same "排程進行中" guidance the toggle-off guard uses, not the delete prompt.
+              if isEditingScheduleCurrentlyBlocking {
+                showActiveScheduleBlockAlert = true
+              } else {
+                showDeleteConfirmation = true
+              }
+            }) {
               Text(String(localized: "刪除排程"))
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -628,6 +637,11 @@ struct ScheduleEditSheet: View {
       Button(String(localized: "刪除"), role: .destructive) { deleteSchedule() }
     } message: {
       Text(String(localized: "確定要刪除此排程嗎？"))
+    }
+    .alert(String(localized: "排程進行中"), isPresented: $showActiveScheduleBlockAlert) {
+      Button(String(localized: "好"), role: .cancel) {}
+    } message: {
+      Text(String(localized: "這條排程正在進行中。請靠卡結束本次專注，或使用緊急解鎖。"))
     }
     .alert(String(localized: "無法建立排程"), isPresented: $showTimerConflictAlert) {
       Button(String(localized: "好"), role: .cancel) {}
@@ -787,8 +801,22 @@ struct ScheduleEditSheet: View {
     }
   }
 
+  /// True when the schedule being edited is currently driving an active scheduled block — so
+  /// deleting it would tear the live block down. Reads the unified active-session status (which
+  /// also covers the cold-start gap before the session syncs into SwiftData), then confirms this
+  /// specific schedule's window is open. Mirrors the toggle-off guard in `ScheduleTabView`.
+  private var isEditingScheduleCurrentlyBlocking: Bool {
+    guard let profile = editingProfile, let schedule = editingSchedule else { return false }
+    let status = StrategyManager.shared.activeSessionStatus
+    guard status.kind == .scheduled, status.activeProfileId == profile.id else { return false }
+    return schedule.isCurrentlyInWindow()
+  }
+
   private func deleteSchedule() {
     guard let profile = editingProfile, let schedule = editingSchedule else { return }
+    // Safety net: never delete a schedule out from under a live block, even if its window opened
+    // between the confirm prompt appearing and being confirmed. The delete button shows the alert.
+    guard !isEditingScheduleCurrentlyBlocking else { return }
     do {
       DeviceActivityCenterUtil.removeScheduleTimerActivity(
         for: profile, scheduleId: schedule.id)
