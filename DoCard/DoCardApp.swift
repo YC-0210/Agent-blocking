@@ -82,6 +82,10 @@ struct DoCardApp: App {
     let migrationContext = ModelContext(container)
     BlockedProfiles.migrateSchedulesToArray(in: migrationContext)
 
+    // Migrate the legacy gallery on/off toggle to the 3-way home-centerpiece
+    // selection (true → gallery, false → card). Idempotent.
+    HomeCenterpiece.migrateLegacySettingIfNeeded()
+
     let asyncDependency: @Sendable () async -> (ModelContainer) = {
       @MainActor in
       return container

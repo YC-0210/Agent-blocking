@@ -66,8 +66,14 @@ enum DailyUsageAggregator {
     }
     let galleryShownOnMain: Bool = {
       let defaults = UserDefaults.standard
-      if defaults.object(forKey: "showMotivationGalleryOnHome") == nil { return true }
-      return defaults.bool(forKey: "showMotivationGalleryOnHome")
+      // Prefer the 3-way home-centerpiece selection; fall back to the legacy
+      // Boolean during the brief window before migration runs on first launch.
+      if let raw = defaults.string(forKey: HomeCenterpiece.storageKey),
+        let centerpiece = HomeCenterpiece(rawValue: raw) {
+        return centerpiece == .gallery
+      }
+      if defaults.object(forKey: HomeCenterpiece.legacyGalleryKey) == nil { return true }
+      return defaults.bool(forKey: HomeCenterpiece.legacyGalleryKey)
     }()
 
     // --- Distraction usage (opt-in; nil when not opted in or that day untracked) ---
