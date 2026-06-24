@@ -14,7 +14,7 @@ struct TodaysTasksCardView: View {
 
   private let maxCardWidth: CGFloat = 300
   private let corner: CGFloat = 24
-  private let rowHeight: CGFloat = 46
+  private let rowHeight: CGFloat = 50
 
   var body: some View {
     VStack(spacing: 16) {
@@ -123,6 +123,7 @@ struct TodaysTasksCardView: View {
       List {
         ForEach(store.goals) { goal in
           filledRow(goal)
+            .frame(height: rowHeight)
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
             .listRowInsets(EdgeInsets())
@@ -134,6 +135,7 @@ struct TodaysTasksCardView: View {
         if !editMode.isEditing {
           ForEach(0..<emptySlotCount, id: \.self) { _ in
             emptyRow
+              .frame(height: rowHeight)
               .listRowBackground(Color.clear)
               .listRowSeparator(.hidden)
               .listRowInsets(EdgeInsets())
@@ -144,6 +146,7 @@ struct TodaysTasksCardView: View {
       .scrollContentBackground(.hidden)
       .scrollDisabled(true)
       .contentMargins(.vertical, 0, for: .scrollContent)
+      .environment(\.defaultMinListRowHeight, rowHeight)
       .environment(\.editMode, $editMode)
       .frame(height: listHeight)
       .animation(.easeInOut, value: editMode)
@@ -154,7 +157,7 @@ struct TodaysTasksCardView: View {
   /// empty add-rows hide, so size to the goal count.
   private var listHeight: CGFloat {
     let count = editMode.isEditing ? store.goals.count : TodaysTasksStore.maxGoals
-    return CGFloat(max(count, 1)) * rowHeight
+    return CGFloat(max(count, 1)) * rowHeight + 4
   }
 
   private var emptySlotCount: Int {
