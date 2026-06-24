@@ -8,12 +8,6 @@ private let smLogger = Logger(subsystem: "app.docard", category: "StrategyManage
 @MainActor
 class StrategyManager: ObservableObject {
   static let shared = StrategyManager()
-  private static let emergencyUnlockedSchedulePrefix = "emergencyUnlockedSchedule_"
-  private static let cardTapSuppressedSchedulePrefix = "cardTapSuppressedSchedule_"
-  private static let scheduleSuppressionPrefixes = [
-    emergencyUnlockedSchedulePrefix,
-    cardTapSuppressedSchedulePrefix,
-  ]
 
   static let availableStrategies: [BlockingStrategy] = [
     NFCBlockingStrategy(),
@@ -1193,7 +1187,7 @@ class StrategyManager: ObservableObject {
   }
 
   func restoreScheduledSessionIfNeeded() {
-    cleanUpExpiredScheduleSuppressions()
+    SuppressionRegistry.cleanupExpired()
 
     guard activeSession == nil else {
       smLogger.debug("restoreScheduledSessionIfNeeded: active manual/NFC session present — skipping scheduled restore")
@@ -1257,31 +1251,6 @@ class StrategyManager: ObservableObject {
       for: BlockedProfiles.getSnapshot(for: session.blockedProfile),
       triggerSource: session.triggerSource
     )
-  }
-
-  private func cleanUpExpiredScheduleSuppressions(
-    now: Date = Date(),
-    suite: UserDefaults? = UserDefaults(suiteName: "group.DO.version3")
-  ) {
-    suite?.dictionaryRepresentation().keys
-      .filter { key in
-        Self.scheduleSuppressionPrefixes.contains { prefix in
-          key.hasPrefix(prefix)
-        }
-      }
-      .forEach { key in
-        guard let timestamp = suite?.object(forKey: key) as? Data else {
-          suite?.removeObject(forKey: key)
-          suite?.removeObject(forKey: key + ".hmac")
-          return
-        }
-
-        let decodedTimestamp = (try? JSONDecoder().decode(Double.self, from: timestamp)) ?? 0
-        if now >= Date(timeIntervalSince1970: decodedTimestamp) {
-          suite?.removeObject(forKey: key)
-          suite?.removeObject(forKey: key + ".hmac")
-        }
-      }
   }
 
   func reconcileScheduleRegistrations(context: ModelContext) {

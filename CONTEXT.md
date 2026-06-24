@@ -36,8 +36,12 @@ The canonical subscription state accessor — reads `subscriptionTier` from App 
 _Avoid:_ `subscriptionTier` (direct read)
 
 **Suppression flag**
-An HMAC-signed App Group UserDefaults key that prevents a scheduled window from re-engaging after the user has explicitly ended it. Multi-prefix system: `emergencyUnlockedSchedule_<activityId>` and `cardTapSuppressedSchedule_<activityId>`. Prefix lists are duplicated across main app, `StrategyManager`, and extension — all three must stay in sync.
+An HMAC-signed App Group UserDefaults key that prevents a scheduled window from re-engaging after the user has explicitly ended it. Two reasons, each its own key namespace: `emergencyUnlockedSchedule_<activityId>` and `cardTapSuppressedSchedule_<activityId>`. Owned end-to-end by **Suppression Registry** — one place defines the prefixes, key shape, signing, and cleanup; no process keeps its own copy.
 _Avoid:_ disable flag, block flag
+
+**Suppression Registry** (`Utils/SuppressionRegistry.swift`)
+The single owner of the suppression-flag *storage* contract: the two reason prefixes, the `"<profile>.<schedule>_<weekday>"` activity-id shape, HMAC signing (via `SharedData`), and read / write / cleanup. The app, `StrategyManager`, and the DeviceActivity extension all cross this one interface (`suppress`, `isSuppressed`, `cleanupExpired`, `activityId`) instead of re-implementing it. Owns *storage only* — the scheduling-clock (which window is active, when it ends) deliberately stays in `SharedData`; see `docs/adr/0001-suppression-registry.md`.
+_Avoid:_ re-deriving prefixes or building suppression keys by hand; merging the window math into it
 
 **Vertical slice**
 A task that crosses all layers (SwiftData schema → manager → UI) so the feature is testable end-to-end after that slice. Preferred over horizontal (layer-by-layer) implementation.
@@ -62,7 +66,8 @@ _Avoid:_ phase (implies horizontal)
 | `Utils/AppBlockerUtil.swift` | ⚠️ Enforcement gate — free tier token stripping (asks `Entitlements`) |
 | `Components/BlockedProfileView/AppPicker.swift` | ⚠️ UI gate — free tier app selection (asks `Entitlements`) |
 | `Utils/Entitlements.swift` | Rule book — tier → capabilities; grace-aware `current`; UI + enforcement gates both ask it |
-| `Models/Shared.swift` | App Group keys, HMAC helpers, suppression flag writers |
+| `Utils/SuppressionRegistry.swift` | Single owner of suppression-flag storage — prefixes, key shape, signing, cleanup; app + extension both cross it |
+| `Models/Shared.swift` | App Group keys, HMAC helpers, suppression flag writers (delegate storage to `SuppressionRegistry`) |
 | `Utils/SubscriptionManager.swift` | StoreKit 2 singleton (`@MainActor`) |
 | `Models/BlockedProfileSessions.swift` | SwiftData session model |
 | `DoCardDeviceMonitor/DeviceActivityMonitorExtension.swift` | Extension — reads subscription tier before applying shields |
