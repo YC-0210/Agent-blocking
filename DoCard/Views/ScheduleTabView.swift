@@ -53,14 +53,14 @@ struct ScheduleTabView: View {
                 profile: entry.profile,
                 schedule: entry.schedule,
                 onToggle: { newValue in
-                  if subscriptionManager.isPremium {
+                  if subscriptionManager.entitlements.canSchedule {
                     toggleSchedule(profile: entry.profile, schedule: entry.schedule, enabled: newValue)
                   } else {
                     showPaywall = true
                   }
                 },
                 onTap: {
-                  if subscriptionManager.isPremium {
+                  if subscriptionManager.entitlements.canSchedule {
                     editingContext = ScheduleEditContext(
                       profile: entry.profile, schedule: entry.schedule)
                   } else {
@@ -81,7 +81,7 @@ struct ScheduleTabView: View {
             .foregroundStyle(.secondary)
 
           Button(action: {
-            if subscriptionManager.isPremium {
+            if subscriptionManager.entitlements.canSchedule {
               showCreateSheet = true
             } else {
               showPaywall = true

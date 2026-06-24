@@ -52,7 +52,7 @@ enum MacExtensionSyncWriter {
     // rows for free users. Mirrors MacSessionSyncService.startSession's
     // guard. END is intentionally not gated (see notifySessionEnded for
     // the symmetric rationale — cleanup must always run).
-    guard SharedData.effectiveSubscriptionTier == .premium else {
+    guard Entitlements.current.canSyncExternalDevices else {
       log.info("session start: tier is free, skipping Mac sync")
       return
     }

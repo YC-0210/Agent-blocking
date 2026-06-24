@@ -118,6 +118,7 @@
 				Models/Schedule.swift,
 				Models/Shared.swift,
 				Utils/AppBlockerUtil.swift,
+				Utils/Entitlements.swift,
 			);
 			target = 80FF388C2D80DB540032BC5E /* DoCardWidgetExtension */;
 		};
@@ -140,6 +141,7 @@
 				Models/Timers/TimerActivityUtil.swift,
 				Utils/Analytics/DistractionTrackingShared.swift,
 				Utils/AppBlockerUtil.swift,
+				Utils/Entitlements.swift,
 				Utils/DebugLogStore.swift,
 				Utils/KeychainHelper.swift,
 				Utils/MacSync/MacExtensionSyncWriter.swift,
@@ -207,6 +209,11 @@
 			path = DoCardWidget;
 			sourceTree = "<group>";
 		};
+		FACE7E57FACE7E57FACE7E57 /* DoCardTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = DoCardTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -270,6 +277,7 @@
 				80FF38902D80DB540032BC5E /* DoCardWidget */,
 				8017130C2DE6C78C00B77FE1 /* DoCardDeviceMonitor */,
 				808A3C4F2E4ACD18002A7812 /* DoCardShieldConfig */,
+				FACE7E57FACE7E57FACE7E57 /* DoCardTests */,
 				80DBF6122CB776D100EEA8A6 /* Frameworks */,
 				801B20962CB363A10073E9E2 /* Products */,
 			);
@@ -365,6 +373,9 @@
 			);
 			dependencies = (
 				801B20A82CB363A20073E9E2 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				FACE7E57FACE7E57FACE7E57 /* DoCardTests */,
 			);
 			name = DoCardTests;
 			packageProductDependencies = (

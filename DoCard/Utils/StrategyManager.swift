@@ -1070,7 +1070,7 @@ class StrategyManager: ObservableObject {
       let snapshot = BlockedProfiles.getSnapshot(for: definedProfile)
       if !appBlocker.wouldShieldAnything(for: snapshot) {
         let errorMessage =
-          SharedData.effectiveSubscriptionTier == .free
+          !Entitlements.current.canBlockCategories
           ? String(
             localized:
               "免費版目前只支援封鎖 App。請先選擇要封鎖的 App，才能開始專注"

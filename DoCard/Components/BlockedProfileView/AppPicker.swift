@@ -27,11 +27,9 @@ struct AppPicker: View {
   /// The max allowed for the current tier
   private var appLimit: Int {
     if allowMode {
-      return SubscriptionManager.premiumAppLimit
+      return Entitlements.premiumAppLimit
     }
-    return subscriptionManager.isPremium
-      ? SubscriptionManager.premiumAppLimit
-      : SubscriptionManager.freeAppLimit
+    return subscriptionManager.entitlements.appLimit
   }
 
   private var compactTitle: String {
@@ -46,7 +44,7 @@ struct AppPicker: View {
 
   /// Whether the current selection exceeds the 50-app Apple hard limit
   private var isOverLimit: Bool {
-    return appCount > SubscriptionManager.premiumAppLimit
+    return appCount > Entitlements.premiumAppLimit
   }
 
   private var hasSelection: Bool {
@@ -56,12 +54,12 @@ struct AppPicker: View {
   /// Whether the current selection exceeds free tier limits
   private var exceedsFreeTierLimit: Bool {
     guard !subscriptionManager.isPremium, !allowMode else { return false }
-    return appCount > SubscriptionManager.freeAppLimit
+    return appCount > Entitlements.freeAppLimit
   }
 
   /// Whether the current selection exceeds premium tier limits (Apple hard limit)
   private var exceedsPremiumLimit: Bool {
-    return appCount > SubscriptionManager.premiumAppLimit
+    return appCount > Entitlements.premiumAppLimit
   }
 
   /// Whether the Done button should be disabled

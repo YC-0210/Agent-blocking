@@ -729,6 +729,9 @@ enum SharedData {
   /// Checks the effective tier, accounting for App Store billing grace period (16 days).
   /// Extensions should use this instead of reading `subscriptionTier` directly.
   static var effectiveSubscriptionTier: SubscriptionTier {
+    #if DEBUG
+    if let forced = debugForcedTier { return forced }
+    #endif
     let tier = subscriptionTier
     if tier == .premium { return .premium }
 
@@ -742,4 +745,26 @@ enum SharedData {
 
     return .free
   }
+
+  #if DEBUG
+  /// Debug-only override for `effectiveSubscriptionTier`. Lets a developer preview
+  /// the free (or premium) experience on a real device without changing their real
+  /// subscription. Stored in the App Group so the extensions honor it too. Compiled
+  /// out entirely in release builds — it can never affect the App Store version.
+  /// `nil` = use the real tier.
+  static var debugForcedTier: SubscriptionTier? {
+    get {
+      guard let raw = suite.string(forKey: "debugForcedSubscriptionTier") else { return nil }
+      return SubscriptionTier(rawValue: raw)
+    }
+    set {
+      if let newValue {
+        suite.set(newValue.rawValue, forKey: "debugForcedSubscriptionTier")
+      } else {
+        suite.removeObject(forKey: "debugForcedSubscriptionTier")
+      }
+      suite.synchronize()
+    }
+  }
+  #endif
 }

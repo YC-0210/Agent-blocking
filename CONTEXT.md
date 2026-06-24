@@ -23,8 +23,13 @@ A named set of apps to block. Users can have multiple profiles for different con
 _Avoid:_ rule set, blocker config
 
 **Freemium gate** — always two layers
-Every paid feature needs BOTH: (1) UI gate at the point of interaction and (2) enforcement gate in `AppBlockerUtil.swift`. One layer alone is never sufficient.
+Every paid feature needs BOTH: (1) UI gate at the point of interaction and (2) enforcement gate in `AppBlockerUtil.swift`. One layer alone is never sufficient. Both layers ask the **Entitlements** rule book rather than re-deriving the free/premium rule inline.
 _Avoid:_ paywall (use "gate" in code, "upgrade" in user-facing copy)
+
+**Entitlements** (`Utils/Entitlements.swift`)
+The single rule book for "what is this tier allowed to do?" — a pure value type mapping `SubscriptionTier` → capabilities (`appLimit`, `canBlockCategories`, `canBlockWebDomains`, `canSchedule`, `canSyncExternalDevices`, `canSeeDeepReport`, `canUseCoFocus`). Every gate asks it instead of re-deriving limits at a call site. `Entitlements.current` is grace-aware (reads `effectiveSubscriptionTier`), so UI gates and the enforcement gate never disagree. Governs **paid** capabilities only — never the always-free flows (card tap, Emergency Unlock, RequestAuthorization). `canUseCoFocus` is `true` for every tier today; the slot exists so future gating is a one-line change.
+_Avoid:_ reading the tier and re-deriving limits inline; gating an always-free flow through it
+_Debug:_ `SharedData.debugForcedTier` (`#if DEBUG` only) force-overrides `effectiveSubscriptionTier` to preview free/premium on a real device; toggle UI is the "🛠 Debug" section at the bottom of Settings. Compiled out of release builds.
 
 **effectiveSubscriptionTier**
 The canonical subscription state accessor — reads `subscriptionTier` from App Group UserDefaults and applies the 16-day grace period. Always use this. Never read `subscriptionTier` directly.
@@ -54,8 +59,9 @@ _Avoid:_ phase (implies horizontal)
 | File | Role |
 |------|------|
 | `Utils/StrategyManager.swift` | Session lifecycle, Emergency Unlock, schedule restore, suppression flags |
-| `Utils/AppBlockerUtil.swift` | ⚠️ Enforcement gate — free tier token stripping |
-| `Components/BlockedProfileView/AppPicker.swift` | ⚠️ UI gate — free tier app selection |
+| `Utils/AppBlockerUtil.swift` | ⚠️ Enforcement gate — free tier token stripping (asks `Entitlements`) |
+| `Components/BlockedProfileView/AppPicker.swift` | ⚠️ UI gate — free tier app selection (asks `Entitlements`) |
+| `Utils/Entitlements.swift` | Rule book — tier → capabilities; grace-aware `current`; UI + enforcement gates both ask it |
 | `Models/Shared.swift` | App Group keys, HMAC helpers, suppression flag writers |
 | `Utils/SubscriptionManager.swift` | StoreKit 2 singleton (`@MainActor`) |
 | `Models/BlockedProfileSessions.swift` | SwiftData session model |
