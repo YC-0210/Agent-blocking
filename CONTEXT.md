@@ -22,6 +22,18 @@ _Avoid:_ lock, restriction period
 A named set of apps to block. Users can have multiple profiles for different contexts (reading, family, couple mode).
 _Avoid:_ rule set, blocker config
 
+**Home centerpiece**
+The single focal element in the middle of the DO page. Exactly one is shown at a time, chosen by the user: the Motivation Gallery (動力相簿, default), the original DO Card, or Today's Tasks (今日目標). Switching is a pick-one chooser, not a swipe deck.
+_Avoid:_ hero, banner, home card
+
+**Today's Tasks** (今日目標 / "Today's Tasks")
+A home-centerpiece option showing the user's main goals for the current day — up to three. The DOer's intent for the day, on the same screen as the card tap. A new day clears completed goals and carries unfinished ones forward; no past-days history is kept.
+_Avoid:_ to-do, 待辦, checklist
+
+**Daily Task**
+One entry in Today's Tasks: a short **name** (shown on the centerpiece), an optional longer **detail** (revealed and edited by tapping the name), and a done state toggled by its checkbox. Tapping the name edits; the checkbox completes — two distinct tap targets.
+_Avoid:_ to-do item, todo
+
 **Freemium gate** — always two layers
 Every paid feature needs BOTH: (1) UI gate at the point of interaction and (2) enforcement gate in `AppBlockerUtil.swift`. One layer alone is never sufficient. Both layers ask the **Entitlements** rule book rather than re-deriving the free/premium rule inline.
 _Avoid:_ paywall (use "gate" in code, "upgrade" in user-facing copy)
