@@ -90,7 +90,7 @@ struct BlockedProfileView: View {
   }
 
   private var isBlocking: Bool {
-    strategyManager.activeSession?.isActive ?? false
+    strategyManager.activeSessionStatus.isBlocking
   }
 
   init(profile: BlockedProfiles? = nil, initialName: String = "") {
