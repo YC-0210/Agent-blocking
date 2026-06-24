@@ -61,8 +61,8 @@ struct DOMainTabView: View {
   @AppStorage("hasShownCardNamingNudge") private var hasShownCardNamingNudge: Bool = false
   @State private var showCardNamingNudge = false
 
-  // Motivation Gallery display + cardless start (user-configurable in Settings)
-  @AppStorage("showMotivationGalleryOnHome") private var showGalleryOnHome = true
+  // Home centerpiece selection + cardless start (user-configurable in Settings)
+  @AppStorage(HomeCenterpiece.storageKey) private var centerpiece: HomeCenterpiece = .gallery
   @AppStorage("allowCardlessStart") private var allowCardlessStart = false
   @State private var showForceStartConfirm = false
 
@@ -191,13 +191,17 @@ struct DOMainTabView: View {
         }
         .padding(.bottom, 50)
 
-        // Centerpiece: the motivation gallery (default) or the original DO Card,
-        // per the user's setting in Settings → Motivation Gallery.
+        // Centerpiece: one of the motivation gallery (default), the original
+        // DO Card, or Today's Tasks — per the user's choice in
+        // Settings → 主畫面中央 (Home centerpiece).
         Group {
-          if showGalleryOnHome {
+          switch centerpiece {
+          case .gallery:
             MotivationGalleryView()
-          } else {
+          case .card:
             DOCardImageView()
+          case .tasks:
+            TodaysTasksPlaceholderView()
           }
         }
         .padding(.bottom, strategyManager.activeCardName != nil ? 8 : 30)

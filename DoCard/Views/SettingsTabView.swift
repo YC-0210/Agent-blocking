@@ -41,6 +41,7 @@ struct SettingsTabView: View {
   // TEMP test entry for the Motivation Gallery edit screen (Phase 2).
   // The real entry point is the pencil on the main screen, added in Phase 3.
   @State private var showGalleryEditor = false
+  @AppStorage(HomeCenterpiece.storageKey) private var centerpiece: HomeCenterpiece = .gallery
 
   private let nfcScanner = NFCScannerUtil()
   private let nfcRenameScanner = NFCScannerUtil()
@@ -199,6 +200,23 @@ struct SettingsTabView: View {
           }
         } header: {
           Text(String(localized: "連動裝置"))
+        }
+        .listRowBackground(Color(.systemGray6).opacity(0.08))
+
+        // MARK: - 主畫面中央 (Home centerpiece) Section
+        Section {
+          Picker(selection: $centerpiece) {
+            ForEach(HomeCenterpiece.allCases) { option in
+              Text(option.label).tag(option)
+            }
+          } label: {
+            Text(String(localized: "主畫面中央顯示"))
+          }
+          .pickerStyle(.segmented)
+        } header: {
+          Text(String(localized: "主畫面中央"))
+        } footer: {
+          Text(String(localized: "選擇主畫面中央顯示的內容：動力相簿、DO 卡片或今日目標"))
         }
         .listRowBackground(Color(.systemGray6).opacity(0.08))
 
