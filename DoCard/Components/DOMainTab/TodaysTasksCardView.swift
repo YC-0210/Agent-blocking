@@ -9,6 +9,7 @@ import SwiftUI
 struct TodaysTasksCardView: View {
   @EnvironmentObject var themeManager: ThemeManager
   @StateObject private var store = TodaysTasksStore()
+  @State private var editTarget: TodaysTaskEditTarget?
 
   private let maxCardWidth: CGFloat = 300
   private let corner: CGFloat = 24
@@ -37,6 +38,9 @@ struct TodaysTasksCardView: View {
     .shadow(color: themeManager.themeColor.opacity(0.15), radius: 8)
     .frame(maxWidth: .infinity)
     .onAppear { store.refreshForCurrentDay() }
+    .sheet(item: $editTarget) { target in
+      TodaysTaskEditSheet(store: store, target: target)
+    }
   }
 
   // MARK: - Header
@@ -124,23 +128,47 @@ struct TodaysTasksCardView: View {
       }
       .buttonStyle(.plain)
 
-      Text(goal.name)
-        .font(.system(size: 15))
-        .foregroundColor(goal.done ? .white.opacity(0.4) : .white)
-        .strikethrough(goal.done, color: .white.opacity(0.4))
-        .frame(maxWidth: .infinity, alignment: .leading)
+      Button {
+        editTarget = .existing(goal)
+      } label: {
+        Text(goal.name)
+          .font(.system(size: 15))
+          .foregroundColor(goal.done ? .white.opacity(0.4) : .white)
+          .strikethrough(goal.done, color: .white.opacity(0.4))
+          .frame(maxWidth: .infinity, alignment: .leading)
+          .contentShape(Rectangle())
+      }
+      .buttonStyle(.plain)
+    }
+    // Long-press-and-drag to reorder; tap targets above stay tap-only.
+    .draggable(goal.id.uuidString)
+    .dropDestination(for: String.self) { items, _ in
+      guard let draggedID = items.first,
+        let from = store.goals.firstIndex(where: { $0.id.uuidString == draggedID }),
+        let target = store.goals.firstIndex(where: { $0.id == goal.id }),
+        from != target
+      else { return false }
+      let destination = target > from ? target + 1 : target
+      store.move(fromOffsets: IndexSet(integer: from), toOffset: destination)
+      return true
     }
   }
 
   private var emptyRow: some View {
-    HStack(spacing: 12) {
-      Image(systemName: "plus.circle")
-        .font(.system(size: 22))
-        .foregroundColor(.white.opacity(0.2))
-      Text(String(localized: "新增目標"))
-        .font(.system(size: 15))
-        .foregroundColor(.white.opacity(0.25))
-        .frame(maxWidth: .infinity, alignment: .leading)
+    Button {
+      editTarget = .new
+    } label: {
+      HStack(spacing: 12) {
+        Image(systemName: "plus.circle")
+          .font(.system(size: 22))
+          .foregroundColor(.white.opacity(0.2))
+        Text(String(localized: "新增目標"))
+          .font(.system(size: 15))
+          .foregroundColor(.white.opacity(0.25))
+          .frame(maxWidth: .infinity, alignment: .leading)
+      }
+      .contentShape(Rectangle())
     }
+    .buttonStyle(.plain)
   }
 }

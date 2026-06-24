@@ -27,8 +27,9 @@ final class TodaysTasksStore: ObservableObject {
   /// Add a goal to today's list, up to `maxGoals`. A request beyond the cap is
   /// ignored.
   func addGoal(name: String, detail: String = "") {
-    guard goals.count < Self.maxGoals else { return }
-    goals.append(DailyTask(name: name, detail: detail))
+    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    guard !trimmed.isEmpty, goals.count < Self.maxGoals else { return }
+    goals.append(DailyTask(name: trimmed, detail: detail))
     save()
   }
 
@@ -36,6 +37,32 @@ final class TodaysTasksStore: ObservableObject {
   func toggleDone(_ task: DailyTask) {
     guard let index = goals.firstIndex(where: { $0.id == task.id }) else { return }
     goals[index].done.toggle()
+    save()
+  }
+
+  /// Edit a goal's name and detail. Saving a blank name deletes the goal
+  /// (the editor's "empty name = delete" rule).
+  func update(_ task: DailyTask, name: String, detail: String) {
+    guard let index = goals.firstIndex(where: { $0.id == task.id }) else { return }
+    let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+    if trimmed.isEmpty {
+      goals.remove(at: index)
+    } else {
+      goals[index].name = trimmed
+      goals[index].detail = detail
+    }
+    save()
+  }
+
+  /// Remove a goal, freeing a slot.
+  func delete(_ task: DailyTask) {
+    goals.removeAll { $0.id == task.id }
+    save()
+  }
+
+  /// Reorder goals (drag-to-reorder on the card). Done state moves with the goal.
+  func move(fromOffsets source: IndexSet, toOffset destination: Int) {
+    goals.move(fromOffsets: source, toOffset: destination)
     save()
   }
 
