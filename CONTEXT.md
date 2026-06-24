@@ -43,6 +43,10 @@ _Avoid:_ disable flag, block flag
 The single owner of the suppression-flag *storage* contract: the two reason prefixes, the `"<profile>.<schedule>_<weekday>"` activity-id shape, HMAC signing (via `SharedData`), and read / write / cleanup. The app, `StrategyManager`, and the DeviceActivity extension all cross this one interface (`suppress`, `isSuppressed`, `cleanupExpired`, `activityId`) instead of re-implementing it. Owns *storage only* — the scheduling-clock (which window is active, when it ends) deliberately stays in `SharedData`; see `docs/adr/0001-suppression-registry.md`.
 _Avoid:_ re-deriving prefixes or building suppression keys by hand; merging the window math into it
 
+**Active session status** (`ActiveSessionStatus`, vended by `StrategyManager`)
+The single in-app answer to "is a focus session active, for which profile, and what kind?" — a small value type every in-app screen + Shortcuts intent reads, instead of re-deriving from raw session objects. Encodes the manual-beats-scheduled precedence and the cold-start rule (a scheduled window counts as active even before it is synced into SwiftData). Reads the existing stores; does **not** merge them — the App Group snapshots stay the cross-process signaling layer for the widget / DeviceActivity extension. (Named `ActiveSessionStatus` to avoid colliding with `SessionStatus`, the started/ended lifecycle-event enum in `BlockingStrategy`.) See `docs/adr/0002-active-session-status-read-api.md`.
+_Avoid:_ re-deriving `activeSession?.isActive` or reaching into raw session objects from views; merging the session stores; confusing it with `SessionStatus` (the lifecycle event)
+
 **Vertical slice**
 A task that crosses all layers (SwiftData schema → manager → UI) so the feature is testable end-to-end after that slice. Preferred over horizontal (layer-by-layer) implementation.
 _Avoid:_ phase (implies horizontal)

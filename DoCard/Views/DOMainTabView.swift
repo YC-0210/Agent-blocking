@@ -74,7 +74,7 @@ struct DOMainTabView: View {
   var navigateToProfileId: UUID?
 
   var isBlocking: Bool {
-    strategyManager.isBlocking
+    strategyManager.activeSessionStatus.isBlocking
   }
 
   private var currentProfile: BlockedProfiles? {

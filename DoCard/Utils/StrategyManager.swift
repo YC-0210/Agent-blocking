@@ -76,6 +76,22 @@ class StrategyManager: ObservableObject {
     return activeSession?.isActive == true
   }
 
+  /// The single in-app status of the current session — what screens should read instead of
+  /// re-deriving from `activeSession`. Built from the resolved `activeSession`, so it stays
+  /// behaviour-identical to `isBlocking`: the manual-vs-scheduled precedence is already settled
+  /// upstream by `getActiveSession`, and the kind comes from the session's trigger source.
+  var activeSessionStatus: ActiveSessionStatus {
+    guard let session = activeSession, session.isActive else { return .none }
+    let facts = ActiveSessionStatus.SessionFacts(
+      profileId: session.blockedProfile.id,
+      plannedDurationMinutes: SharedData.getActiveStrategySharedSession()?.plannedDurationMinutes
+    )
+    if session.triggerSource == "scheduled" {
+      return ActiveSessionStatus.resolve(manual: nil, scheduled: facts)
+    }
+    return ActiveSessionStatus.resolve(manual: facts, scheduled: nil)
+  }
+
   var isBreakActive: Bool {
     return activeSession?.isBreakActive == true
   }
