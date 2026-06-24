@@ -201,7 +201,7 @@ struct DOMainTabView: View {
           case .card:
             DOCardImageView()
           case .tasks:
-            TodaysTasksPlaceholderView()
+            TodaysTasksCardView()
           }
         }
         .padding(.bottom, strategyManager.activeCardName != nil ? 8 : 30)
