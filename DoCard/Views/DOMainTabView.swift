@@ -78,10 +78,20 @@ struct DOMainTabView: View {
   }
 
   private var currentProfile: BlockedProfiles? {
-    if isBlocking,
-      let activeProfile = strategyManager.activeSession?.blockedProfile
-    {
-      return activeProfile
+    // Which profile the active session belongs to comes from the unified status. For a live
+    // session that is the in-memory `activeSession`; during a scheduled cold start (no synced
+    // session yet) it is resolved from the App Group snapshot's profile id, looked up in the
+    // loaded profiles.
+    let status = strategyManager.activeSessionStatus
+    if status.isBlocking, let activeProfileId = status.activeProfileId {
+      if let activeProfile = strategyManager.activeSession?.blockedProfile,
+        activeProfile.id == activeProfileId
+      {
+        return activeProfile
+      }
+      if let match = profiles.first(where: { $0.id == activeProfileId }) {
+        return match
+      }
     }
     guard !profiles.isEmpty else { return nil }
     let index = min(selectedProfileIndex, profiles.count - 1)
@@ -98,16 +108,19 @@ struct DOMainTabView: View {
     if case .active = coFocusManager.phase {
       return String(localized: "共同專注中")
     }
-    guard let session = strategyManager.activeSession else { return nil }
-    if session.triggerSource == "scheduled" {
+    let status = strategyManager.activeSessionStatus
+    guard status.isBlocking else { return nil }
+    if status.kind == .scheduled {
       return String(localized: "排程鎖定中")
     }
-    if let strategyId = session.blockedProfile.blockingStrategyId,
+    // Manual session: distinguish a timer session from a classic one. Timer-ness comes from the
+    // profile's chosen strategy (a live session always exists for the manual case), and the
+    // planned length comes from the unified status.
+    if let session = strategyManager.activeSession,
+      let strategyId = session.blockedProfile.blockingStrategyId,
       StrategyManager.isTimerStrategy(strategyId)
     {
-      if let plannedDurationMinutes =
-        SharedData.getActiveStrategySharedSession()?.plannedDurationMinutes
-      {
+      if let plannedDurationMinutes = status.plannedDurationMinutes {
         return String(localized: "定時 \(plannedDurationMinutes) 分鐘")
       }
       return String(localized: "定時專注中")
@@ -230,7 +243,7 @@ struct DOMainTabView: View {
                   nfcTimeoutDismissWorkItem?.cancel()
 
                   let timeout = DispatchWorkItem { [self] in
-                    guard !strategyManager.isBlocking else { return }
+                    guard !strategyManager.activeSessionStatus.isBlocking else { return }
                     strategyManager.cancelPendingNFCScan()
                     withAnimation(.easeIn(duration: 0.2)) {
                       tutorialNFCTimeoutVisible = true
@@ -373,7 +386,7 @@ struct DOMainTabView: View {
       }
     }
     .onChange(of: isBlocking) { _, newValue in
-      if let activeId = strategyManager.activeSession?.blockedProfile.id,
+      if let activeId = strategyManager.activeSessionStatus.activeProfileId,
         let index = profiles.firstIndex(where: { $0.id == activeId })
       {
         selectedProfileIndex = index
@@ -401,7 +414,7 @@ struct DOMainTabView: View {
       }
     }
     .onAppear {
-      if let activeId = strategyManager.activeSession?.blockedProfile.id,
+      if let activeId = strategyManager.activeSessionStatus.activeProfileId,
         let index = profiles.firstIndex(where: { $0.id == activeId })
       {
         selectedProfileIndex = index

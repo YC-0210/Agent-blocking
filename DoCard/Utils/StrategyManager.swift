@@ -77,19 +77,34 @@ class StrategyManager: ObservableObject {
   }
 
   /// The single in-app status of the current session — what screens should read instead of
-  /// re-deriving from `activeSession`. Built from the resolved `activeSession`, so it stays
-  /// behaviour-identical to `isBlocking`: the manual-vs-scheduled precedence is already settled
-  /// upstream by `getActiveSession`, and the kind comes from the session's trigger source.
+  /// re-deriving from `activeSession`. A live in-memory session is used first (its
+  /// manual-vs-scheduled precedence is already settled upstream by `getActiveSession`, and the
+  /// kind comes from the session's trigger source). When no live session has synced yet, the App
+  /// Group schedule snapshot is consulted so a freshly-opened scheduled window still reports
+  /// active — the ADR-0002 cold-start invariant. See `docs/adr/0002-active-session-status-read-api.md`.
   var activeSessionStatus: ActiveSessionStatus {
-    guard let session = activeSession, session.isActive else { return .none }
-    let facts = ActiveSessionStatus.SessionFacts(
-      profileId: session.blockedProfile.id,
-      plannedDurationMinutes: SharedData.getActiveStrategySharedSession()?.plannedDurationMinutes
-    )
-    if session.triggerSource == "scheduled" {
+    if let session = activeSession, session.isActive {
+      let facts = ActiveSessionStatus.SessionFacts(
+        profileId: session.blockedProfile.id,
+        plannedDurationMinutes: SharedData.getActiveStrategySharedSession()?.plannedDurationMinutes
+      )
+      if session.triggerSource == "scheduled" {
+        return ActiveSessionStatus.resolve(manual: nil, scheduled: facts)
+      }
+      return ActiveSessionStatus.resolve(manual: facts, scheduled: nil)
+    }
+    // Cold start: a scheduled window can open out-of-process (the DeviceActivity extension writes
+    // the App Group snapshot) before `syncScheduleSessions()` upserts it into SwiftData. Report
+    // that schedule as active. Manual sessions have no such gap — they start in-process — so only
+    // the schedule snapshot is consulted here.
+    if let scheduled = SharedData.getActiveScheduleSharedSession() {
+      let facts = ActiveSessionStatus.SessionFacts(
+        profileId: scheduled.blockedProfileId,
+        plannedDurationMinutes: scheduled.plannedDurationMinutes
+      )
       return ActiveSessionStatus.resolve(manual: nil, scheduled: facts)
     }
-    return ActiveSessionStatus.resolve(manual: facts, scheduled: nil)
+    return .none
   }
 
   var isBreakActive: Bool {

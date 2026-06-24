@@ -23,8 +23,8 @@ struct CheckProfileStatusIntent: AppIntent {
     // Load the active session (this syncs scheduled sessions)
     strategyManager.loadActiveSession(context: modelContext)
 
-    // Check if there's an active session and if it belongs to the specified profile
-    let isActive = strategyManager.activeSession?.blockedProfile.id == profile.id
+    // Check whether the unified active-session status belongs to the specified profile
+    let isActive = strategyManager.activeSessionStatus.activeProfileId == profile.id
 
     let dialogMessage =
       isActive
