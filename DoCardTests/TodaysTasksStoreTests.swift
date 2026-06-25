@@ -120,4 +120,94 @@ final class TodaysTasksStoreTests: XCTestCase {
     let sameDayAgain = TodaysTasksStore(defaults: defaults, now: { day2 })
     XCTAssertEqual(sameDayAgain.goals.map(\.name), ["Unfinished A", "Unfinished B"])
   }
+
+  // MARK: - Behavior 7: editing a goal changes its name and detail
+
+  func testEditingGoalChangesNameAndDetail() {
+    let today = day(2026, 6, 24)
+    let store = TodaysTasksStore(defaults: defaults, now: { today })
+    store.addGoal(name: "Old", detail: "old detail")
+
+    store.update(store.goals[0], name: "New name", detail: "New detail")
+    XCTAssertEqual(store.goals[0].name, "New name")
+    XCTAssertEqual(store.goals[0].detail, "New detail")
+
+    // change persists across reload
+    let reloaded = TodaysTasksStore(defaults: defaults, now: { today })
+    XCTAssertEqual(reloaded.goals.first?.name, "New name")
+    XCTAssertEqual(reloaded.goals.first?.detail, "New detail")
+  }
+
+  // MARK: - Behavior 8: editing to a blank name deletes the goal
+
+  func testEditingToBlankNameDeletesGoal() {
+    let today = day(2026, 6, 24)
+    let store = TodaysTasksStore(defaults: defaults, now: { today })
+    store.addGoal(name: "Keep")
+    store.addGoal(name: "Remove me")
+
+    store.update(store.goals[1], name: "   ", detail: "ignored")
+    XCTAssertEqual(store.goals.map(\.name), ["Keep"])
+  }
+
+  // MARK: - Behavior 9: deleting removes the goal and frees a slot
+
+  func testDeleteRemovesAndFreesSlot() {
+    let today = day(2026, 6, 24)
+    let store = TodaysTasksStore(defaults: defaults, now: { today })
+    store.addGoal(name: "A")
+    store.addGoal(name: "B")
+    store.addGoal(name: "C")
+
+    store.delete(store.goals[1])  // remove "B"
+    XCTAssertEqual(store.goals.map(\.name), ["A", "C"])
+
+    // a slot is free again
+    store.addGoal(name: "D")
+    XCTAssertEqual(store.goals.map(\.name), ["A", "C", "D"])
+  }
+
+  // MARK: - Behavior 10: adding a blank name is a no-op
+
+  func testAddingBlankNameIsNoOp() {
+    let today = day(2026, 6, 24)
+    let store = TodaysTasksStore(defaults: defaults, now: { today })
+    store.addGoal(name: "   ")
+    store.addGoal(name: "")
+    XCTAssertEqual(store.totalCount, 0)
+  }
+
+  // MARK: - Behavior 11: reordering rewrites order; done follows the goal
+
+  func testReorderRewritesOrderAndPreservesDone() {
+    let today = day(2026, 6, 24)
+    let store = TodaysTasksStore(defaults: defaults, now: { today })
+    store.addGoal(name: "A")
+    store.addGoal(name: "B")
+    store.addGoal(name: "C")
+    store.toggleDone(store.goals[2])  // C done
+
+    store.move(fromOffsets: IndexSet(integer: 2), toOffset: 0)
+    XCTAssertEqual(store.goals.map(\.name), ["C", "A", "B"])
+    XCTAssertTrue(store.goals[0].done, "done state follows the goal through a move")
+
+    // persists
+    let reloaded = TodaysTasksStore(defaults: defaults, now: { today })
+    XCTAssertEqual(reloaded.goals.map(\.name), ["C", "A", "B"])
+  }
+
+  // MARK: - Behavior 12: reordering forward (the offset a List's .onMove produces)
+
+  func testReorderForwardRewritesOrder() {
+    let today = day(2026, 6, 24)
+    let store = TodaysTasksStore(defaults: defaults, now: { today })
+    store.addGoal(name: "A")
+    store.addGoal(name: "B")
+    store.addGoal(name: "C")
+
+    // Moving "A" (index 0) toward the end: List .onMove passes a toOffset
+    // past the source index, unlike the backward case above.
+    store.move(fromOffsets: IndexSet(integer: 0), toOffset: 2)
+    XCTAssertEqual(store.goals.map(\.name), ["B", "A", "C"])
+  }
 }
