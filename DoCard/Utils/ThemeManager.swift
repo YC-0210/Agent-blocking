@@ -7,6 +7,11 @@ class ThemeManager: ObservableObject {
   static let accentColor = Color(hex: "#FF6B35")
   static let backgroundColor = Color(hex: "#000000")
 
+  // Settings category badge accents (Option C — soft tint). Premium gold marks
+  // the 帳號與訂閱 category; functional categories tint with `themeColor`.
+  static let premiumGold = Color(hex: "#F5A623")
+  static let premiumGoldDeep = Color(hex: "#C77F12")
+
   // Single source of truth for all theme colors
   static let availableColors: [(name: String, color: Color)] = [
     ("DO Orange", Color(hex: "#FF6B35")),
