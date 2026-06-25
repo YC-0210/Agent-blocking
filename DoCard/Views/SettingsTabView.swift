@@ -129,25 +129,51 @@ struct SettingsTabView: View {
     }
   }
 
-  /// iOS-Settings-style icon badge: white glyph on a colored rounded square.
+  /// iOS-Settings-style icon badge (Option C — soft tint): a colored glyph on a
+  /// soft tint of the same hue. Functional categories tint with the user's theme
+  /// color so they stay on-brand and follow theme changes; 帳號與訂閱 uses a
+  /// premium gold; Debug stays neutral grey.
   private func categoryBadge(_ category: SettingsCategory) -> some View {
-    let icon = categoryIcon(category)
-    return Image(systemName: icon.symbol)
+    let style = categoryBadgeStyle(category)
+    return Image(systemName: style.symbol)
       .font(.system(size: 15, weight: .semibold))
-      .foregroundStyle(.white)
+      .foregroundStyle(style.glyph)
       .frame(width: 29, height: 29)
-      .background(RoundedRectangle(cornerRadius: 7).fill(icon.color))
+      .background(RoundedRectangle(cornerRadius: 7).fill(style.background))
   }
 
-  private func categoryIcon(_ category: SettingsCategory) -> (symbol: String, color: Color) {
+  private struct CategoryBadgeStyle {
+    let symbol: String
+    let glyph: Color
+    let background: Color
+  }
+
+  private func categoryBadgeStyle(_ category: SettingsCategory) -> CategoryBadgeStyle {
+    let brand = themeManager.themeColor
     switch category {
-    case .account: return ("crown.fill", .orange)
-    case .card: return ("creditcard.fill", .blue)
-    case .notifications: return ("bell.fill", .blue)
-    case .personalization: return ("photo.fill", .blue)
-    case .devices: return ("laptopcomputer.and.iphone", .blue)
-    case .about: return ("info.circle.fill", .gray)
-    case .debug: return ("hammer.fill", .gray)
+    case .account:
+      return CategoryBadgeStyle(
+        symbol: "crown.fill",
+        glyph: ThemeManager.premiumGoldDeep,
+        background: ThemeManager.premiumGold.opacity(0.18))
+    case .card:
+      return CategoryBadgeStyle(
+        symbol: "creditcard.fill", glyph: brand, background: brand.opacity(0.16))
+    case .notifications:
+      return CategoryBadgeStyle(
+        symbol: "bell.fill", glyph: brand, background: brand.opacity(0.16))
+    case .personalization:
+      return CategoryBadgeStyle(
+        symbol: "photo.fill", glyph: brand, background: brand.opacity(0.16))
+    case .devices:
+      return CategoryBadgeStyle(
+        symbol: "laptopcomputer.and.iphone", glyph: brand, background: brand.opacity(0.16))
+    case .about:
+      return CategoryBadgeStyle(
+        symbol: "info.circle.fill", glyph: brand, background: brand.opacity(0.16))
+    case .debug:
+      return CategoryBadgeStyle(
+        symbol: "hammer.fill", glyph: .gray, background: Color.gray.opacity(0.16))
     }
   }
 
