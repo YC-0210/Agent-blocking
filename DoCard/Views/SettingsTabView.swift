@@ -196,7 +196,10 @@ struct SettingsTabView: View {
     Form {
       Section {
         ForEach(
-          SettingsLayout.rows(in: category, cardPaired: onboardingManager.isDOCardPaired),
+          SettingsLayout.rows(
+            in: category,
+            cardPaired: onboardingManager.isDOCardPaired,
+            centerpiece: centerpiece),
           id: \.self
         ) { row in
           rowView(for: row)
@@ -215,8 +218,6 @@ struct SettingsTabView: View {
 
   private func subPageFooter(for category: SettingsCategory) -> String? {
     switch category {
-    case .personalization:
-      return String(localized: "選擇主畫面中央顯示的內容：動力相簿、DO 卡片或今日目標")
     case .debug:
       // verbatim: debug-only strings must not enter the localization catalog
       return "僅 Debug 版本顯示，永遠不會進到 App Store。模擬免費／付費體驗，不會更動你的真實訂閱。"
@@ -371,16 +372,57 @@ struct SettingsTabView: View {
     )
   }
 
+  /// The home-centerpiece chooser. A vertical list of three selectable rows
+  /// (icon + label + one-line description) instead of a cramped segmented
+  /// control — bigger tap targets that match the rest of the settings rows. The
+  /// selected option is tinted with the brand theme color and carries a check.
+  /// Choosing 動力相簿 reveals the 我的動力 row below (see `SettingsLayout.rows`).
   private var centerpieceRow: some View {
-    // Segmented control is the row itself — the section footer explains the choice.
-    Picker(selection: $centerpiece) {
-      ForEach(HomeCenterpiece.allCases) { option in
-        Text(option.label).tag(option)
-      }
-    } label: {
+    VStack(alignment: .leading, spacing: 6) {
       Text(String(localized: "主畫面中央顯示"))
+        .font(.caption)
+        .foregroundStyle(.secondary)
+        .padding(.horizontal, 10)
+        .padding(.top, 2)
+
+      ForEach(HomeCenterpiece.allCases) { option in
+        centerpieceOptionRow(option)
+      }
     }
-    .pickerStyle(.segmented)
+    .padding(.vertical, 4)
+  }
+
+  private func centerpieceOptionRow(_ option: HomeCenterpiece) -> some View {
+    let isSelected = centerpiece == option
+    return Button {
+      withAnimation(.easeInOut(duration: 0.2)) { centerpiece = option }
+    } label: {
+      HStack(spacing: 12) {
+        leadingIcon(option.iconName, color: isSelected ? themeManager.themeColor : .secondary)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(option.label)
+            .font(.headline)
+            .foregroundStyle(.primary)
+          Text(option.subtitle)
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+          .foregroundStyle(isSelected ? themeManager.themeColor : Color.secondary.opacity(0.35))
+      }
+      .padding(.vertical, 8)
+      .padding(.horizontal, 10)
+      .background(
+        RoundedRectangle(cornerRadius: 10)
+          .fill(isSelected ? themeManager.themeColor.opacity(0.12) : Color.clear)
+      )
+      .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
   }
 
   private var galleryRow: some View {

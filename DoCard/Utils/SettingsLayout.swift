@@ -65,9 +65,19 @@ enum SettingsLayout {
   /// focus session is active. It is a landing-level row, not a category.
   static func showsEmergencyRow(isBlocking: Bool) -> Bool { isBlocking }
 
-  /// The rows inside a category's sub-page. `cardPaired` adds 重新命名 to the
-  /// DO Card page; it affects no other category.
-  static func rows(in category: SettingsCategory, cardPaired: Bool) -> [SettingsRow] {
+  /// The rows inside a category's sub-page.
+  ///
+  /// - `cardPaired` adds 重新命名 to the DO Card page; it affects no other category.
+  /// - `centerpiece` gates 我的動力 on the 個人化 page: the photo-management row
+  ///   only makes sense while the gallery is the chosen home centerpiece, so it is
+  ///   shown for `.gallery` and hidden for `.card` / `.tasks`. It affects no other
+  ///   category. Defaults to `.gallery` (the app's default centerpiece) so callers
+  ///   that don't care about this gating read the same rows as before.
+  static func rows(
+    in category: SettingsCategory,
+    cardPaired: Bool,
+    centerpiece: HomeCenterpiece = .gallery
+  ) -> [SettingsRow] {
     switch category {
     case .account:
       return [.subscriptionStatus, .restorePurchases]
@@ -82,7 +92,9 @@ enum SettingsLayout {
       return [.liveActivity, .askToShare, .reminder]
 
     case .personalization:
-      return [.homeCenterpiece, .motivationGallery]
+      var rows: [SettingsRow] = [.homeCenterpiece]
+      if centerpiece == .gallery { rows.append(.motivationGallery) }
+      return rows
 
     case .devices:
       return [.deviceSync]

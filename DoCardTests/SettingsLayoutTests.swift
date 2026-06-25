@@ -66,7 +66,30 @@ final class SettingsLayoutTests: XCTestCase {
     XCTAssertEqual(
       SettingsLayout.rows(in: .personalization, cardPaired: false),
       [.homeCenterpiece, .motivationGallery],
-      "主畫面中央 and 動力相簿 live together under 個人化")
+      "主畫面中央 and 我的動力 live together under 個人化 (gallery is the default centerpiece)")
+  }
+
+  // MARK: - 我的動力 is gated on the chosen centerpiece
+
+  func testPersonalizationShowsGalleryRowOnlyWhenGallerySelected() {
+    XCTAssertEqual(
+      SettingsLayout.rows(in: .personalization, cardPaired: false, centerpiece: .gallery),
+      [.homeCenterpiece, .motivationGallery],
+      "我的動力 appears when 動力相簿 is the chosen centerpiece")
+  }
+
+  func testPersonalizationHidesGalleryRowForCardCenterpiece() {
+    XCTAssertEqual(
+      SettingsLayout.rows(in: .personalization, cardPaired: false, centerpiece: .card),
+      [.homeCenterpiece],
+      "我的動力 is hidden when DO 卡片 is the chosen centerpiece")
+  }
+
+  func testPersonalizationHidesGalleryRowForTasksCenterpiece() {
+    XCTAssertEqual(
+      SettingsLayout.rows(in: .personalization, cardPaired: false, centerpiece: .tasks),
+      [.homeCenterpiece],
+      "我的動力 is hidden when 今日目標 is the chosen centerpiece")
   }
 
   func testDevicesRows() {
@@ -95,6 +118,18 @@ final class SettingsLayoutTests: XCTestCase {
         SettingsLayout.rows(in: category, cardPaired: false),
         SettingsLayout.rows(in: category, cardPaired: true),
         "Pairing a card must only change the DO Card sub-page")
+    }
+  }
+
+  // MARK: - centerpiece only affects the personalization sub-page
+
+  func testCenterpieceOnlyAffectsPersonalization() {
+    for category in SettingsLayout.landingCategories(includeDebug: true)
+    where category != .personalization {
+      XCTAssertEqual(
+        SettingsLayout.rows(in: category, cardPaired: false, centerpiece: .gallery),
+        SettingsLayout.rows(in: category, cardPaired: false, centerpiece: .card),
+        "The centerpiece selection must only change the 個人化 sub-page")
     }
   }
 }

@@ -20,13 +20,32 @@ enum HomeCenterpiece: String, CaseIterable, Identifiable {
   /// `false` showed the DO Card.
   static let legacyGalleryKey = "showMotivationGalleryOnHome"
 
-  /// Localized label for the segmented chooser. "DO" stays in English per the
-  /// brand naming rule.
+  /// Localized label for the chooser. "DO" stays in English per the brand
+  /// naming rule.
   var label: String {
     switch self {
     case .gallery: return String(localized: "動力相簿")
     case .card: return String(localized: "DO 卡片")
     case .tasks: return String(localized: "今日目標")
+    }
+  }
+
+  /// SF Symbol shown beside the label in the vertical chooser.
+  var iconName: String {
+    switch self {
+    case .gallery: return "photo.on.rectangle.angled"
+    case .card: return "creditcard.fill"
+    case .tasks: return "checklist"
+    }
+  }
+
+  /// One-line description shown under the label in the chooser, explaining what
+  /// each centerpiece puts in the middle of the home screen.
+  var subtitle: String {
+    switch self {
+    case .gallery: return String(localized: "滑動瀏覽你的動力照片")
+    case .card: return String(localized: "顯示原本的 DO 卡片")
+    case .tasks: return String(localized: "顯示今天要完成的任務")
     }
   }
 
