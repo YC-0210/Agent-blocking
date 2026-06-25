@@ -563,7 +563,11 @@ struct SettingsTabView: View {
         Text(verbatim: "強制訂閱層級")
       }
     #else
-      EmptyView()
+      // Disambiguate from the app's own `Components/Common/EmptyView.swift`,
+      // which shadows SwiftUI's and requires arguments — a bare `EmptyView()`
+      // here only compiles in Release (Debug takes the #if branch), so it slips
+      // past Debug builds and breaks archiving.
+      SwiftUI.EmptyView()
     #endif
   }
 
