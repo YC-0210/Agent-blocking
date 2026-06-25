@@ -1,107 +1,97 @@
 import Foundation
 
-/// A single, pure description of the Settings screen's structure: which sections
-/// appear, in what order, and which rows each contains — for a given app state.
-///
-/// `SettingsTabView` renders the output of `resolve(...)` instead of re-deriving
-/// ordering and visibility inline, so the load-bearing rules of the redesign live
-/// in one place and are unit-tested with no live SwiftUI — mirroring
-/// `ActiveSessionStatus.resolve(manual:scheduled:)`.
-///
-/// Tier is intentionally NOT an input: it changes a row's label/handler (e.g. the
-/// Premium card's text, or the 連動裝置 tap opening the paywall), not which rows
-/// exist or their order. The Premium card always sits on top and 連動裝置 always
-/// shows.
+/// A category in the Settings hub. Each one is a row on the landing page that
+/// drills into its own sub-page. `Identifiable`/`Hashable` so it drives both
+/// `ForEach` and value-based `navigationDestination`.
+enum SettingsCategory: Hashable, Identifiable {
+  case account
+  case card
+  case notifications
+  case personalization
+  case devices
+  case about
+  case debug
+
+  var id: Self { self }
+}
+
+/// A single row inside a category's sub-page.
 enum SettingsRow: Hashable {
-  case premium
+  case subscriptionStatus
+  case restorePurchases
 
   case addCard
   case renameCard
   case cardlessStart
 
-  case homeCenterpiece
-  case motivationGallery
-
   case liveActivity
   case askToShare
   case reminder
+
+  case homeCenterpiece
+  case motivationGallery
 
   case deviceSync
 
   case version
   case licenses
 
-  case emergency
-
   case debugTier
 }
 
-/// Stable identity for each Settings group (drives `ForEach` and section headers).
-enum SettingsSectionID: Hashable {
-  case subscription
-  case card
-  case personalization
-  case notifications
-  case devices
-  case emergency
-  case about
-  case debug
-}
-
-struct SettingsSection: Equatable, Identifiable {
-  let id: SettingsSectionID
-  let rows: [SettingsRow]
-}
-
+/// A pure, two-level description of the Settings hub: the ordered category rows
+/// on the landing page, the rows inside each category's sub-page, and whether the
+/// emergency-unlock row shows on the landing. `SettingsTabView` renders this
+/// instead of re-deriving ordering and visibility inline, so the load-bearing
+/// structure lives in one place and is unit-tested with no live SwiftUI —
+/// mirroring `ActiveSessionStatus.resolve(manual:scheduled:)`.
+///
+/// Tier is intentionally NOT an input: it changes a row's label/handler (the
+/// 帳號與訂閱 status text, the 連動裝置 tap opening the paywall), not which
+/// categories or rows exist.
 enum SettingsLayout {
-  /// Resolve the ordered sections from plain facts.
-  ///
-  /// - `cardPaired`: at least one DO Card is paired → show 重新命名.
-  /// - `isBlocking`: a focus session is active → show 緊急解鎖 (after 連動裝置,
-  ///   before 關於).
-  /// - `includeDebug`: debug build → append the Debug section last. Callers pass
-  ///   the compile-time flag, e.g. `#if DEBUG true #else false #endif`, so this
-  ///   stays a pure value that release builds simply never set.
-  static func resolve(
-    cardPaired: Bool,
-    isBlocking: Bool,
-    includeDebug: Bool
-  ) -> [SettingsSection] {
-    var sections: [SettingsSection] = []
+  /// Ordered category rows on the landing page. Debug is appended last and only
+  /// in debug builds — the caller passes the compile-time flag, so release builds
+  /// simply never include it.
+  static func landingCategories(includeDebug: Bool) -> [SettingsCategory] {
+    var categories: [SettingsCategory] = [
+      .account, .card, .notifications, .personalization, .devices, .about,
+    ]
+    if includeDebug { categories.append(.debug) }
+    return categories
+  }
 
-    // 1. 訂閱
-    sections.append(SettingsSection(id: .subscription, rows: [.premium]))
+  /// Whether the emergency-unlock row shows on the landing page — only while a
+  /// focus session is active. It is a landing-level row, not a category.
+  static func showsEmergencyRow(isBlocking: Bool) -> Bool { isBlocking }
 
-    // 2. DO 卡片
-    var cardRows: [SettingsRow] = [.addCard]
-    if cardPaired { cardRows.append(.renameCard) }
-    cardRows.append(.cardlessStart)
-    sections.append(SettingsSection(id: .card, rows: cardRows))
+  /// The rows inside a category's sub-page. `cardPaired` adds 重新命名 to the
+  /// DO Card page; it affects no other category.
+  static func rows(in category: SettingsCategory, cardPaired: Bool) -> [SettingsRow] {
+    switch category {
+    case .account:
+      return [.subscriptionStatus, .restorePurchases]
 
-    // 3. 個人化 (merged 主畫面中央 + 動力相簿)
-    sections.append(
-      SettingsSection(id: .personalization, rows: [.homeCenterpiece, .motivationGallery]))
+    case .card:
+      var rows: [SettingsRow] = [.addCard]
+      if cardPaired { rows.append(.renameCard) }
+      rows.append(.cardlessStart)
+      return rows
 
-    // 4. 通知與提醒
-    sections.append(
-      SettingsSection(id: .notifications, rows: [.liveActivity, .askToShare, .reminder]))
+    case .notifications:
+      return [.liveActivity, .askToShare, .reminder]
 
-    // 5. 連動裝置 (always present — free taps open the paywall)
-    sections.append(SettingsSection(id: .devices, rows: [.deviceSync]))
+    case .personalization:
+      return [.homeCenterpiece, .motivationGallery]
 
-    // 6. 緊急 (only while a focus session is active)
-    if isBlocking {
-      sections.append(SettingsSection(id: .emergency, rows: [.emergency]))
+    case .devices:
+      return [.deviceSync]
+
+    case .about:
+      return [.version, .licenses]
+
+    case .debug:
+      return [.debugTier]
     }
-
-    // 7. 關於 (always present)
-    sections.append(SettingsSection(id: .about, rows: [.version, .licenses]))
-
-    // 8. Debug (debug builds only — always last)
-    if includeDebug {
-      sections.append(SettingsSection(id: .debug, rows: [.debugTier]))
-    }
-
-    return sections
   }
 }

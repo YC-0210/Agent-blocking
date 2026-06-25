@@ -48,7 +48,7 @@ struct SettingsTabView: View {
 
   var onEmergencyTapped: () -> Void
 
-  /// Debug section ships only in debug builds — passed as a plain Bool so the
+  /// Debug category ships only in debug builds — passed as a plain Bool so the
   /// pure `SettingsLayout` stays testable and release builds simply never set it.
   private var includeDebug: Bool {
     #if DEBUG
@@ -58,38 +58,37 @@ struct SettingsTabView: View {
     #endif
   }
 
-  /// The ordered sections, resolved from current state by the tested
-  /// `SettingsLayout`. Reading the observed managers here keeps the screen
-  /// reactive (rename appears once paired, emergency appears while blocking).
-  private var sections: [SettingsSection] {
-    SettingsLayout.resolve(
-      cardPaired: onboardingManager.isDOCardPaired,
-      isBlocking: strategyManager.activeSessionStatus.isBlocking,
-      includeDebug: includeDebug)
-  }
+  // MARK: - Landing page
 
   var body: some View {
     NavigationStack {
       Form {
-        ForEach(sections) { section in
+        Section {
+          ForEach(SettingsLayout.landingCategories(includeDebug: includeDebug)) { category in
+            NavigationLink(value: category) {
+              categoryRow(category)
+            }
+          }
+        }
+        .listRowBackground(Color(.systemGray6).opacity(0.08))
+
+        // Emergency unlock — a landing-level safety row, only while blocking, so
+        // it is reachable in one tap during a focus session (not buried in a
+        // sub-page). Always free.
+        if SettingsLayout.showsEmergencyRow(
+          isBlocking: strategyManager.activeSessionStatus.isBlocking)
+        {
           Section {
-            ForEach(section.rows, id: \.self) { row in
-              rowView(for: row)
-            }
-          } header: {
-            if let title = header(for: section.id) {
-              Text(title)
-            }
-          } footer: {
-            if let footerText = footer(for: section.id) {
-              Text(footerText)
-            }
+            emergencyRow
           }
           .listRowBackground(Color(.systemGray6).opacity(0.08))
         }
       }
       .scrollContentBackground(.hidden)
       .navigationTitle(String(localized: "設定"))
+      .navigationDestination(for: SettingsCategory.self) { category in
+        categoryPage(category)
+      }
       .navigationDestination(isPresented: $navigateToMacPairing) {
         MacPairingView()
       }
@@ -121,25 +120,75 @@ struct SettingsTabView: View {
     }
   }
 
-  // MARK: - Section chrome
-
-  private func header(for id: SettingsSectionID) -> String? {
-    switch id {
-    case .subscription: return String(localized: "訂閱")
-    case .card: return String(localized: "DO Card")
-    case .personalization: return String(localized: "個人化")
-    case .notifications: return String(localized: "通知與提醒")
-    case .devices: return String(localized: "連動裝置")
-    case .emergency: return String(localized: "緊急")
-    case .about: return String(localized: "關於")
-    case .debug:
-      // verbatim: debug-only strings must not enter the localization catalog
-      return "🛠 Debug"
+  /// A landing-page category row: colored icon badge + title. The chevron is
+  /// supplied automatically by `NavigationLink`.
+  private func categoryRow(_ category: SettingsCategory) -> some View {
+    HStack(spacing: 12) {
+      categoryBadge(category)
+      Text(categoryTitle(category))
     }
   }
 
-  private func footer(for id: SettingsSectionID) -> String? {
-    switch id {
+  /// iOS-Settings-style icon badge: white glyph on a colored rounded square.
+  private func categoryBadge(_ category: SettingsCategory) -> some View {
+    let icon = categoryIcon(category)
+    return Image(systemName: icon.symbol)
+      .font(.system(size: 15, weight: .semibold))
+      .foregroundStyle(.white)
+      .frame(width: 29, height: 29)
+      .background(RoundedRectangle(cornerRadius: 7).fill(icon.color))
+  }
+
+  private func categoryIcon(_ category: SettingsCategory) -> (symbol: String, color: Color) {
+    switch category {
+    case .account: return ("crown.fill", .orange)
+    case .card: return ("creditcard.fill", .blue)
+    case .notifications: return ("bell.fill", .blue)
+    case .personalization: return ("photo.fill", .blue)
+    case .devices: return ("laptopcomputer.and.iphone", .blue)
+    case .about: return ("info.circle.fill", .gray)
+    case .debug: return ("hammer.fill", .gray)
+    }
+  }
+
+  private func categoryTitle(_ category: SettingsCategory) -> String {
+    switch category {
+    case .account: return String(localized: "帳號與訂閱")
+    case .card: return String(localized: "DO Card")
+    case .notifications: return String(localized: "通知與提醒")
+    case .personalization: return String(localized: "個人化")
+    case .devices: return String(localized: "連動裝置")
+    case .about: return String(localized: "關於")
+    case .debug: return "🛠 Debug"  // verbatim — never enters the localization catalog
+    }
+  }
+
+  // MARK: - Category sub-pages
+
+  @ViewBuilder
+  private func categoryPage(_ category: SettingsCategory) -> some View {
+    Form {
+      Section {
+        ForEach(
+          SettingsLayout.rows(in: category, cardPaired: onboardingManager.isDOCardPaired),
+          id: \.self
+        ) { row in
+          rowView(for: row)
+        }
+      } footer: {
+        if let footerText = subPageFooter(for: category) {
+          Text(footerText)
+        }
+      }
+      .listRowBackground(Color(.systemGray6).opacity(0.08))
+    }
+    .scrollContentBackground(.hidden)
+    .navigationTitle(categoryTitle(category))
+    .navigationBarTitleDisplayMode(.inline)
+  }
+
+  private func subPageFooter(for category: SettingsCategory) -> String? {
+    switch category {
     case .personalization:
       return String(localized: "選擇主畫面中央顯示的內容：動力相簿、DO 卡片或今日目標")
     case .debug:
@@ -152,8 +201,8 @@ struct SettingsTabView: View {
 
   // MARK: - Rows
 
-  /// A consistently sized leading icon so every row lines up in one column —
-  /// matches `CustomToggle`'s icon column width.
+  /// A consistently sized leading icon so every sub-page row lines up in one
+  /// column — matches `CustomToggle`'s icon column width.
   private func leadingIcon(_ name: String, color: Color) -> some View {
     Image(systemName: name)
       .font(.title3)
@@ -164,24 +213,34 @@ struct SettingsTabView: View {
   @ViewBuilder
   private func rowView(for row: SettingsRow) -> some View {
     switch row {
-    case .premium: premiumRow
+    case .subscriptionStatus: subscriptionStatusRow
+    case .restorePurchases: restorePurchasesRow
     case .addCard: addCardRow
     case .renameCard: renameCardRow
     case .cardlessStart: cardlessStartRow
-    case .homeCenterpiece: centerpieceRow
-    case .motivationGallery: galleryRow
     case .liveActivity: liveActivityRow
     case .askToShare: askToShareRow
     case .reminder: reminderRow
+    case .homeCenterpiece: centerpieceRow
+    case .motivationGallery: galleryRow
     case .deviceSync: deviceSyncRow
     case .version: versionRow
     case .licenses: licensesRow
-    case .emergency: emergencyRow
     case .debugTier: debugRow
     }
   }
 
-  private var premiumRow: some View {
+  private var subscriptionStatusCaption: String {
+    if subscriptionManager.isPremium {
+      if let expiry = subscriptionManager.expirationDate {
+        return String(localized: "有效期限至 \(expiry.formatted(date: .abbreviated, time: .omitted))")
+      }
+      return String(localized: "已啟用所有功能")
+    }
+    return String(localized: "守護最多 50 個 App 與排程自動化")
+  }
+
+  private var subscriptionStatusRow: some View {
     Button(action: { showPaywall = true }) {
       HStack(spacing: 12) {
         leadingIcon(subscriptionManager.isPremium ? "crown.fill" : "crown", color: .orange)
@@ -192,19 +251,28 @@ struct SettingsTabView: View {
             : String(localized: "升級 Premium"))
             .font(.headline)
             .foregroundStyle(.primary)
-          Text(subscriptionManager.isPremium
-            ? String(localized: "已啟用所有功能")
-            : String(localized: "守護最多 50 個 App 與排程自動化"))
+          Text(subscriptionStatusCaption)
             .font(.caption)
             .foregroundStyle(.secondary)
         }
 
         Spacer()
 
-        if !subscriptionManager.isPremium {
-          Image(systemName: "chevron.right")
-            .foregroundStyle(.secondary)
-        }
+        Image(systemName: "chevron.right")
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  private var restorePurchasesRow: some View {
+    Button {
+      Task { await subscriptionManager.restorePurchases() }
+    } label: {
+      HStack(spacing: 12) {
+        leadingIcon("arrow.clockwise", color: themeManager.themeColor)
+        Text(String(localized: "還原購買"))
+          .foregroundStyle(.primary)
+        Spacer()
       }
     }
   }
@@ -278,8 +346,7 @@ struct SettingsTabView: View {
   }
 
   private var centerpieceRow: some View {
-    // Segmented control is the row itself — the only row without a leading icon,
-    // by design; the section footer explains the choice.
+    // Segmented control is the row itself — the section footer explains the choice.
     Picker(selection: $centerpiece) {
       ForEach(HomeCenterpiece.allCases) { option in
         Text(option.label).tag(option)
@@ -342,9 +409,9 @@ struct SettingsTabView: View {
   private var deviceSyncRow: some View {
     // Mac sync is a Premium feature in v2.0.6+ — entry routes through a paywall
     // check. Premium users flip `navigateToMacPairing` to open `MacPairingView`
-    // (destination declared on the Form); free users see PremiumUpgradeView via
-    // the existing `showPaywall` sheet. UI is intentionally unchanged so the row
-    // still looks tappable for free users (mirrors ScheduleTabView's pattern).
+    // (destination declared on the landing Form); free users see PremiumUpgradeView
+    // via the existing `showPaywall` sheet. UI is intentionally unchanged so the
+    // row still looks tappable for free users (mirrors ScheduleTabView's pattern).
     Button {
       if subscriptionManager.entitlements.canSyncExternalDevices {
         navigateToMacPairing = true

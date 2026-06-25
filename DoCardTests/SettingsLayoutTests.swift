@@ -2,141 +2,99 @@ import XCTest
 
 @testable import DoCard
 
-/// Tests for `SettingsLayout` — the single, pure description of the Settings
-/// screen's structure (which sections appear, in what order, and which rows each
-/// contains) given the current app state. These lock the load-bearing rules of
-/// the redesign in one tested place, mirroring `ActiveSessionStatusTests`:
-///   • the merged 個人化 group (centerpiece + gallery),
-///   • 重新命名 only after a card is paired,
-///   • 緊急解鎖 only while blocking (between 連動裝置 and 關於),
-///   • Debug only in debug builds (always last),
-///   • 連動裝置 and 關於 always present.
+/// Tests for `SettingsLayout` — the pure, two-level description of the Settings
+/// hub: the ordered category rows on the landing page, the rows inside each
+/// category's sub-page, and whether the emergency row shows. Mirrors
+/// `ActiveSessionStatusTests`: load-bearing structure locked in one tested place.
 ///
-/// Tier is deliberately not an input: it changes labels/handlers, not which rows
-/// exist or their order.
+/// Tier is deliberately not an input — it changes labels/handlers, not which
+/// categories or rows exist.
 final class SettingsLayoutTests: XCTestCase {
 
-  // MARK: - Default state
+  // MARK: - Landing categories
 
-  func testDefaultOrderAndRows() {
-    let sections = SettingsLayout.resolve(
-      cardPaired: false, isBlocking: false, includeDebug: false)
-
+  func testLandingCategoriesDefault() {
     XCTAssertEqual(
-      sections.map(\.id),
-      [.subscription, .card, .personalization, .notifications, .devices, .about],
-      "Default settings show six groups in this order")
+      SettingsLayout.landingCategories(includeDebug: false),
+      [.account, .card, .notifications, .personalization, .devices, .about],
+      "The landing shows six categories in this order")
+  }
 
-    let card = sections.first { $0.id == .card }
+  func testLandingCategoriesAppendDebugLast() {
+    let categories = SettingsLayout.landingCategories(includeDebug: true)
+    XCTAssertEqual(categories.last, .debug, "Debug, when present, is the last category")
+    XCTAssertEqual(categories.count, 7)
+  }
+
+  // MARK: - Emergency row (landing-level, not a category)
+
+  func testEmergencyRowOnlyWhenBlocking() {
+    XCTAssertTrue(SettingsLayout.showsEmergencyRow(isBlocking: true))
+    XCTAssertFalse(SettingsLayout.showsEmergencyRow(isBlocking: false))
+  }
+
+  // MARK: - Sub-page rows per category
+
+  func testAccountRows() {
     XCTAssertEqual(
-      card?.rows, [.addCard, .cardlessStart],
-      "重新命名 stays hidden until a card is paired")
+      SettingsLayout.rows(in: .account, cardPaired: false),
+      [.subscriptionStatus, .restorePurchases],
+      "帳號與訂閱 shows plan status and a restore-purchases row")
   }
 
-  // MARK: - 重新命名 visibility
-
-  func testRenameAppearsWhenCardPaired() {
-    let sections = SettingsLayout.resolve(
-      cardPaired: true, isBlocking: false, includeDebug: false)
-
-    let card = sections.first { $0.id == .card }
+  func testCardRowsHideRenameUntilPaired() {
     XCTAssertEqual(
-      card?.rows, [.addCard, .renameCard, .cardlessStart],
-      "重新命名 appears after 新增 and before 免卡開始 once paired")
+      SettingsLayout.rows(in: .card, cardPaired: false),
+      [.addCard, .cardlessStart],
+      "重新命名 is hidden until a card is paired")
   }
 
-  // MARK: - 個人化 merge
-
-  func testPersonalizationMergesCenterpieceAndGallery() {
-    let sections = SettingsLayout.resolve(
-      cardPaired: false, isBlocking: false, includeDebug: false)
-
-    let personalization = sections.first { $0.id == .personalization }
+  func testCardRowsShowRenameWhenPaired() {
     XCTAssertEqual(
-      personalization?.rows, [.homeCenterpiece, .motivationGallery],
-      "主畫面中央 and 動力相簿 are merged into one 個人化 group")
+      SettingsLayout.rows(in: .card, cardPaired: true),
+      [.addCard, .renameCard, .cardlessStart],
+      "重新命名 appears between 新增 and 免卡開始 once paired")
   }
 
-  // MARK: - 通知與提醒
-
-  func testNotificationsHaveThreeToggles() {
-    let sections = SettingsLayout.resolve(
-      cardPaired: false, isBlocking: false, includeDebug: false)
-
-    let notifications = sections.first { $0.id == .notifications }
+  func testNotificationsRows() {
     XCTAssertEqual(
-      notifications?.rows, [.liveActivity, .askToShare, .reminder])
+      SettingsLayout.rows(in: .notifications, cardPaired: false),
+      [.liveActivity, .askToShare, .reminder])
   }
 
-  // MARK: - 連動裝置 always present (not tier-gated for visibility)
-
-  func testDeviceSyncAlwaysPresent() {
-    let sections = SettingsLayout.resolve(
-      cardPaired: false, isBlocking: false, includeDebug: false)
+  func testPersonalizationRows() {
     XCTAssertEqual(
-      sections.first { $0.id == .devices }?.rows, [.deviceSync],
-      "連動裝置 row always shows — free taps open the paywall")
+      SettingsLayout.rows(in: .personalization, cardPaired: false),
+      [.homeCenterpiece, .motivationGallery],
+      "主畫面中央 and 動力相簿 live together under 個人化")
   }
 
-  // MARK: - 緊急解鎖 visibility + position
-
-  func testEmergencyHiddenWhenNotBlocking() {
-    let ids = SettingsLayout.resolve(
-      cardPaired: false, isBlocking: false, includeDebug: false).map(\.id)
-    XCTAssertFalse(ids.contains(.emergency))
+  func testDevicesRows() {
+    XCTAssertEqual(
+      SettingsLayout.rows(in: .devices, cardPaired: false),
+      [.deviceSync])
   }
 
-  func testEmergencyAppearsWhenBlockingBetweenDevicesAndAbout() {
-    let ids = SettingsLayout.resolve(
-      cardPaired: false, isBlocking: true, includeDebug: false).map(\.id)
-
-    XCTAssertTrue(ids.contains(.emergency), "緊急解鎖 shows during an active focus")
-    let devices = ids.firstIndex(of: .devices)
-    let emergency = ids.firstIndex(of: .emergency)
-    let about = ids.firstIndex(of: .about)
-    XCTAssertNotNil(devices)
-    XCTAssertNotNil(emergency)
-    XCTAssertNotNil(about)
-    XCTAssertTrue(
-      devices! < emergency! && emergency! < about!,
-      "緊急解鎖 sits after 連動裝置 and before 關於")
+  func testAboutRows() {
+    XCTAssertEqual(
+      SettingsLayout.rows(in: .about, cardPaired: false),
+      [.version, .licenses])
   }
 
-  // MARK: - 關於 always present
+  func testDebugRows() {
+    XCTAssertEqual(
+      SettingsLayout.rows(in: .debug, cardPaired: false),
+      [.debugTier])
+  }
 
-  func testAboutAlwaysHasVersionAndLicenses() {
-    for blocking in [true, false] {
-      let sections = SettingsLayout.resolve(
-        cardPaired: false, isBlocking: blocking, includeDebug: false)
-      let about = sections.first { $0.id == .about }
+  // MARK: - cardPaired only affects the card sub-page
+
+  func testCardPairedDoesNotAffectOtherCategories() {
+    for category in SettingsLayout.landingCategories(includeDebug: true) where category != .card {
       XCTAssertEqual(
-        about?.rows, [.version, .licenses],
-        "關於 always shows the version and a Licenses link")
+        SettingsLayout.rows(in: category, cardPaired: false),
+        SettingsLayout.rows(in: category, cardPaired: true),
+        "Pairing a card must only change the DO Card sub-page")
     }
-  }
-
-  // MARK: - Debug section
-
-  func testNoDebugByDefault() {
-    let ids = SettingsLayout.resolve(
-      cardPaired: false, isBlocking: false, includeDebug: false).map(\.id)
-    XCTAssertFalse(ids.contains(.debug))
-  }
-
-  func testDebugSectionIsLastWhenIncluded() {
-    let ids = SettingsLayout.resolve(
-      cardPaired: false, isBlocking: false, includeDebug: true).map(\.id)
-    XCTAssertEqual(ids.last, .debug, "Debug, when present, is always the last section")
-  }
-
-  // MARK: - Full snapshot
-
-  func testFullOrderWithEverythingEnabled() {
-    let ids = SettingsLayout.resolve(
-      cardPaired: true, isBlocking: true, includeDebug: true).map(\.id)
-    XCTAssertEqual(
-      ids,
-      [.subscription, .card, .personalization, .notifications, .devices, .emergency, .about, .debug],
-      "The complete section order with every conditional enabled")
   }
 }
