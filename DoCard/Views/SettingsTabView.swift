@@ -48,289 +48,51 @@ struct SettingsTabView: View {
 
   var onEmergencyTapped: () -> Void
 
+  /// Debug section ships only in debug builds — passed as a plain Bool so the
+  /// pure `SettingsLayout` stays testable and release builds simply never set it.
+  private var includeDebug: Bool {
+    #if DEBUG
+      return true
+    #else
+      return false
+    #endif
+  }
+
+  /// The ordered sections, resolved from current state by the tested
+  /// `SettingsLayout`. Reading the observed managers here keeps the screen
+  /// reactive (rename appears once paired, emergency appears while blocking).
+  private var sections: [SettingsSection] {
+    SettingsLayout.resolve(
+      cardPaired: onboardingManager.isDOCardPaired,
+      isBlocking: strategyManager.activeSessionStatus.isBlocking,
+      includeDebug: includeDebug)
+  }
+
   var body: some View {
     NavigationStack {
       Form {
-        // MARK: - 訂閱 Section
-        Section {
-          Button(action: { showPaywall = true }) {
-            HStack {
-              Image(systemName: subscriptionManager.isPremium ? "crown.fill" : "crown")
-                .foregroundStyle(.orange)
-                .font(.title3)
-
-              VStack(alignment: .leading, spacing: 2) {
-                Text(subscriptionManager.isPremium
-                  ? String(localized: "Premium 會員")
-                  : String(localized: "升級 Premium"))
-                  .font(.headline)
-                  .foregroundStyle(.primary)
-                Text(subscriptionManager.isPremium
-                  ? String(localized: "已啟用所有功能")
-                  : String(localized: "守護最多 50 個 App 與排程自動化"))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-
-              Spacer()
-
-              if !subscriptionManager.isPremium {
-                Image(systemName: "chevron.right")
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-        } header: {
-          Text(String(localized: "訂閱"))
-        }
-        .listRowBackground(Color(.systemGray6).opacity(0.08))
-
-        // MARK: - 封鎖設定 Section
-        Section {
-          Button(action: startPairing) {
-            HStack {
-              Image(systemName: "wave.3.right.circle.fill")
-                .foregroundStyle(onboardingManager.canPairMoreCards ? themeManager.themeColor : .secondary)
-                .font(.title3)
-
-              VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "新增 DO Card"))
-                  .font(.headline)
-                  .foregroundStyle(onboardingManager.canPairMoreCards ? .primary : .secondary)
-
-                Text(String(localized: "已配對 \(onboardingManager.pairedDOCardCount)/\(OnboardingManager.maxPairedCards) 張卡片"))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-
-              Spacer()
-
-              if pairSuccess {
-                Image(systemName: "checkmark.circle.fill")
-                  .foregroundStyle(.green)
-              } else {
-                Image(systemName: "plus.circle")
-                  .foregroundStyle(onboardingManager.canPairMoreCards ? themeManager.themeColor : .secondary)
-              }
-            }
-          }
-          .disabled(isPairing || !onboardingManager.canPairMoreCards)
-
-          // Rename card row — only shown when at least one card is paired
-          if onboardingManager.isDOCardPaired {
-            Button(action: { showRenameSheet = true }) {
-              HStack {
-                Image(systemName: "pencil.circle.fill")
-                  .foregroundStyle(themeManager.themeColor)
-                  .font(.title3)
-
-                VStack(alignment: .leading, spacing: 2) {
-                  Text(String(localized: "重新命名 DO Card"))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                  if let name = onboardingManager.doCardName {
-                    Text(name)
-                      .font(.caption)
-                      .foregroundStyle(.secondary)
-                  } else {
-                    Text(String(localized: "命名你的DO Card"))
-                      .font(.caption)
-                      .foregroundStyle(.secondary)
-                  }
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                  .foregroundStyle(.secondary)
-              }
-            }
-          }
-
-          CustomToggle(
-            title: String(localized: "允許免卡開始"),
-            description: String(localized: "在主畫面顯示「直接開始」按鈕，不靠卡也能開始專注"),
-            isOn: $allowCardlessStart
-          )
-        } header: {
-          Text(String(localized: "DO Card 設定"))
-        }
-        .listRowBackground(Color(.systemGray6).opacity(0.08))
-
-        // MARK: - 連動裝置 Section (Premium-gated)
-        Section {
-          // Mac sync is a Premium feature in v2.0.6+ — entry routes through
-          // a paywall check. Premium users flip `navigateToMacPairing` to
-          // open `MacPairingView` via `.navigationDestination`; free users
-          // see PremiumUpgradeView via the existing `showPaywall` sheet.
-          // UI is intentionally unchanged so the row still looks tappable
-          // for free users (mirrors ScheduleTabView's pattern: tap a free
-          // card → paywall sheet).
-          Button {
-            if subscriptionManager.entitlements.canSyncExternalDevices {
-              navigateToMacPairing = true
-            } else {
-              showPaywall = true
-            }
-          } label: {
-            HStack {
-              Image(systemName: "laptopcomputer.and.iphone")
-                .foregroundStyle(themeManager.themeColor)
-                .font(.title3)
-
-              VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "Chrome / Safari 連動"))
-                  .font(.headline)
-                  .foregroundStyle(.primary)
-                Text(String(localized: "刷卡時同步封鎖 Chrome / Safari 上的網站"))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-
-              Spacer()
-
-              Image(systemName: "chevron.right")
-                .foregroundStyle(.secondary)
-                .font(.caption)
-            }
-          }
-          .buttonStyle(.plain)
-          .navigationDestination(isPresented: $navigateToMacPairing) {
-            MacPairingView()
-          }
-        } header: {
-          Text(String(localized: "連動裝置"))
-        }
-        .listRowBackground(Color(.systemGray6).opacity(0.08))
-
-        // MARK: - 主畫面中央 (Home centerpiece) Section
-        Section {
-          Picker(selection: $centerpiece) {
-            ForEach(HomeCenterpiece.allCases) { option in
-              Text(option.label).tag(option)
-            }
-          } label: {
-            Text(String(localized: "主畫面中央顯示"))
-          }
-          .pickerStyle(.segmented)
-        } header: {
-          Text(String(localized: "主畫面中央"))
-        } footer: {
-          Text(String(localized: "選擇主畫面中央顯示的內容：動力相簿、DO 卡片或今日目標"))
-        }
-        .listRowBackground(Color(.systemGray6).opacity(0.08))
-
-        // MARK: - 動力相簿 Section
-        Section {
-          Button(action: { showGalleryEditor = true }) {
-            HStack {
-              Image(systemName: "photo.on.rectangle.angled")
-                .foregroundStyle(themeManager.themeColor)
-                .font(.title3)
-
-              VStack(alignment: .leading, spacing: 2) {
-                Text(String(localized: "我的動力"))
-                  .font(.headline)
-                  .foregroundStyle(.primary)
-                Text(String(localized: "管理主畫面的動力照片"))
-                  .font(.caption)
-                  .foregroundStyle(.secondary)
-              }
-
-              Spacer()
-
-              Image(systemName: "chevron.right")
-                .foregroundStyle(.secondary)
-            }
-          }
-        } header: {
-          Text(String(localized: "動力相簿"))
-        }
-        .listRowBackground(Color(.systemGray6).opacity(0.08))
-
-        // MARK: - 通知與提醒 Section
-        Section {
-          CustomToggle(
-            title: String(localized: "動態島 / 鎖定畫面顯示"),
-            description: String(
-              localized: "專注時在動態島和鎖定畫面即時顯示計時與狀態"),
-            isOn: $enableLiveActivity
-          )
-
-          CustomToggle(
-            title: String(localized: "完成後詢問是否分享"),
-            description: String(
-              localized: "專注時段滿 30 分鐘且正常結束時，跳出分享提示"),
-            isOn: $askToShareAfterSession
-          )
-
-          CustomToggle(
-            title: String(localized: "提醒"),
-            description: String(
-              localized: "專注結束後發送提醒通知"),
-            isOn: $enableReminder
-          )
-
-        } header: {
-          Text(String(localized: "通知與提醒"))
-        }
-        .listRowBackground(Color(.systemGray6).opacity(0.08))
-
-        // MARK: - Emergency Section (untouched — always-free safety feature)
-        if strategyManager.activeSessionStatus.isBlocking {
+        ForEach(sections) { section in
           Section {
-            Button(action: onEmergencyTapped) {
-              HStack {
-                Image(systemName: "exclamationmark.triangle.fill")
-                  .foregroundStyle(.red)
-                  .font(.title3)
-
-                VStack(alignment: .leading, spacing: 2) {
-                  Text(String(localized: "緊急解鎖"))
-                    .font(.headline)
-                    .foregroundStyle(.red)
-                  Text(String(localized: "立即解除所有阻擋"))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                }
-
-                Spacer()
-
-                Image(systemName: "chevron.right")
-                  .foregroundStyle(.secondary)
-              }
+            ForEach(section.rows, id: \.self) { row in
+              rowView(for: row)
             }
           } header: {
-            Text(String(localized: "緊急"))
-          }
-          .listRowBackground(Color(.systemGray6).opacity(0.08))
-        }
-
-        #if DEBUG
-          // MARK: - Debug Section (test builds only — never ships to the App Store)
-          // verbatim: debug-only strings must not enter the localization catalog
-          Section {
-            Picker(selection: debugForcedTierBinding) {
-              Text(verbatim: "真實訂閱").tag("real")
-              Text(verbatim: "免費 Free").tag("free")
-              Text(verbatim: "付費 Premium").tag("premium")
-            } label: {
-              Text(verbatim: "強制訂閱層級")
+            if let title = header(for: section.id) {
+              Text(title)
             }
-          } header: {
-            Text(verbatim: "🛠 Debug")
           } footer: {
-            Text(
-              verbatim:
-                "僅 Debug 版本顯示，永遠不會進到 App Store。模擬免費／付費體驗，不會更動你的真實訂閱。"
-            )
+            if let footerText = footer(for: section.id) {
+              Text(footerText)
+            }
           }
           .listRowBackground(Color(.systemGray6).opacity(0.08))
-        #endif
-
+        }
       }
       .scrollContentBackground(.hidden)
       .navigationTitle(String(localized: "設定"))
+      .navigationDestination(isPresented: $navigateToMacPairing) {
+        MacPairingView()
+      }
       .sheet(isPresented: $showPaywall) {
         PremiumUpgradeView()
           .environmentObject(subscriptionManager)
@@ -357,6 +119,317 @@ struct SettingsTabView: View {
         syncReminderToAllProfiles(enabled: newValue)
       }
     }
+  }
+
+  // MARK: - Section chrome
+
+  private func header(for id: SettingsSectionID) -> String? {
+    switch id {
+    case .subscription: return String(localized: "訂閱")
+    case .card: return String(localized: "DO Card")
+    case .personalization: return String(localized: "個人化")
+    case .notifications: return String(localized: "通知與提醒")
+    case .devices: return String(localized: "連動裝置")
+    case .emergency: return String(localized: "緊急")
+    case .about: return String(localized: "關於")
+    case .debug:
+      // verbatim: debug-only strings must not enter the localization catalog
+      return "🛠 Debug"
+    }
+  }
+
+  private func footer(for id: SettingsSectionID) -> String? {
+    switch id {
+    case .personalization:
+      return String(localized: "選擇主畫面中央顯示的內容：動力相簿、DO 卡片或今日目標")
+    case .debug:
+      // verbatim: debug-only strings must not enter the localization catalog
+      return "僅 Debug 版本顯示，永遠不會進到 App Store。模擬免費／付費體驗，不會更動你的真實訂閱。"
+    default:
+      return nil
+    }
+  }
+
+  // MARK: - Rows
+
+  /// A consistently sized leading icon so every row lines up in one column —
+  /// matches `CustomToggle`'s icon column width.
+  private func leadingIcon(_ name: String, color: Color) -> some View {
+    Image(systemName: name)
+      .font(.title3)
+      .foregroundStyle(color)
+      .frame(width: 28)
+  }
+
+  @ViewBuilder
+  private func rowView(for row: SettingsRow) -> some View {
+    switch row {
+    case .premium: premiumRow
+    case .addCard: addCardRow
+    case .renameCard: renameCardRow
+    case .cardlessStart: cardlessStartRow
+    case .homeCenterpiece: centerpieceRow
+    case .motivationGallery: galleryRow
+    case .liveActivity: liveActivityRow
+    case .askToShare: askToShareRow
+    case .reminder: reminderRow
+    case .deviceSync: deviceSyncRow
+    case .version: versionRow
+    case .licenses: licensesRow
+    case .emergency: emergencyRow
+    case .debugTier: debugRow
+    }
+  }
+
+  private var premiumRow: some View {
+    Button(action: { showPaywall = true }) {
+      HStack(spacing: 12) {
+        leadingIcon(subscriptionManager.isPremium ? "crown.fill" : "crown", color: .orange)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(subscriptionManager.isPremium
+            ? String(localized: "Premium 會員")
+            : String(localized: "升級 Premium"))
+            .font(.headline)
+            .foregroundStyle(.primary)
+          Text(subscriptionManager.isPremium
+            ? String(localized: "已啟用所有功能")
+            : String(localized: "守護最多 50 個 App 與排程自動化"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        if !subscriptionManager.isPremium {
+          Image(systemName: "chevron.right")
+            .foregroundStyle(.secondary)
+        }
+      }
+    }
+  }
+
+  private var addCardRow: some View {
+    Button(action: startPairing) {
+      HStack(spacing: 12) {
+        leadingIcon(
+          "wave.3.right.circle.fill",
+          color: onboardingManager.canPairMoreCards ? themeManager.themeColor : .secondary)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(String(localized: "新增 DO Card"))
+            .font(.headline)
+            .foregroundStyle(onboardingManager.canPairMoreCards ? .primary : .secondary)
+
+          Text(String(localized: "已配對 \(onboardingManager.pairedDOCardCount)/\(OnboardingManager.maxPairedCards) 張卡片"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        if pairSuccess {
+          Image(systemName: "checkmark.circle.fill")
+            .foregroundStyle(.green)
+        } else {
+          Image(systemName: "plus.circle")
+            .foregroundStyle(onboardingManager.canPairMoreCards ? themeManager.themeColor : .secondary)
+        }
+      }
+    }
+    .disabled(isPairing || !onboardingManager.canPairMoreCards)
+  }
+
+  private var renameCardRow: some View {
+    Button(action: { showRenameSheet = true }) {
+      HStack(spacing: 12) {
+        leadingIcon("pencil.circle.fill", color: themeManager.themeColor)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(String(localized: "重新命名 DO Card"))
+            .font(.headline)
+            .foregroundStyle(.primary)
+          if let name = onboardingManager.doCardName {
+            Text(name)
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          } else {
+            Text(String(localized: "命名你的DO Card"))
+              .font(.caption)
+              .foregroundStyle(.secondary)
+          }
+        }
+
+        Spacer()
+
+        Image(systemName: "chevron.right")
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  private var cardlessStartRow: some View {
+    CustomToggle(
+      systemImage: "bolt.circle",
+      title: String(localized: "允許免卡開始"),
+      description: String(localized: "在主畫面顯示「直接開始」按鈕，不靠卡也能開始專注"),
+      isOn: $allowCardlessStart
+    )
+  }
+
+  private var centerpieceRow: some View {
+    // Segmented control is the row itself — the only row without a leading icon,
+    // by design; the section footer explains the choice.
+    Picker(selection: $centerpiece) {
+      ForEach(HomeCenterpiece.allCases) { option in
+        Text(option.label).tag(option)
+      }
+    } label: {
+      Text(String(localized: "主畫面中央顯示"))
+    }
+    .pickerStyle(.segmented)
+  }
+
+  private var galleryRow: some View {
+    Button(action: { showGalleryEditor = true }) {
+      HStack(spacing: 12) {
+        leadingIcon("photo.on.rectangle.angled", color: themeManager.themeColor)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(String(localized: "我的動力"))
+            .font(.headline)
+            .foregroundStyle(.primary)
+          Text(String(localized: "管理主畫面的動力照片"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        Image(systemName: "chevron.right")
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  private var liveActivityRow: some View {
+    CustomToggle(
+      systemImage: "bell.badge",
+      title: String(localized: "動態島 / 鎖定畫面顯示"),
+      description: String(localized: "專注時在動態島和鎖定畫面即時顯示計時與狀態"),
+      isOn: $enableLiveActivity
+    )
+  }
+
+  private var askToShareRow: some View {
+    CustomToggle(
+      systemImage: "square.and.arrow.up",
+      title: String(localized: "完成後詢問是否分享"),
+      description: String(localized: "專注時段滿 30 分鐘且正常結束時，跳出分享提示"),
+      isOn: $askToShareAfterSession
+    )
+  }
+
+  private var reminderRow: some View {
+    CustomToggle(
+      systemImage: "alarm",
+      title: String(localized: "提醒"),
+      description: String(localized: "專注結束後發送提醒通知"),
+      isOn: $enableReminder
+    )
+  }
+
+  private var deviceSyncRow: some View {
+    // Mac sync is a Premium feature in v2.0.6+ — entry routes through a paywall
+    // check. Premium users flip `navigateToMacPairing` to open `MacPairingView`
+    // (destination declared on the Form); free users see PremiumUpgradeView via
+    // the existing `showPaywall` sheet. UI is intentionally unchanged so the row
+    // still looks tappable for free users (mirrors ScheduleTabView's pattern).
+    Button {
+      if subscriptionManager.entitlements.canSyncExternalDevices {
+        navigateToMacPairing = true
+      } else {
+        showPaywall = true
+      }
+    } label: {
+      HStack(spacing: 12) {
+        leadingIcon("laptopcomputer.and.iphone", color: themeManager.themeColor)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(String(localized: "Chrome / Safari 連動"))
+            .font(.headline)
+            .foregroundStyle(.primary)
+          Text(String(localized: "刷卡時同步封鎖 Chrome / Safari 上的網站"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        Image(systemName: "chevron.right")
+          .foregroundStyle(.secondary)
+          .font(.caption)
+      }
+    }
+    .buttonStyle(.plain)
+  }
+
+  private var versionRow: some View {
+    HStack(spacing: 12) {
+      leadingIcon("info.circle", color: themeManager.themeColor)
+      Text(String(localized: "版本"))
+      Spacer()
+      Text(AppVersion.current)
+        .foregroundStyle(.secondary)
+    }
+  }
+
+  private var licensesRow: some View {
+    NavigationLink {
+      LicensesView()
+    } label: {
+      HStack(spacing: 12) {
+        leadingIcon("doc.text", color: themeManager.themeColor)
+        Text(String(localized: "授權"))
+      }
+    }
+  }
+
+  private var emergencyRow: some View {
+    Button(action: onEmergencyTapped) {
+      HStack(spacing: 12) {
+        leadingIcon("exclamationmark.triangle.fill", color: .red)
+
+        VStack(alignment: .leading, spacing: 2) {
+          Text(String(localized: "緊急解鎖"))
+            .font(.headline)
+            .foregroundStyle(.red)
+          Text(String(localized: "立即解除所有阻擋"))
+            .font(.caption)
+            .foregroundStyle(.secondary)
+        }
+
+        Spacer()
+
+        Image(systemName: "chevron.right")
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  @ViewBuilder
+  private var debugRow: some View {
+    #if DEBUG
+      Picker(selection: debugForcedTierBinding) {
+        Text(verbatim: "真實訂閱").tag("real")
+        Text(verbatim: "免費 Free").tag("free")
+        Text(verbatim: "付費 Premium").tag("premium")
+      } label: {
+        Text(verbatim: "強制訂閱層級")
+      }
+    #else
+      EmptyView()
+    #endif
   }
 
   #if DEBUG
