@@ -494,7 +494,7 @@ struct SettingsTabView: View {
           Text(DeviceSyncStrings.featureTitle)
             .font(.headline)
             .foregroundStyle(.primary)
-          Text(String(localized: "刷卡時同步封鎖 Chrome / Safari 上的網站"))
+          Text(String(localized: "刷卡時同步封鎖 Mac (Chrome / Safari) 與 iPad 上的內容"))
             .font(.caption)
             .foregroundStyle(.secondary)
         }
