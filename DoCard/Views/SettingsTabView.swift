@@ -491,7 +491,7 @@ struct SettingsTabView: View {
         leadingIcon("laptopcomputer.and.iphone", color: themeManager.themeColor)
 
         VStack(alignment: .leading, spacing: 2) {
-          Text(String(localized: "Chrome / Safari 連動"))
+          Text(DeviceSyncStrings.featureTitle)
             .font(.headline)
             .foregroundStyle(.primary)
           Text(String(localized: "刷卡時同步封鎖 Chrome / Safari 上的網站"))

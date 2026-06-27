@@ -14409,6 +14409,22 @@
         }
       }
     },
+    "裝置同步" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device Sync"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裝置同步"
+          }
+        }
+      }
+    },
     "連動裝置" : {
       "localizations" : {
         "en" : {

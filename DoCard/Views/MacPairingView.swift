@@ -36,7 +36,7 @@ struct MacPairingView: View {
       .padding(.horizontal, 24)
       .padding(.top, 32)
     }
-    .navigationTitle(String(localized: "Chrome / Safari 連動"))
+    .navigationTitle(DeviceSyncStrings.featureTitle)
     .navigationBarTitleDisplayMode(.inline)
     .task {
       if forcePreflightForDebug {

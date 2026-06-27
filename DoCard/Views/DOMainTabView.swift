@@ -189,7 +189,7 @@ struct DOMainTabView: View {
             MacSyncStatusBadge(sync: MacSessionSyncService.shared)
           }
         }
-        .padding(.bottom, 50)
+        .padding(.bottom, DOMainLayout.timerBottomPadding(centerpiece: centerpiece))
 
         // Centerpiece: one of the motivation gallery (default), the original
         // DO Card, or Today's Tasks — per the user's choice in
@@ -204,7 +204,11 @@ struct DOMainTabView: View {
             TodaysTasksCardView()
           }
         }
-        .padding(.bottom, strategyManager.activeCardName != nil ? 8 : 30)
+        .padding(
+          .bottom,
+          DOMainLayout.centerpieceBottomPadding(
+            centerpiece: centerpiece,
+            hasCardName: strategyManager.activeCardName != nil))
 
         // DO Card name — reflects the most recently tapped card's name
         if let cardName = strategyManager.activeCardName {
