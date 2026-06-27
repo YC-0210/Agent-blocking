@@ -92,10 +92,27 @@ final class SettingsLayoutTests: XCTestCase {
       "我的動力 is hidden when 今日目標 is the chosen centerpiece")
   }
 
-  func testDevicesRows() {
+  func testDevicesHasNoSubPageRows() {
     XCTAssertEqual(
       SettingsLayout.rows(in: .devices, cardPaired: false),
-      [.deviceSync])
+      [],
+      "裝置同步 is a direct link, not a hub — it has no sub-page rows (#27)")
+  }
+
+  // MARK: - Direct-link categories (no intermediate sub-page)
+
+  func testDevicesIsADirectLink() {
+    XCTAssertTrue(
+      SettingsLayout.isDirectLink(.devices),
+      "裝置同步 navigates straight to the pairing screen, skipping the old 連動裝置 hub (#27)")
+  }
+
+  func testOtherCategoriesAreNotDirectLinks() {
+    for category in SettingsLayout.landingCategories(includeDebug: true) where category != .devices {
+      XCTAssertFalse(
+        SettingsLayout.isDirectLink(category),
+        "Only 裝置同步 is a direct link; every other category drills into a sub-page")
+    }
   }
 
   func testAboutRows() {

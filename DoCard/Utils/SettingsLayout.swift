@@ -31,8 +31,6 @@ enum SettingsRow: Hashable {
   case homeCenterpiece
   case motivationGallery
 
-  case deviceSync
-
   case version
   case licenses
 
@@ -47,7 +45,7 @@ enum SettingsRow: Hashable {
 /// mirroring `ActiveSessionStatus.resolve(manual:scheduled:)`.
 ///
 /// Tier is intentionally NOT an input: it changes a row's label/handler (the
-/// 帳號與訂閱 status text, the 連動裝置 tap opening the paywall), not which
+/// 帳號與訂閱 status text, the 裝置同步 tap opening the paywall), not which
 /// categories or rows exist.
 enum SettingsLayout {
   /// Ordered category rows on the landing page. Debug is appended last and only
@@ -64,6 +62,15 @@ enum SettingsLayout {
   /// Whether the emergency-unlock row shows on the landing page — only while a
   /// focus session is active. It is a landing-level row, not a category.
   static func showsEmergencyRow(isBlocking: Bool) -> Bool { isBlocking }
+
+  /// Whether a landing category navigates straight to a single destination
+  /// instead of drilling into a sub-page of rows. 裝置同步 (`.devices`) is the
+  /// only direct link: its sub-page only ever held the single pairing entry, so
+  /// the intermediate hub was redundant and removed (#27). A direct-link
+  /// category therefore has no sub-page rows — `rows(in:)` returns `[]` for it.
+  static func isDirectLink(_ category: SettingsCategory) -> Bool {
+    category == .devices
+  }
 
   /// The rows inside a category's sub-page.
   ///
@@ -97,7 +104,9 @@ enum SettingsLayout {
       return rows
 
     case .devices:
-      return [.deviceSync]
+      // A direct link (see `isDirectLink`) — taps go straight to the pairing
+      // screen, so there is no sub-page to populate.
+      return []
 
     case .about:
       return [.version, .licenses]

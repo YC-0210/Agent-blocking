@@ -14,17 +14,17 @@ struct TodaysTasksCardView: View {
 
   private let maxCardWidth: CGFloat = 300
   private let corner: CGFloat = 24
-  private let rowHeight: CGFloat = 50
+  private let rowHeight: CGFloat = 44
 
   var body: some View {
-    VStack(spacing: 16) {
+    VStack(spacing: 12) {
       header
       ring
       cheerLine
       Rectangle().fill(Color.white.opacity(0.08)).frame(height: 1)
       goalsSection
     }
-    .padding(20)
+    .padding(16)
     .frame(maxWidth: maxCardWidth)
     .background(
       RoundedRectangle(cornerRadius: corner, style: .continuous)
@@ -62,15 +62,15 @@ struct TodaysTasksCardView: View {
 
   private var ring: some View {
     ZStack {
-      Circle().stroke(Color.white.opacity(0.12), lineWidth: 7)
+      Circle().stroke(Color.white.opacity(0.12), lineWidth: 6)
       Circle()
         .trim(from: 0, to: ringProgress)
-        .stroke(themeManager.themeColor, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+        .stroke(themeManager.themeColor, style: StrokeStyle(lineWidth: 6, lineCap: .round))
         .rotationEffect(.degrees(-90))
         .animation(.easeInOut, value: store.completedCount)
       ringCenterLabel
     }
-    .frame(width: 78, height: 78)
+    .frame(width: 64, height: 64)
   }
 
   private var ringProgress: CGFloat {
@@ -85,7 +85,7 @@ struct TodaysTasksCardView: View {
         .foregroundColor(.white.opacity(0.6))
     } else {
       Text("\(store.completedCount)/\(store.totalCount)")
-        .font(.system(size: 20, weight: .bold))
+        .font(.system(size: 18, weight: .bold))
         .foregroundColor(.white)
     }
   }
