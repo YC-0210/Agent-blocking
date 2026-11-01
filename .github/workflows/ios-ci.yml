@@ -1,0 +1,48 @@
+name: iOS CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  schedule-tests:
+    name: Schedule tests and Release build
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.2.app/Contents/Developer
+      CI_SIMULATOR_RUNTIME: com.apple.CoreSimulator.SimRuntime.iOS-26-2
+      CI_RESULTS_DIR: ${{ github.workspace }}/.build/ios-ci/results
+      CI_BUILD_DIR: ${{ github.workspace }}/.build/ios-ci/build
+      EXPECTED_SCHEDULE_TEST_COUNT: "36"
+    steps:
+      - name: Check out code
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+
+      - name: Run schedule tests and build Release
+        run: bash ci/run-ios-ci.sh
+
+      - name: Write result summary
+        if: always()
+        run: python3 ci/ios-ci-summary.py "$CI_RESULTS_DIR" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload logs and Xcode results
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ios-ci-results-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ env.CI_RESULTS_DIR }}
+          retention-days: 7
+          if-no-files-found: warn
