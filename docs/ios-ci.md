@@ -1,4 +1,4 @@
-# First iOS CI workflow
+# iOS CI: schedule and unlock/recovery
 
 `iOS CI` uses one GitHub-hosted `macos-26` job. It selects Xcode 26.2 and creates
 a disposable iPhone 17 Pro simulator using the installed iOS 26.2 runtime.
@@ -8,21 +8,29 @@ chosen Xcode or runtime is missing. Update these choices deliberately after veri
 ## What runs
 
 1. Build the app and dependent extensions in Debug and run only
-   `DoCardTests/ScheduleTests` (the first 36 rebuilt tests).
-2. Verify the Xcode result reports exactly 36 passing tests, with none failed or skipped.
+   `DoCardTests/ScheduleTests` (36 tests) and `DoCardTests/UnlockRecoveryTests`
+   (27 tests), in one `xcodebuild test` invocation.
+2. Export Xcode’s combined summary and test tree. Require 36 passing schedule tests
+   and 27 passing unlock/recovery tests in the `DoCardTests` bundle, with unique
+   identifiers, none failed or skipped, and 63 passed in the combined summary.
+   A missing suite cannot be replaced by extra tests in the other suite.
+   Missing, unreadable, or inconsistent results fail the job.
 3. Build the app and dependent extensions in Release for the simulator.
 4. Publish a job summary and upload logs and available `.xcresult` bundles,
    including when an earlier step fails. Reports expire after 7 days.
 
 The job stops after test failure; Release is then reported as not reached.
 It has a 30-minute timeout and cancels outdated runs for the same pull request or ref.
-The exact test count is intentional: update `EXPECTED_SCHEDULE_TEST_COUNT` when
-adding cases to this reviewed suite. The script also has a matching local default.
+The exact counts are intentional: update `EXPECTED_SCHEDULE_TEST_COUNT` or
+`EXPECTED_UNLOCK_RECOVERY_TEST_COUNT` when adding reviewed cases to that suite.
+The script has matching local defaults. `suite-results.json` records separate
+expected/discovered/passed/failed/skipped counts and any validation errors.
+A nonzero Xcode exit status is preserved even if result files look successful.
 
 The workflow uses read-only repository permissions and no Apple signing secrets.
 The action dependencies are pinned to full commit SHAs. Package resolution uses
 the committed `Package.resolved`. Build/package files stay outside the uploaded reports.
-No cache or parallel test matrix is introduced in this first version.
+No cache or parallel test matrix is introduced. One job runs both suites.
 
 ## Triggers
 
@@ -64,10 +72,30 @@ Xcode test target is app-hosted, so normal app startup code also runs; these tes
 assertions do not depend on a successful backend connection. The earlier test
 classes are compiled by the test target but are not selected for execution.
 
-This protects window calculations and validation, not actual shields, NFC,
-cross-process background delivery, or old-data migration. Extend the reviewed
-suite as each later testing area is implemented. Hosted Mac usage and stored
+The unlock/recovery fixture exercises real session, stop, paired-card validation,
+signed-state and shared schedule-start code with controlled dependencies. Each
+case has isolated settings, in-memory SwiftData, a fixed clock and a temporary key.
+Hardware reads are scripted and blocking requests are recorded. Ancillary platform
+effects are omitted; normal application calls keep their live defaults.
+
+These checks protect window calculations, validation, and the selected stop/recovery
+paths. They do not certify actual shields, NFC radio reads, cross-process background
+delivery, app/phone restart, old-data migration, timer ticks, or indefinite card-ended
+lifetime across midnight. Section D and subscription policy changes remain excluded.
+See ADR-0004 for dependency design and limits. Extend the reviewed suites as each
+later testing area is implemented. Hosted Mac usage and stored
 reports count towards the private repository owner's Actions allowance.
+
+## Verify the CI failure rules
+
+```sh
+python3 ci/test-ios-ci.py
+```
+
+These checks run the actual CI shell script with controlled Xcode/simulator responses.
+They verify both selected suites, per-suite reporting, missing/duplicate/skipped/failed
+tests, unreadable results, preservation of command failures, Release gating, and removal
+of stale success markers. They do not replace a real local or GitHub-hosted Xcode run.
 
 ## References
 

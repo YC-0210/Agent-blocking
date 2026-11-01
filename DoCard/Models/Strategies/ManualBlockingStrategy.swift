@@ -19,7 +19,11 @@ class ManualBlockingStrategy: BlockingStrategy {
   var onErrorMessage: ((String) -> Void)?
   var onCardNameScanned: ((String?) -> Void)?
 
-  private let appBlocker: AppBlockerUtil = AppBlockerUtil()
+  private let appBlocker: AppBlockerUtil
+
+  init(appBlocker: AppBlockerUtil = AppBlockerUtil()) {
+    self.appBlocker = appBlocker
+  }
 
   func getIdentifier() -> String {
     return ManualBlockingStrategy.id

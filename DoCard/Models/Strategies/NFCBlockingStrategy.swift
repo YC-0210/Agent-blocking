@@ -18,8 +18,26 @@ class NFCBlockingStrategy: BlockingStrategy {
   var onErrorMessage: ((String) -> Void)?
   var onCardNameScanned: ((String?) -> Void)?
 
-  private let nfcScanner: NFCScannerUtil = NFCScannerUtil()
-  private let appBlocker: AppBlockerUtil = AppBlockerUtil()
+  private let nfcScanner: NFCScannerUtil
+  private let appBlocker: AppBlockerUtil
+  private let divertCardTap: () -> Bool
+
+  init(
+    nfcScanner: NFCScannerUtil = NFCScannerUtil(),
+    appBlocker: AppBlockerUtil = AppBlockerUtil(),
+    divertCardTap: @escaping () -> Bool = {
+      MainActor.assumeIsolated {
+        let manager = CoFocusManager.shared
+        guard manager.shouldDivertNFCTapToCoFocus else { return false }
+        manager.recordCoFocusTapFromNFC()
+        return true
+      }
+    }
+  ) {
+    self.nfcScanner = nfcScanner
+    self.appBlocker = appBlocker
+    self.divertCardTap = divertCardTap
+  }
 
   func getIdentifier() -> String {
     return NFCBlockingStrategy.id
@@ -69,13 +87,7 @@ class NFCBlockingStrategy: BlockingStrategy {
       // "end the current session". `NFCScannerUtil` always invokes this
       // callback via `DispatchQueue.main.async`, so MainActor.assumeIsolated
       // is safe here and lets us keep the dispatch decision synchronous.
-      let diverted: Bool = MainActor.assumeIsolated {
-        let manager = CoFocusManager.shared
-        guard manager.shouldDivertNFCTapToCoFocus else { return false }
-        manager.recordCoFocusTapFromNFC()
-        return true
-      }
-      if diverted { return }
+      if self.divertCardTap() { return }
 
       context.insert(NFCTapEvent(
         action: NFCTapEvent.actionEndBlock,

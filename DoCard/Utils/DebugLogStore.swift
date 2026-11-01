@@ -45,6 +45,10 @@ enum DebugLogStore {
   /// "intervalDidEnd"). Process is "app" or "ext" so we can tell who wrote what.
   static func log(_ tag: String, _ message: String, process: String = "app") {
     let line = "\(isoFormatter.string(from: Date())) [\(process)] [\(tag)] \(message)\n"
+    if let runtime = SharedData.runtime {
+      runtime.writeDebugLog(line)
+      return
+    }
     writeQueue.async { append(line) }
   }
 
