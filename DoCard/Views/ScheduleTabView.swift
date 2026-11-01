@@ -723,24 +723,6 @@ struct ScheduleEditSheet: View {
     let startComponents = cal.dateComponents([.hour, .minute], from: startTime)
     let endComponents = cal.dateComponents([.hour, .minute], from: endTime)
 
-    if endType == .specificTime {
-      let startH = startComponents.hour ?? 9
-      let startM = startComponents.minute ?? 0
-      let endH = endComponents.hour ?? 17
-      let endM = endComponents.minute ?? 0
-      if !isNextDay {
-        // Same-day schedule: end must be strictly after start
-        if endH < startH || (endH == startH && endM <= startM) {
-          showEndBeforeStartAlert = true
-          return
-        }
-      } else if endH > startH || (endH == startH && endM > startM) {
-        // Cross-midnight toggle is on but end is after start — likely a mistake
-        showNextDayMismatchAlert = true
-        return
-      }
-    }
-
     var newSchedule = BlockedProfileSchedule(
       id: editingSchedule?.id ?? UUID(),
       name: scheduleName,
@@ -752,6 +734,17 @@ struct ScheduleEditSheet: View {
       endType: endType,
       isNextDay: endType == .specificTime ? isNextDay : false
     )
+
+    switch newSchedule.timeValidationError {
+    case .endNotAfterStart:
+      showEndBeforeStartAlert = true
+      return
+    case .nextDayEndAfterStart:
+      showNextDayMismatchAlert = true
+      return
+    case nil:
+      break
+    }
 
     let targetProfile: BlockedProfiles?
     if isEditing {

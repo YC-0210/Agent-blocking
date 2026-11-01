@@ -124,6 +124,25 @@ struct BlockedProfileSchedule: Codable, Equatable, Identifiable {
     return !days.isEmpty
   }
 
+  enum TimeValidationError: Equatable {
+    case endNotAfterStart
+    case nextDayEndAfterStart
+  }
+
+  /// The save form's time rules; computed only, so persisted schedules keep their schema.
+  var timeValidationError: TimeValidationError? {
+    guard endType == .specificTime else { return nil }
+    let startMinutes = startHour * 60 + startMinute
+    let endMinutes = endHour * 60 + endMinute
+    if !isNextDay && endMinutes <= startMinutes {
+      return .endNotAfterStart
+    }
+    if isNextDay && endMinutes > startMinutes {
+      return .nextDayEndAfterStart
+    }
+    return nil
+  }
+
   var totalDurationInSeconds: Int {
     if isNextDay {
       return (24 - startHour + endHour) * 3600 + (endMinute - startMinute) * 60
