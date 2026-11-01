@@ -1,0 +1,144 @@
+"""Check the real CI shell script using controlled Xcode/simulator responses."""
+
+import copy
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+import tempfile
+import unittest
+
+ROOT = Path(__file__).resolve().parent.parent
+SUMMARY = {"result": "Passed", "totalTestCount": 63, "passedTests": 63,
+           "failedTests": 0, "skippedTests": 0, "expectedFailures": 0}
+TREE = {"testNodes": [{"nodeType": "Unit test bundle", "name": "DoCardTests", "children": [
+    {"nodeType": "Test Suite", "name": suite, "children": [
+        {"nodeType": "Test Case", "nodeIdentifier": f"{suite}/test{number}()", "result": "Passed"}
+        for number in range(count)]}
+    for suite, count in [("ScheduleTests", 36), ("UnlockRecoveryTests", 27)]
+]}]}
+
+XCRUN = '''import json, os, pathlib, sys
+args = sys.argv[1:]
+if args[:3] == ['simctl', 'list', 'runtimes']:
+    print(json.dumps({'runtimes':[{'identifier':'test-runtime','isAvailable':True}]}))
+elif args[:2] == ['simctl', 'create']:
+    print('fixture-simulator')
+elif args[:3] == ['xcresulttool', 'get', 'test-results']:
+    name = 'test-summary.json' if args[3] == 'summary' else 'test-tree.json'
+    print((pathlib.Path(os.environ['CI_FIXTURE_DIR']) / name).read_text())
+'''
+XCODEBUILD = '''import os, pathlib, sys
+args = sys.argv[1:]
+if args == ['-version']:
+    print('Controlled Xcode response')
+elif args[0] == 'test':
+    for suite in ['ScheduleTests', 'UnlockRecoveryTests']:
+        assert '-only-testing:DoCardTests/' + suite in args
+    pathlib.Path(args[args.index('-resultBundlePath') + 1]).mkdir()
+    sys.exit(int(os.environ['SIMULATED_TEST_STATUS']))
+elif args[0] == 'build':
+    pathlib.Path(os.environ['CI_FIXTURE_DIR'], 'release-called').touch()
+    if os.environ['SIMULATED_RELEASE_STATUS'] == '0':
+        print('** BUILD SUCCEEDED **')
+    sys.exit(int(os.environ['SIMULATED_RELEASE_STATUS']))
+'''
+
+
+class PipelineChecks(unittest.TestCase):
+    def run_pipeline(self, summary=None, tree=None, test_status=0, release_status=0):
+        with tempfile.TemporaryDirectory(prefix="docard-ci-guard-") as temporary:
+            fixture = Path(temporary)
+            binary = fixture / 'bin'
+            binary.mkdir()
+            for name, body in [('xcrun', XCRUN), ('xcodebuild', XCODEBUILD)]:
+                path = binary / name
+                path.write_text(f'#!{sys.executable}\n' + body)
+                path.chmod(0o755)
+            for name, value in [('test-summary.json', SUMMARY if summary is None else summary),
+                                ('test-tree.json', TREE if tree is None else tree)]:
+                (fixture / name).write_text(value if isinstance(value, str) else json.dumps(value))
+            results = fixture / 'results'
+            results.mkdir()
+            # A prior success must not hide this invocation's failure.
+            (results / 'ci-passed').touch()
+            (results / 'release.log').write_text('** BUILD SUCCEEDED **')
+            env = {**os.environ, 'PATH': str(binary) + os.pathsep + os.environ['PATH'],
+                   'CI_FIXTURE_DIR': str(fixture), 'CI_RESULTS_DIR': str(results),
+                   'CI_BUILD_DIR': str(fixture / 'build'), 'CI_SIMULATOR_RUNTIME': 'test-runtime',
+                   'EXPECTED_SCHEDULE_TEST_COUNT': '36', 'EXPECTED_UNLOCK_RECOVERY_TEST_COUNT': '27',
+                   'SIMULATED_TEST_STATUS': str(test_status),
+                   'SIMULATED_RELEASE_STATUS': str(release_status)}
+            run = subprocess.run(['bash', str(ROOT / 'ci/run-ios-ci.sh')], env=env,
+                                 capture_output=True, text=True)
+            rendered = subprocess.run([sys.executable, str(ROOT / 'ci/ios-ci-summary.py'), str(results)],
+                                      capture_output=True, text=True, check=True)
+            return (run.returncode, (fixture / 'release-called').exists(),
+                    (results / 'ci-passed').exists(), rendered.stdout)
+
+    def assert_blocked(self, **kwargs):
+        status, release_called, marker, report = self.run_pipeline(**kwargs)
+        self.assertNotEqual(status, 0)
+        self.assertFalse(release_called)
+        self.assertFalse(marker)
+        self.assertIn('Release simulator build: **not reached**', report)
+
+    def test_complete_run_reaches_release_and_reports_both_suites(self):
+        status, release_called, marker, report = self.run_pipeline()
+        self.assertEqual(status, 0)
+        self.assertTrue(release_called)
+        self.assertTrue(marker)
+        self.assertIn('| ScheduleTests | 36 | 36 | 36 | 0 | 0 |', report)
+        self.assertIn('| UnlockRecoveryTests | 27 | 27 | 27 | 0 | 0 |', report)
+
+    def test_missing_suite_cannot_be_replaced_by_extra_schedule_tests(self):
+        tree = copy.deepcopy(TREE)
+        tree['testNodes'][0]['children'] = [tree['testNodes'][0]['children'][0]]
+        children = tree['testNodes'][0]['children'][0]['children']
+        children.extend({'nodeType': 'Test Case', 'nodeIdentifier': f'ScheduleTests/extra{n}()',
+                         'result': 'Passed'} for n in range(27))
+        self.assert_blocked(tree=tree)
+
+    def test_skipped_case_blocks_release_even_with_passing_summary(self):
+        tree = copy.deepcopy(TREE)
+        tree['testNodes'][0]['children'][1]['children'][0]['result'] = 'Skipped'
+        self.assert_blocked(tree=tree)
+
+    def test_failed_case_blocks_release_even_with_successful_command(self):
+        tree = copy.deepcopy(TREE)
+        tree['testNodes'][0]['children'][1]['children'][0]['result'] = 'Failed'
+        self.assert_blocked(tree=tree)
+
+    def test_command_failure_is_preserved_even_with_passing_results(self):
+        status, release_called, marker, _ = self.run_pipeline(test_status=65)
+        self.assertEqual(status, 65)
+        self.assertFalse(release_called)
+        self.assertFalse(marker)
+
+    def test_unreadable_results_block_release(self):
+        for values in [{'summary': 'broken json'}, {'tree': 'broken json'}]:
+            with self.subTest(values=values):
+                self.assert_blocked(**values)
+
+    def test_zero_tests_block_release(self):
+        self.assert_blocked(tree={'testNodes': []})
+
+    def test_duplicate_tests_block_release(self):
+        tree = copy.deepcopy(TREE)
+        children = tree['testNodes'][0]['children'][1]['children']
+        children[1] = copy.deepcopy(children[0])
+        self.assert_blocked(tree=tree)
+
+    def test_failed_summary_blocks_release_even_with_passing_tree(self):
+        self.assert_blocked(summary={**SUMMARY, 'result': 'Failed', 'failedTests': 1})
+
+    def test_release_failure_does_not_write_success_marker(self):
+        status, release_called, marker, _ = self.run_pipeline(release_status=65)
+        self.assertEqual(status, 65)
+        self.assertTrue(release_called)
+        self.assertFalse(marker)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=2)

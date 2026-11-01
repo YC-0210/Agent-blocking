@@ -369,38 +369,34 @@ extension NFCScannerUtil: NFCTagReaderSessionDelegate {
   }
 
   private func handleTagData(id: String, uuid: String?, cardName: String?, session: NFCTagReaderSession) {
-    // Reset write-mode flag before dispatching to main
-    let wasWriteMode = pendingCardName != nil
     pendingCardName = nil
-
     let result = NFCResult(id: id, payload: uuid, cardName: cardName, DateScanned: Date())
-
-    // Validate at the NFC session level so the system dialog
-    // shows ✗ (cross) for invalid/unmatched tags instead of ✓ (checkmark)
-    let isDOCard = uuid != nil
-    let tagIdMatches = expectedTagIds == nil || expectedTagIds!.isEmpty || expectedTagIds!.contains(id)
-
+    // Capture paired IDs at read time, as the hardware path did before dispatching.
+    let expectedIds = expectedTagIds
     DispatchQueue.main.async { [weak self] in
-      if !isDOCard {
-        // Case 1: Random NFC tag (no DO Card External Type record) → ✗ cross
-        session.invalidate(errorMessage: String(localized: "請使用 DO Card"))
-        self?.onError?(String(localized: "This is not a valid DO Card. Please use your DO Card to unlock."))
-      } else if !tagIdMatches {
-        // Case 2: Valid DO Card but wrong tag ID → ✗ cross
-        session.invalidate(errorMessage: String(localized: "此DO Card 尚未配對"))
-        self?.onError?(String(localized: "This DO Card is not paired. Please go to Settings to pair your card."))
-      } else {
-        // Case 3: Matched DO Card → ✓ checkmark
-        // For write mode the alertMessage was already set in writeNDEFRecord
-        if !wasWriteMode {
-          session.invalidate()
-        } else {
-          session.invalidate()
-        }
-        self?.onTagScanned?(result)
+      self?.deliverReadResult(result, expectedIds: expectedIds) { message in
+        if let message { session.invalidate(errorMessage: message) } else { session.invalidate() }
       }
     }
   }
+
+  /// Common validation/delivery for a completed read; hardware supplies the dialog callback.
+  func deliverReadResult(
+    _ result: NFCResult, expectedIds: [String]?, invalidate: (String?) -> Void
+  ) {
+    if result.payload == nil {
+      invalidate(String(localized: "請使用 DO Card"))
+      onError?(String(localized: "This is not a valid DO Card. Please use your DO Card to unlock."))
+    } else if let expectedIds, !expectedIds.isEmpty, !expectedIds.contains(result.id) {
+      invalidate(String(localized: "此DO Card 尚未配對"))
+      onError?(
+        String(localized: "This DO Card is not paired. Please go to Settings to pair your card."))
+    } else {
+      invalidate(nil)
+      onTagScanned?(result)
+    }
+  }
+
 }
 
 // MARK: - NDEF Writing Support (External Type)

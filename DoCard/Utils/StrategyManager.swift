@@ -40,18 +40,40 @@ class StrategyManager: ObservableObject {
   // SECURITY: Emergency unlock counters stored in Keychain to resist
   // tampering via backup restoration or jailbreak (V-06 fix).
   private var emergencyUnblocksRemaining: Int {
-    get { KeychainHelper.load("emergencyUnblocksRemaining", defaultValue: 3) }
-    set { KeychainHelper.save("emergencyUnblocksRemaining", value: newValue) }
+    get { readEmergencyUses() }
+    set { writeEmergencyUses(newValue) }
   }
   private var lastEmergencyUnblocksResetDateTimestamp: Double {
     get { KeychainHelper.load("lastEmergencyUnblocksResetDate", defaultValue: 0) }
     set { KeychainHelper.save("lastEmergencyUnblocksResetDate", value: newValue) }
   }
 
-  private let liveActivityManager = LiveActivityManager.shared
+  private lazy var liveActivityManager = LiveActivityManager.shared
 
-  private let timersUtil = TimersUtil()
-  private let appBlocker = AppBlockerUtil()
+  private lazy var timersUtil = TimersUtil()
+  private let appBlocker: AppBlockerUtil
+  private let makeStrategy: (String) -> BlockingStrategy
+  private let systemEffect: (() -> Void) -> Void
+  private let readEmergencyUses: () -> Int
+  private let writeEmergencyUses: (Int) -> Void
+
+  init(
+    appBlocker: AppBlockerUtil = AppBlockerUtil(),
+    makeStrategy: ((String) -> BlockingStrategy)? = nil,
+    systemEffect: @escaping (() -> Void) -> Void = { $0() },
+    readEmergencyUses: @escaping () -> Int = {
+      KeychainHelper.load("emergencyUnblocksRemaining", defaultValue: 3)
+    },
+    writeEmergencyUses: @escaping (Int) -> Void = {
+      KeychainHelper.save("emergencyUnblocksRemaining", value: $0)
+    }
+  ) {
+    self.appBlocker = appBlocker
+    self.makeStrategy = makeStrategy ?? { StrategyManager.getStrategyFromId(id: $0) }
+    self.systemEffect = systemEffect
+    self.readEmergencyUses = readEmergencyUses
+    self.writeEmergencyUses = writeEmergencyUses
+  }
 
   /// Guard flag to prevent re-entrant calls to toggleBlocking.
   /// Without this, rapid taps can trigger overlapping NFC sessions
@@ -180,23 +202,25 @@ class StrategyManager: ObservableObject {
             TimeInterval(plannedDurationMinutes * 60)
           )
 
-          if Date() >= plannedEndTime {
+          if SharedData.currentDate >= plannedEndTime {
             smLogger.info(
               "restoreOnLaunch: timer expired at \(plannedEndTime, privacy: .public) — closing stale session '\(session.id, privacy: .private)'"
             )
             session.endReason = "timer_expired"
             session.endSession()
             try? context.save()
-            evaluateShareEligibility(session: session)
+            self.systemEffect { evaluateShareEligibility(session: session) }
 
             appBlocker.deactivateRestrictions()
             activeSession = nil
             stopTimer()
             elapsedTime = 0
-            liveActivityManager.endSessionActivity()
-            DeviceActivityCenterUtil.removeAllBreakTimerActivities()
-            DeviceActivityCenterUtil.removeAllStrategyTimerActivities()
-            WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+            self.systemEffect { liveActivityManager.endSessionActivity() }
+            self.systemEffect { DeviceActivityCenterUtil.removeAllBreakTimerActivities() }
+            self.systemEffect { DeviceActivityCenterUtil.removeAllStrategyTimerActivities() }
+            self.systemEffect {
+              WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+            }
             scheduleReminder(profile: session.blockedProfile)
 
             // Mac sync: extension's notifySessionEnded may not have fired
@@ -204,7 +228,7 @@ class StrategyManager: ObservableObject {
             // PATCH WHERE state=eq.active is idempotent so a double-send is
             // harmless. Without this a paired Mac stays blocked until next
             // foreground reconcile (or forever if reconcile sees stale state).
-            MacSessionSyncService.shared.endSession()
+            self.systemEffect { MacSessionSyncService.shared.endSession() }
 
             restoreScheduledSessionIfNeeded()
             return
@@ -233,21 +257,23 @@ class StrategyManager: ObservableObject {
             session.endReason = "timer_expired"
             session.endSession()
             try? context.save()
-            evaluateShareEligibility(session: session)
+            self.systemEffect { evaluateShareEligibility(session: session) }
 
             appBlocker.deactivateRestrictions()
             activeSession = nil
             stopTimer()
             elapsedTime = 0
-            liveActivityManager.endSessionActivity()
-            DeviceActivityCenterUtil.removeAllBreakTimerActivities()
-            DeviceActivityCenterUtil.removeAllStrategyTimerActivities()
-            WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+            self.systemEffect { liveActivityManager.endSessionActivity() }
+            self.systemEffect { DeviceActivityCenterUtil.removeAllBreakTimerActivities() }
+            self.systemEffect { DeviceActivityCenterUtil.removeAllStrategyTimerActivities() }
+            self.systemEffect {
+              WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+            }
             scheduleReminder(profile: session.blockedProfile)
 
             // Mac sync: extension's notifySessionEnded may have failed or the
             // PATCH may not have landed. Idempotent — harmless on a clean state.
-            MacSessionSyncService.shared.endSession()
+            self.systemEffect { MacSessionSyncService.shared.endSession() }
 
             restoreScheduledSessionIfNeeded()
             return
@@ -289,7 +315,7 @@ class StrategyManager: ObservableObject {
       // Start live activity for existing session if one exists
       // live activities can only be started when the app is in the foreground
       if let session = activeSession {
-        liveActivityManager.startSessionActivity(session: session)
+        self.systemEffect { liveActivityManager.startSessionActivity(session: session) }
       }
     } else {
       // Session ended while app was in background (e.g. strategy timer expired)
@@ -301,21 +327,21 @@ class StrategyManager: ObservableObject {
         // Mac sync: out-of-band session end (extension may have fired
         // notifySessionEnded already, or may have failed). Fire defensively —
         // idempotent PATCH on no-active-rows is harmless.
-        MacSessionSyncService.shared.endSession()
-        evaluateShareEligibility(session: previousSession)
+        self.systemEffect { MacSessionSyncService.shared.endSession() }
+        self.systemEffect { evaluateShareEligibility(session: previousSession) }
       }
 
       activeSession = nil
       stopTimer()
       elapsedTime = 0
-      liveActivityManager.endSessionActivity()
+      self.systemEffect { liveActivityManager.endSessionActivity() }
 
       // Clean up device activity timers
-      DeviceActivityCenterUtil.removeAllBreakTimerActivities()
-      DeviceActivityCenterUtil.removeAllStrategyTimerActivities()
+      self.systemEffect { DeviceActivityCenterUtil.removeAllBreakTimerActivities() }
+      self.systemEffect { DeviceActivityCenterUtil.removeAllStrategyTimerActivities() }
 
       // Refresh widgets when session ends
-      WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+      self.systemEffect { WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget") }
 
       // Schedule reminder if a session was previously active
       if let endedProfile = previousSession?.blockedProfile {
@@ -481,26 +507,28 @@ class StrategyManager: ObservableObject {
   func startTimer() {
     // Invalidate any existing timer before creating a new one to prevent accumulation
     timer?.invalidate()
-    timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-      guard let self, let session = self.activeSession else { return }
+    systemEffect {
+      timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
+        guard let self, let session = self.activeSession else { return }
 
-      if session.isBreakActive {
-        // Calculate break time remaining (countdown)
-        guard let breakStartTime = session.breakStartTime else { return }
-        let timeSinceBreakStart = Date().timeIntervalSince(breakStartTime)
-        let breakDurationInSeconds = TimeInterval(session.blockedProfile.breakTimeInMinutes * 60)
-        let remaining = breakDurationInSeconds - timeSinceBreakStart
-        self.elapsedTime = max(0, remaining)
+        if session.isBreakActive {
+          // Calculate break time remaining (countdown)
+          guard let breakStartTime = session.breakStartTime else { return }
+          let timeSinceBreakStart = Date().timeIntervalSince(breakStartTime)
+          let breakDurationInSeconds = TimeInterval(session.blockedProfile.breakTimeInMinutes * 60)
+          let remaining = breakDurationInSeconds - timeSinceBreakStart
+          self.elapsedTime = max(0, remaining)
 
-        // Break time expired — automatically end the break and return to focus
-        if remaining <= 0 {
-          self.handleBreakExpired(session: session)
+          // Break time expired — automatically end the break and return to focus
+          if remaining <= 0 {
+            self.handleBreakExpired(session: session)
+          }
+        } else {
+          // Calculate session elapsed time
+          let rawElapsedTime = Date().timeIntervalSince(session.startTime)
+          let breakDuration = self.calculateBreakDuration()
+          self.elapsedTime = rawElapsedTime - breakDuration
         }
-      } else {
-        // Calculate session elapsed time
-        let rawElapsedTime = Date().timeIntervalSince(session.startTime)
-        let breakDuration = self.calculateBreakDuration()
-        self.elapsedTime = rawElapsedTime - breakDuration
       }
     }
   }
@@ -742,7 +770,7 @@ class StrategyManager: ObservableObject {
     }
 
     // Capture session duration before stopBlocking sets endTime
-    let sessionDuration = Date().timeIntervalSince(activeSession.startTime)
+    let sessionDuration = SharedData.currentDate.timeIntervalSince(activeSession.startTime)
 
     // Set end reason before stopBlocking persists the session
     activeSession.endReason = "emergency_unlock"
@@ -787,7 +815,7 @@ class StrategyManager: ObservableObject {
     try? context.save()
 
     // Do end sections for the profile
-    self.liveActivityManager.endSessionActivity()
+    self.systemEffect { self.liveActivityManager.endSessionActivity() }
     // scheduleReminder is intentionally omitted here — the onSessionCreation(.ended) callback
     // already calls it. Calling it again would schedule a duplicate reminder notification.
     self.stopTimer()
@@ -796,7 +824,7 @@ class StrategyManager: ObservableObject {
     emergencyUnblocksRemaining -= 1
 
     // Refresh widgets when emergency unblock ends session
-    WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+    self.systemEffect { WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget") }
   }
 
   func resetEmergencyUnblocks() {
@@ -852,7 +880,7 @@ class StrategyManager: ObservableObject {
   }
 
   func getStrategy(id: String) -> BlockingStrategy {
-    var strategy = StrategyManager.getStrategyFromId(id: id)
+    var strategy = makeStrategy(id)
 
     strategy.onSessionCreation = { [weak self] session in
       guard let self else { return }
@@ -861,7 +889,7 @@ class StrategyManager: ObservableObject {
       self.dismissView()
 
       // Remove any timers and notifications that were scheduled
-      self.timersUtil.cancelAll()
+      self.systemEffect { self.timersUtil.cancelAll() }
 
       switch session {
       case .started(let session):
@@ -876,38 +904,37 @@ class StrategyManager: ObservableObject {
 
         self.activeSession = session
         self.startTimer()
-        self.liveActivityManager
-          .startSessionActivity(session: session)
+        self.systemEffect { self.liveActivityManager.startSessionActivity(session: session) }
 
         // Refresh widgets when session starts
-        WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+        self.systemEffect { WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget") }
 
         // Notify any paired Mac (Chrome Extension) — fire-and-forget; failures
         // here must never block the iPhone-side Screen Time flow.
-        MacSessionSyncService.shared.startSession()
+        self.systemEffect { MacSessionSyncService.shared.startSession() }
       case .ended(let endedProfile):
         // Capture before nil-ing so we can evaluate share eligibility on the just-ended session.
         let endedSession = self.activeSession
         self.activeSession = nil
-        self.liveActivityManager.endSessionActivity()
+        self.systemEffect { self.liveActivityManager.endSessionActivity() }
         self.scheduleReminder(profile: endedProfile)
-        self.evaluateShareEligibility(session: endedSession)
+        self.systemEffect { self.evaluateShareEligibility(session: endedSession) }
 
         self.stopTimer()
         self.elapsedTime = 0
 
         // Refresh widgets when session ends
-        WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+        self.systemEffect { WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget") }
 
         // Tell paired Mac the session ended; failures are queued for retry so
         // the user's Mac doesn't stay blocked forever after a network blip.
-        MacSessionSyncService.shared.endSession()
+        self.systemEffect { MacSessionSyncService.shared.endSession() }
 
         // Remove all break timer activities
-        DeviceActivityCenterUtil.removeAllBreakTimerActivities()
+        self.systemEffect { DeviceActivityCenterUtil.removeAllBreakTimerActivities() }
 
         // Remove all strategy timer activities
-        DeviceActivityCenterUtil.removeAllStrategyTimerActivities()
+        self.systemEffect { DeviceActivityCenterUtil.removeAllStrategyTimerActivities() }
 
         self.restoreScheduledSessionIfNeeded()
       }
@@ -1254,7 +1281,7 @@ class StrategyManager: ObservableObject {
       appBlocker.activateRestrictions(for: profile)
       // Mac sync: schedule resumed in-app (no extension callback fires here),
       // so paired Macs need an explicit start signal.
-      MacSessionSyncService.shared.startSession()
+      self.systemEffect { MacSessionSyncService.shared.startSession() }
       return
     }
 
@@ -1274,7 +1301,7 @@ class StrategyManager: ObservableObject {
     )
     appBlocker.activateRestrictions(for: profile)
     // Mac sync: same as above — schedule activated in-app, not via extension.
-    MacSessionSyncService.shared.startSession()
+    self.systemEffect { MacSessionSyncService.shared.startSession() }
   }
 
   private func suppressScheduledReblockIfNeeded(for session: BlockedProfileSession) {

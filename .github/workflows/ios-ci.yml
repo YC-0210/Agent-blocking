@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   schedule-tests:
-    name: Schedule tests and Release build
+    name: Schedule, unlock/recovery tests and Release build
     runs-on: macos-26
     timeout-minutes: 30
     env:
@@ -25,13 +25,17 @@ jobs:
       CI_RESULTS_DIR: ${{ github.workspace }}/.build/ios-ci/results
       CI_BUILD_DIR: ${{ github.workspace }}/.build/ios-ci/build
       EXPECTED_SCHEDULE_TEST_COUNT: "36"
+      EXPECTED_UNLOCK_RECOVERY_TEST_COUNT: "27"
     steps:
       - name: Check out code
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
           persist-credentials: false
 
-      - name: Run schedule tests and build Release
+      - name: Verify CI result gates
+        run: python3 ci/test-ios-ci.py
+
+      - name: Run both test suites and build Release
         run: bash ci/run-ios-ci.sh
 
       - name: Write result summary

@@ -7,13 +7,15 @@ cd "$repo_root"
 results_dir="${CI_RESULTS_DIR:-$repo_root/.build/ios-ci/results}"
 build_dir="${CI_BUILD_DIR:-$repo_root/.build/ios-ci/build}"
 runtime="${CI_SIMULATOR_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-2}"
-expected_count="${EXPECTED_SCHEDULE_TEST_COUNT:-36}"
+expected_schedule="${EXPECTED_SCHEDULE_TEST_COUNT:-36}"
+expected_recovery="${EXPECTED_UNLOCK_RECOVERY_TEST_COUNT:-27}"
 simulator_id=""
 
 mkdir -p "$results_dir" "$build_dir"
 # Repeated local runs must not reuse an earlier success marker or summary.
 rm -f -- "$results_dir/ci-passed" "$results_dir/test-summary.json" \
-  "$results_dir/tests.log" "$results_dir/release.log"
+  "$results_dir/tests.log" "$results_dir/release.log" \
+  "$results_dir/test-tree.json" "$results_dir/suite-results.json"
 
 cleanup() {
   # Delete only the disposable simulator created by this invocation.
@@ -49,7 +51,7 @@ xcrun simctl boot "$simulator_id"
 xcrun simctl bootstatus "$simulator_id" -b
 
 # Each invocation owns a new bundle; repeated local runs may keep the other logs.
-result_bundle="$results_dir/schedule-tests-$(date +%Y%m%d-%H%M%S)-$$.xcresult"
+result_bundle="$results_dir/app-tests-$(date +%Y%m%d-%H%M%S)-$$.xcresult"
 common_args=(
   -project DoCard.xcodeproj
   -scheme DoCard
@@ -68,6 +70,7 @@ xcodebuild test "${common_args[@]}" \
   -destination-timeout 120 \
   -parallel-testing-enabled NO \
   -only-testing:DoCardTests/ScheduleTests \
+  -only-testing:DoCardTests/UnlockRecoveryTests \
   -resultBundlePath "$result_bundle" \
   2>&1 | tee "$results_dir/tests.log" || test_status=$?
 
@@ -75,29 +78,19 @@ xcodebuild test "${common_args[@]}" \
 if [[ -d "$result_bundle" ]]; then
   xcrun xcresulttool get test-results summary --path "$result_bundle" --compact \
     > "$results_dir/test-summary.json" || true
+  xcrun xcresulttool get test-results tests --path "$result_bundle" --compact \
+    > "$results_dir/test-tree.json" || true
 fi
+# Validate both suites even on an assertion failure, so their results reach the report.
+validation_status=0
+python3 ci/ios-ci-results.py "$results_dir" "$expected_schedule" "$expected_recovery" \
+  || validation_status=$?
 if [[ "$test_status" -ne 0 ]]; then
   exit "$test_status"
 fi
-
-# A successful command with zero, missing, or skipped tests must not turn CI green.
-python3 - "$results_dir/test-summary.json" "$expected_count" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1]) as stream:
-    summary = json.load(stream)
-expected = int(sys.argv[2])
-if not (
-    summary.get("result") == "Passed"
-    and summary.get("totalTestCount") == expected
-    and summary.get("passedTests") == expected
-    and summary.get("failedTests") == 0
-    and summary.get("skippedTests") == 0
-):
-    sys.exit(f"Expected {expected} passing schedule tests, none failed or skipped. Got: {summary}")
-print(f"Verified {expected} schedule tests passed, with none failed or skipped.")
-PY
+if [[ "$validation_status" -ne 0 ]]; then
+  exit "$validation_status"
+fi
 
 xcodebuild build "${common_args[@]}" \
   -configuration Release \

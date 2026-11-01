@@ -17,7 +17,7 @@ enum SharedData {
   // `SuppressionRegistry` — the single owner of the suppression *storage* contract.
   // The scheduling-clock logic below (which window is active, when it ends) stays here.
 
-  private static let suite: UserDefaults = {
+  private static let appGroupDefaults: UserDefaults = {
     guard let defaults = UserDefaults(suiteName: "group.DO.version3") else {
       // Fallback to standard UserDefaults if App Group is unavailable
       logger.warning("App Group unavailable, falling back to standard UserDefaults")
@@ -25,6 +25,24 @@ enum SharedData {
     }
     return defaults
   }()
+
+  /// Call-scoped dependencies. Normal app/extension calls use the existing App Group and Keychain.
+  /// A scoped caller can supply separate signed storage and a clock without changing global state.
+  struct Runtime: @unchecked Sendable {
+    let defaults: UserDefaults
+    let signingKey: SymmetricKey
+    let now: @Sendable () -> Date
+    let calendar: Calendar
+    let writeDebugLog: @Sendable (String) -> Void = { _ in }
+  }
+
+  @TaskLocal static var runtime: Runtime?
+
+  static var storageDefaults: UserDefaults { runtime?.defaults ?? appGroupDefaults }
+  static var currentDate: Date { runtime?.now() ?? Date() }
+  static var currentCalendar: Calendar { runtime?.calendar ?? .current }
+  private static var suite: UserDefaults { storageDefaults }
+  private static var hmacSigningKey: SymmetricKey? { runtime?.signingKey ?? keychainSigningKey }
 
   // MARK: – Keys
   private enum Key: String {
@@ -75,7 +93,7 @@ enum SharedData {
     }
   }
 
-  private static let hmacSigningKey: SymmetricKey? = {
+  private static let keychainSigningKey: SymmetricKey? = {
     let keychainKey = "sharedDataHMACKey"
 
     // Try to load existing key from Keychain
@@ -402,7 +420,7 @@ enum SharedData {
       id: UUID().uuidString,
       tag: profileID.uuidString,
       blockedProfileId: profileID,
-      startTime: Date(),
+      startTime: currentDate,
       forceStarted: true,
       triggerSource: "scheduled")
   }
@@ -426,7 +444,7 @@ enum SharedData {
   static func endActiveStrategySharedSession(endReason: String = "timer_expired") {
     guard var existingSession = activeStrategySharedSession else { return }
 
-    existingSession.endTime = Date()
+    existingSession.endTime = currentDate
     existingSession.endReason = endReason
     completedSessionsInSchedular.append(existingSession)
 
@@ -436,7 +454,7 @@ enum SharedData {
   static func endActiveScheduleSharedSession(endReason: String = "timer_expired") {
     guard var existingSession = activeScheduleSharedSession else { return }
 
-    existingSession.endTime = Date()
+    existingSession.endTime = currentDate
     existingSession.endReason = endReason
     completedSessionsInSchedular.append(existingSession)
 
@@ -477,7 +495,9 @@ enum SharedData {
     activeStrategySharedSession = activeSession
   }
 
-  static func currentScheduledProfileSnapshot(now: Date = Date(), calendar: Calendar = .current)
+  static func currentScheduledProfileSnapshot(
+    now: Date = SharedData.currentDate, calendar: Calendar = SharedData.currentCalendar
+  )
     -> ProfileSnapshot?
   {
     profileSnapshots.values
@@ -490,8 +510,8 @@ enum SharedData {
 
   static func isScheduleCurrentlyActiveAndUnsuppressed(
     profile: ProfileSnapshot,
-    now: Date = Date(),
-    calendar: Calendar = .current
+    now: Date = SharedData.currentDate,
+    calendar: Calendar = SharedData.currentCalendar
   ) -> Bool {
     hasUnsuppressedScheduleWindow(profile, now: now, calendar: calendar)
   }
@@ -577,8 +597,8 @@ enum SharedData {
 
   private static func currentScheduleSuppressionWindows(
     for profile: ProfileSnapshot,
-    now: Date = Date(),
-    calendar: Calendar = .current
+    now: Date = SharedData.currentDate,
+    calendar: Calendar = SharedData.currentCalendar
   ) -> [String: Date] {
     profile.schedules.reduce(into: [:]) { suppressions, schedule in
       guard schedule.isCurrentlyInWindow(now: now, calendar: calendar) else { return }
@@ -610,8 +630,8 @@ enum SharedData {
   private static func writeScheduleSuppressionFlags(
     for profile: ProfileSnapshot,
     reason: SuppressionRegistry.Reason,
-    now: Date = Date(),
-    calendar: Calendar = .current
+    now: Date = SharedData.currentDate,
+    calendar: Calendar = SharedData.currentCalendar
   ) {
     let suppressions = currentScheduleSuppressionWindows(for: profile, now: now, calendar: calendar)
     for (activityId, windowEnd) in suppressions {

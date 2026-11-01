@@ -41,10 +41,6 @@ enum SuppressionRegistry {
   /// Every reason, used when reading or cleaning without caring which one set the flag.
   private static let allReasons: [Reason] = [.emergencyUnlock, .cardTap]
 
-  /// The App Group the flags live in. Used only to enumerate keys in `cleanupExpired`;
-  /// per-key writes / reads / removes go through `SharedData`, which owns the same suite.
-  private static let appGroupSuiteName = "group.DO.version3"
-
   /// The canonical identifier for one schedule's daily window. This is the **single**
   /// definition of the `"<profile>.<schedule>_<weekday>"` shape — the DeviceActivity extension
   /// passes its `DeviceActivityName.rawValue` (built identically in
@@ -65,7 +61,7 @@ enum SuppressionRegistry {
 
   /// Whether `activityId` is currently suppressed by **any** reason. Self-healing: a flag whose
   /// window has already ended is removed as a side effect and treated as not suppressing.
-  static func isSuppressed(activityId: String, now: Date = Date()) -> Bool {
+  static func isSuppressed(activityId: String, now: Date = SharedData.currentDate) -> Bool {
     for reason in allReasons {
       let key = reason.prefix + activityId
       guard let windowEndTimestamp = SharedData.readVerifiedDouble(forKey: key) else { continue }
@@ -82,8 +78,8 @@ enum SuppressionRegistry {
   /// Remove every suppression flag whose window has already ended. Sweeps flags that were
   /// written but never read back, so `isSuppressed`'s read-time cleanup never fired for them.
   static func cleanupExpired(
-    now: Date = Date(),
-    suite: UserDefaults? = UserDefaults(suiteName: appGroupSuiteName)
+    now: Date = SharedData.currentDate,
+    suite: UserDefaults? = SharedData.storageDefaults
   ) {
     guard let suite else { return }
     let prefixes = allReasons.map(\.prefix)

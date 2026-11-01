@@ -6,7 +6,16 @@ private let log: Logger = Logger(subsystem: "app.docard.monitor", category: Sche
 class ScheduleTimerActivity: TimerActivity {
   static var id: String = "ScheduleTimerActivity"
 
-  private let appBlocker = AppBlockerUtil()
+  private let appBlocker: AppBlockerUtil
+  private let systemEffect: (() -> Void) -> Void
+
+  init(
+    appBlocker: AppBlockerUtil = AppBlockerUtil(),
+    systemEffect: @escaping (() -> Void) -> Void = { $0() }
+  ) {
+    self.appBlocker = appBlocker
+    self.systemEffect = systemEffect
+  }
 
   func getDeviceActivityName(from profileId: String) -> DeviceActivityName {
     // Legacy format for backward compatibility (satisfies TimerActivity protocol)
@@ -125,7 +134,7 @@ class ScheduleTimerActivity: TimerActivity {
     // main app's MacSessionSyncService singleton from here. The writer reads
     // iphone_token from the App Group and POSTs synchronously within the
     // extension's runtime budget.
-    MacExtensionSyncWriter.notifySessionStarted()
+    systemEffect { MacExtensionSyncWriter.notifySessionStarted() }
   }
 
   func stop(for profile: SharedData.ProfileSnapshot) {
@@ -158,7 +167,7 @@ class ScheduleTimerActivity: TimerActivity {
     // in the App Group retry queue so the main app's MacSessionSyncService
     // can resend on next foreground — without this, listening Chromes would
     // stay blocked indefinitely after a network blip at schedule end.
-    MacExtensionSyncWriter.notifySessionEnded()
+    systemEffect { MacExtensionSyncWriter.notifySessionEnded() }
   }
 
   func getScheduleInterval(from schedule: BlockedProfileSchedule, weekday: Weekday) -> (

@@ -56,7 +56,7 @@ class BlockedProfileSession {
     self.id = UUID().uuidString
     self.tag = tag
     self.blockedProfile = blockedProfile
-    self.startTime = Date()
+    self.startTime = SharedData.currentDate
     self.forceStarted = forceStarted
     self.triggerSource = triggerSource
 
@@ -79,7 +79,7 @@ class BlockedProfileSession {
   }
 
   func endSession() {
-    let endTime = Date()
+    let endTime = SharedData.currentDate
 
     // Set the end time in shared data in case its being saved
     SharedData.setEndTime(date: endTime)
