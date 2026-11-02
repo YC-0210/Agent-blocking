@@ -141,3 +141,9 @@ Add an optional-UI-only readiness guard with lower-level controlled-response che
 core checks remain available independently. Any actual authorization change is made
 through a separate, reviewed native macOS administrator dialog, not through a CI job.
 This records a prerequisite and a testable next step, not a claim of a latency fix.
+
+Diagnostic uploads now require an initialized results directory even on failure.
+Remove the Maestro upload path's trailing slash so a preflight failure with an unset
+variable cannot turn the upload target into the filesystem root. A verification run
+was stopped before the UI stage while this error path was corrected. No root-directory
+artifact upload was executed. Workflow lint passes; final workflow execution is pending.
