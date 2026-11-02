@@ -38,7 +38,13 @@ class ReportViewModel: ObservableObject {
     }
     var focusScore: Int? { focusScoreResult?.focusScore }
 
-    private let calendar = Calendar.current
+    private let calendar: Calendar
+    private let now: () -> Date
+
+    init(calendar: Calendar = .current, now: @escaping () -> Date = Date.init) {
+        self.calendar = calendar
+        self.now = now
+    }
 
     func load(context: ModelContext, isPremium: Bool) {
         let weekStart = startOfCurrentWeek()
@@ -56,9 +62,7 @@ class ReportViewModel: ObservableObject {
 
         // Total block duration
         totalBlockDuration = sessions.reduce(0.0) { sum, session in
-            guard let end = session.endTime else { return sum }
-            let clippedStart = max(session.startTime, weekStart)
-            return sum + end.timeIntervalSince(clippedStart)
+            sum + focusDuration(of: session)
         }
 
         // Session count
@@ -72,9 +76,7 @@ class ReportViewModel: ObservableObject {
         for session in sessions {
             let profileId = session.blockedProfile.id
             let profileName = session.blockedProfile.name
-            guard let end = session.endTime else { continue }
-            let clippedStart = max(session.startTime, weekStart)
-            let dur = end.timeIntervalSince(clippedStart)
+            let dur = focusDuration(of: session)
             let existing = profileMap[profileId]
             profileMap[profileId] = (
                 name: profileName,
@@ -112,9 +114,7 @@ class ReportViewModel: ObservableObject {
 
         // Weekly effective seconds from qualified sessions only
         let weeklyEffectiveSeconds = qualified.reduce(0.0) { sum, session in
-            guard let end = session.endTime else { return sum }
-            let clippedStart = max(session.startTime, weekStart)
-            return sum + end.timeIntervalSince(clippedStart)
+            sum + focusDuration(of: session)
         }
 
         // Task 2b: Focus Score
@@ -173,7 +173,7 @@ class ReportViewModel: ObservableObject {
         manualTapSessionIds: Set<String>,
         weekStart: Date
     ) -> Int {
-        let today = calendar.startOfDay(for: Date())
+        let today = calendar.startOfDay(for: now())
         var activeDays = 0
 
         for dayOffset in 0..<7 {
@@ -200,7 +200,7 @@ class ReportViewModel: ObservableObject {
 
     private func loadWeekTrend(context: ModelContext) {
         var weeks: [WeekData] = []
-        let now = Date()
+        let now = now()
 
         for weeksAgo in (0..<4).reversed() {
             guard let wStart = calendar.date(byAdding: .weekOfYear, value: -weeksAgo, to: startOfCurrentWeek()) else {
@@ -211,11 +211,10 @@ class ReportViewModel: ObservableObject {
             }
 
             let sessions = completedSessions(from: wStart, to: min(wEnd, now), in: context)
+            // Assign the whole completed session to its starting week, including
+            // time after midnight/Monday. Use the same net time as the summary.
             let duration = sessions.reduce(0.0) { sum, session in
-                guard let end = session.endTime else { return sum }
-                let clippedStart = max(session.startTime, wStart)
-                let clippedEnd = min(end, wEnd)
-                return sum + clippedEnd.timeIntervalSince(clippedStart)
+                sum + focusDuration(of: session)
             }
 
             weeks.append(WeekData(
@@ -230,10 +229,18 @@ class ReportViewModel: ObservableObject {
 
     // MARK: - Helpers
 
+    private func focusDuration(of session: BlockedProfileSession) -> TimeInterval {
+        guard let end = session.endTime else { return 0 }
+        return SessionReportDuration.seconds(
+            start: session.startTime, end: end,
+            breakStart: session.breakStartTime, breakEnd: session.breakEndTime)
+    }
+
     private func startOfCurrentWeek() -> Date {
         var cal = calendar
         cal.firstWeekday = 2 // Monday
-        return cal.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        let currentDate = now()
+        return cal.dateInterval(of: .weekOfYear, for: currentDate)?.start ?? currentDate
     }
 
     private func completedSessions(since date: Date, in context: ModelContext) -> [BlockedProfileSession] {

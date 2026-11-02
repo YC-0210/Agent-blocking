@@ -1,4 +1,4 @@
-# iOS CI: schedule, unlock/recovery and first-release upgrade
+# iOS CI: schedule, recovery, sessions/reports and first-release upgrade
 
 `iOS CI` uses one GitHub-hosted `macos-26` job. It selects Xcode 26.2 and creates
 a disposable iPhone 17 Pro simulator using the installed iOS 26.2 runtime.
@@ -9,10 +9,13 @@ chosen Xcode or runtime is missing. Update these choices deliberately after veri
 
 1. Build the app, tests and dependent extensions once in Debug with `build-for-testing`.
    Reuse that build with `test-without-building` for `DoCardTests/ScheduleTests`
-   (36 tests) and `DoCardTests/UnlockRecoveryTests` (27 tests), in one regression run.
+   (36 tests), `DoCardTests/UnlockRecoveryTests` (27 tests), `DoCardTests/SessionHistoryTests`
+   (7), `DoCardTests/SessionReportTests` (7) and `DoCardTests/SessionReportDurationTests`
+   (1 calculation method with five break rows), in one 78-method regression run.
 2. Export Xcode’s combined summary and test tree. Require 36 passing schedule tests
-   and 27 passing unlock/recovery tests in the `DoCardTests` bundle, with unique
-   identifiers, none failed or skipped, and 63 passed in the combined summary.
+   and 27 passing unlock/recovery tests, plus 7 history, 7 report and 1 report-duration test
+   in the `DoCardTests` bundle, with unique
+   identifiers, none failed or skipped, and 78 passed in the combined summary.
    A missing suite cannot be replaced by extra tests in the other suite.
    Missing, unreadable, or inconsistent results fail the job.
 3. Reuse the same Debug build to run `Upgrade1301Tests/testFirstReleaseSavedDataSurvivesUpdate`
@@ -28,13 +31,15 @@ chosen Xcode or runtime is missing. Update these choices deliberately after veri
 The job stops after test failure; Release is then reported as not reached.
 It has a 30-minute timeout and cancels outdated runs for the same pull request or ref.
 The exact counts are intentional: update `EXPECTED_SCHEDULE_TEST_COUNT` or
-`EXPECTED_UNLOCK_RECOVERY_TEST_COUNT` when adding reviewed cases to that suite.
+`EXPECTED_UNLOCK_RECOVERY_TEST_COUNT`, `EXPECTED_SESSION_HISTORY_TEST_COUNT`,
+`EXPECTED_SESSION_REPORT_TEST_COUNT` or `EXPECTED_SESSION_REPORT_DURATION_TEST_COUNT`
+when adding reviewed cases to the corresponding suite.
 The script has matching local defaults. `suite-results.json` records separate
 expected/discovered/passed/failed/skipped counts and any validation errors.
 A nonzero Xcode exit status is preserved even if result files look successful.
 `upgrade-results.json` records both phases, process IDs, durations and errors. Each phase
 also retains its own log, Xcode summary, test tree and `.xcresult` bundle in a new `upgrade-*`
-directory. There are **64 unique app test methods and 65 executions**: the upgrade method
+directory. There are **79 unique app test methods and 80 executions**: the upgrade method
 runs twice. CI gate tests are separate from those app test counts.
 
 The fixed store package and expected data are hash checked against provenance before use.
@@ -100,7 +105,11 @@ production opener and a new test process; it does not certify every original use
 Actual shields, NFC radio reads, cross-process background delivery, phone reboot, App Store
 installation, real app-selection tokens, timer ticks and indefinite card-ended lifetime
 across midnight still require other checks. Section D and subscription policy changes remain excluded.
-See ADR-0004 for dependency design and ADR-0005 for upgrade evidence and limits. Extend the reviewed suites as each
+Session/report checks use signed isolated settings, file-backed history stores that are reopened
+within one process, real in-memory report queries, and five small break-calculation inputs. P5/P6
+overlap cases and advanced report cards are excluded. See [the testing overview](testing/overview.html)
+and [the local session/report evidence](testing/evidence/DOCard-sessions-reports-results.md).
+See ADR-0004 for dependencies, ADR-0005 for upgrade evidence and ADR-0006 for history/report rules. Extend the reviewed suites as each
 later testing area is implemented. Hosted Mac usage and stored
 reports count towards the private repository owner's Actions allowance.
 
@@ -111,7 +120,7 @@ python3 ci/test-ios-ci.py
 ```
 
 These checks run the actual CI shell script with controlled Xcode/simulator responses.
-They verify both selected suites, per-suite reporting, missing/duplicate/skipped/failed
+They verify all five selected regression suites, per-suite reporting, missing/duplicate/skipped/failed
 tests, unreadable results, preservation of command failures, Release gating, and removal
 of stale success markers. They also require both upgrade phases, a new process, the exact
 upgrade method, one Debug build reused by all test runs, and cleanup of only the owned

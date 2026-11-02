@@ -214,6 +214,13 @@ class BlockedProfileSession {
 
     // Try to find an existing session by id
     if let existingSession = try? findSession(byID: snapshot.id, in: context) {
+      // Delayed active snapshots cannot reopen history. A timer completion must also
+      // preserve the user's recorded Emergency Unlock time, not just its reason.
+      if existingSession.endTime != nil
+        && (snapshot.endTime == nil || existingSession.endReason == "emergency_unlock")
+      {
+        return
+      }
       existingSession.tag = snapshot.tag
       // startTime is intentionally NOT overwritten: the SwiftData record's startTime is the
       // authoritative value set at session creation. Overwriting it with a snapshot from

@@ -1,4 +1,4 @@
-"""Render both suites and build status, including incomplete or failed runs."""
+"""Render selected suites and build status, including incomplete or failed runs."""
 
 import json
 from pathlib import Path
@@ -6,7 +6,7 @@ import sys
 
 results = Path(sys.argv[1])
 print("## DO Card iOS CI\n")
-print("Scope: schedule + unlock/recovery tests, 1.30.1 migration and a separate-process reopen, then Release compilation.\n")
+print("Scope: schedule + unlock/recovery + session history/report tests, 1.30.1 migration and a separate-process reopen, then Release compilation.\n")
 try:
     report = json.loads((results / "suite-results.json").read_text())
     print("| Suite | Expected | Discovered | Passed | Failed | Skipped |\n|---|---:|---:|---:|---:|---:|")

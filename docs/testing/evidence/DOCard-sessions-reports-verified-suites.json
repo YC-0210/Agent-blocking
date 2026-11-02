@@ -1,0 +1,32 @@
+[
+  {
+    "suite": "ScheduleTests",
+    "passed": 36,
+    "duration_seconds": 0.026797
+  },
+  {
+    "suite": "UnlockRecoveryTests",
+    "passed": 27,
+    "duration_seconds": 0.264842
+  },
+  {
+    "suite": "Upgrade1301Tests",
+    "passed": 1,
+    "duration_seconds": 0.341762
+  },
+  {
+    "suite": "SessionHistoryTests",
+    "passed": 7,
+    "duration_seconds": 0.101196
+  },
+  {
+    "suite": "SessionReportTests",
+    "passed": 7,
+    "duration_seconds": 0.033234
+  },
+  {
+    "suite": "SessionReportDurationTests",
+    "passed": 1,
+    "duration_seconds": 0.00034
+  }
+]

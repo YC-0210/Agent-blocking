@@ -1,0 +1,883 @@
+{
+  "history-after-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 7,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586096.305,
+    "passedTests": 7,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586084.244,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 7
+  },
+  "new-suites-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 15,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586559.235,
+    "passedTests": 15,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586553.436,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 15
+  },
+  "p1-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586137.369,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586130.763,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "p2-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 2,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586183.094,
+    "passedTests": 2,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586171.807,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 2
+  },
+  "p3-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586205.085,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586199.157,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "p4-after-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 4,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586282.261,
+    "passedTests": 4,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586267.949,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 4
+  },
+  "p4-before-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 1,
+        "passedTests": 0,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 1,
+    "finishTime": 1793586229.265,
+    "passedTests": 0,
+    "result": "Failed",
+    "skippedTests": 0,
+    "startTime": 1793586214.642,
+    "statistics": [],
+    "testFailures": [
+      {
+        "failureText": "XCTAssertEqualWithAccuracy failed: (\"3600.0\") is not equal to (\"3000.0\") +/- (\"0.001\")",
+        "targetName": "DoCardTests",
+        "testIdentifier": 1,
+        "testIdentifierString": "SessionReportTests/testP4ReportsSubtractTheSavedBreak()",
+        "testIdentifierURL": "test://com.apple.xcode/DoCard/DoCardTests/SessionReportTests/testP4ReportsSubtractTheSavedBreak",
+        "testName": "testP4ReportsSubtractTheSavedBreak()"
+      }
+    ],
+    "title": "Test - DoCard",
+    "topInsights": [
+      {
+        "category": "Common Failures",
+        "impact": "100% of failures",
+        "text": "2 runs of 1 test failed with XCTAssertEqualWithAccuracy failed: (\"3600.0\") is not equal to (\"3000.0\") +/- (\"0.001\")"
+      },
+      {
+        "category": "Common Failures",
+        "impact": "100% of failures",
+        "text": "2 runs of 1 test failed with XCTAssertEqual failed: (\"Optional(3600.0)\") is not equal to (\"Optional(3000.0)\")"
+      }
+    ],
+    "totalTestCount": 1
+  },
+  "p4-boundaries-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586322.628,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586313.396,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "p7-after-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586441.205,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586429.04,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "p7-before-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 1,
+        "passedTests": 0,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 1,
+    "finishTime": 1793586360.009,
+    "passedTests": 0,
+    "result": "Failed",
+    "skippedTests": 0,
+    "startTime": 1793586344.492,
+    "statistics": [],
+    "testFailures": [
+      {
+        "failureText": "XCTAssertEqualWithAccuracy failed: (\"600.0\") is not equal to (\"1800.0\") +/- (\"0.001\")",
+        "targetName": "DoCardTests",
+        "testIdentifier": 1,
+        "testIdentifierString": "SessionReportTests/testP7WholeSessionBelongsToItsStartingWeek()",
+        "testIdentifierURL": "test://com.apple.xcode/DoCard/DoCardTests/SessionReportTests/testP7WholeSessionBelongsToItsStartingWeek",
+        "testName": "testP7WholeSessionBelongsToItsStartingWeek()"
+      }
+    ],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "p7-boundary-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586473.318,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586465.899,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "p7-single-before-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 1,
+        "passedTests": 0,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 1,
+    "finishTime": 1793586396.79,
+    "passedTests": 0,
+    "result": "Failed",
+    "skippedTests": 0,
+    "startTime": 1793586378.071,
+    "statistics": [],
+    "testFailures": [
+      {
+        "failureText": "XCTAssertEqualWithAccuracy failed: (\"600.0\") is not equal to (\"1800.0\") +/- (\"0.001\")",
+        "targetName": "DoCardTests",
+        "testIdentifier": 1,
+        "testIdentifierString": "SessionReportTests/testP7WholeSessionBelongsToItsStartingWeek()",
+        "testIdentifierURL": "test://com.apple.xcode/DoCard/DoCardTests/SessionReportTests/testP7WholeSessionBelongsToItsStartingWeek",
+        "testName": "testP7WholeSessionBelongsToItsStartingWeek()"
+      }
+    ],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "p8-summary": {
+    "devicesAndConfigurations": [],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586502.355,
+    "passedTests": 0,
+    "result": "unknown",
+    "skippedTests": 0,
+    "startTime": 1793586495.298,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 0
+  },
+  "regression-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 79,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586615.313,
+    "passedTests": 79,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586608.741,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [
+      {
+        "category": "Longest Test Runs",
+        "impact": "44% of duration",
+        "text": "1 longest test run with outlier durations exceeding 0.12s (three standard deviations)"
+      }
+    ],
+    "totalTestCount": 79
+  },
+  "s1-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793585885.737,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793585767.246,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "s2-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793585917.506,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793585907.039,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "s3-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793585936.396,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793585928.649,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "s4-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793585954.392,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793585948.743,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "s6-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793585981.267,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793585975.498,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "s7-after-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 0,
+        "passedTests": 1,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 0,
+    "finishTime": 1793586040.761,
+    "passedTests": 1,
+    "result": "Passed",
+    "skippedTests": 0,
+    "startTime": 1793586030.426,
+    "statistics": [],
+    "testFailures": [],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "s7-before-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 1,
+        "passedTests": 0,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 1,
+    "finishTime": 1793586010.91,
+    "passedTests": 0,
+    "result": "Failed",
+    "skippedTests": 0,
+    "startTime": 1793585993.507,
+    "statistics": [],
+    "testFailures": [
+      {
+        "failureText": "XCTAssertEqual failed: (\"Optional(2026-11-02 01:30:00 +0000)\") is not equal to (\"Optional(2026-11-02 01:20:00 +0000)\")",
+        "targetName": "DoCardTests",
+        "testIdentifier": 1,
+        "testIdentifierString": "SessionHistoryTests/testS7LateTimerCannotExtendEmergencyEndedHistory()",
+        "testIdentifierURL": "test://com.apple.xcode/DoCard/DoCardTests/SessionHistoryTests/testS7LateTimerCannotExtendEmergencyEndedHistory",
+        "testName": "testS7LateTimerCannotExtendEmergencyEndedHistory()"
+      }
+    ],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "s8-before-summary": {
+    "devicesAndConfigurations": [
+      {
+        "device": {
+          "architecture": "arm64",
+          "deviceId": "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+          "deviceName": "DO Card Session Report Tests",
+          "modelName": "iPhone 17 Pro",
+          "osBuildNumber": "23D8133",
+          "osVersion": "26.3.1",
+          "platform": "iOS Simulator"
+        },
+        "expectedFailures": 0,
+        "failedTests": 1,
+        "passedTests": 0,
+        "skippedTests": 0,
+        "testPlanConfiguration": {
+          "configurationId": "1",
+          "configurationName": "Test Scheme Action"
+        }
+      }
+    ],
+    "environmentDescription": "DoCard · Built with macOS 26.6.2",
+    "expectedFailures": 0,
+    "failedTests": 1,
+    "finishTime": 1793586069.93,
+    "passedTests": 0,
+    "result": "Failed",
+    "skippedTests": 0,
+    "startTime": 1793586053.192,
+    "statistics": [],
+    "testFailures": [
+      {
+        "failureText": "XCTAssertFalse failed",
+        "targetName": "DoCardTests",
+        "testIdentifier": 1,
+        "testIdentifierString": "SessionHistoryTests/testS8OldActiveSnapshotCannotReopenCompletedHistory()",
+        "testIdentifierURL": "test://com.apple.xcode/DoCard/DoCardTests/SessionHistoryTests/testS8OldActiveSnapshotCannotReopenCompletedHistory",
+        "testName": "testS8OldActiveSnapshotCannotReopenCompletedHistory()"
+      }
+    ],
+    "title": "Test - DoCard",
+    "topInsights": [],
+    "totalTestCount": 1
+  },
+  "verified_suites": [
+    {
+      "suite": "ScheduleTests",
+      "passed": 36,
+      "duration_seconds": 0.026797
+    },
+    {
+      "suite": "UnlockRecoveryTests",
+      "passed": 27,
+      "duration_seconds": 0.264842
+    },
+    {
+      "suite": "Upgrade1301Tests",
+      "passed": 1,
+      "duration_seconds": 0.341762
+    },
+    {
+      "suite": "SessionHistoryTests",
+      "passed": 7,
+      "duration_seconds": 0.101196
+    },
+    {
+      "suite": "SessionReportTests",
+      "passed": 7,
+      "duration_seconds": 0.033234
+    },
+    {
+      "suite": "SessionReportDurationTests",
+      "passed": 1,
+      "duration_seconds": 0.00034
+    }
+  ],
+  "builds": [
+    {
+      "configuration": "Debug",
+      "exit_code": 0,
+      "build_succeeded": true,
+      "wall_seconds": 11.078
+    },
+    {
+      "configuration": "Release",
+      "exit_code": 0,
+      "build_succeeded": true,
+      "wall_seconds": 130.415
+    }
+  ],
+  "excluded_run": "p8: xcodebuild exited 0 but executed 0 tests. Excluded; full new-suites and regression runs include and pass P8."
+}

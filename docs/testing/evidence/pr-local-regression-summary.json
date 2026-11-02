@@ -1,0 +1,46 @@
+{
+  "devicesAndConfigurations" : [
+    {
+      "device" : {
+        "architecture" : "arm64",
+        "deviceId" : "E9A35443-E689-48B5-8409-5E5D0C7D2B6B",
+        "deviceName" : "DO Card Session Report Tests",
+        "modelName" : "iPhone 17 Pro",
+        "osBuildNumber" : "23D8133",
+        "osVersion" : "26.3.1",
+        "platform" : "iOS Simulator"
+      },
+      "expectedFailures" : 0,
+      "failedTests" : 0,
+      "passedTests" : 79,
+      "skippedTests" : 0,
+      "testPlanConfiguration" : {
+        "configurationId" : "1",
+        "configurationName" : "Test Scheme Action"
+      }
+    }
+  ],
+  "environmentDescription" : "DoCard · Built with macOS 26.6.2",
+  "expectedFailures" : 0,
+  "failedTests" : 0,
+  "finishTime" : 1793588045.154,
+  "passedTests" : 79,
+  "result" : "Passed",
+  "skippedTests" : 0,
+  "startTime" : 1793587863.39,
+  "statistics" : [
+
+  ],
+  "testFailures" : [
+
+  ],
+  "title" : "Test - DoCard",
+  "topInsights" : [
+    {
+      "category" : "Longest Test Runs",
+      "impact" : "38% of duration",
+      "text" : "1 longest test run with outlier durations exceeding 0.19s (three standard deviations)"
+    }
+  ],
+  "totalTestCount" : 79
+}
