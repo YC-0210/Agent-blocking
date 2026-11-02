@@ -143,6 +143,12 @@ if __name__ == "__main__":
     if sys.argv[2] == "--upgrade":
         passed = verify_upgrade(directory, Path(sys.argv[3]))
     else:
-        expected = {"ScheduleTests": int(sys.argv[2]), "UnlockRecoveryTests": int(sys.argv[3])}
+        expected = {
+            "ScheduleTests": int(sys.argv[2]),
+            "UnlockRecoveryTests": int(sys.argv[3]),
+            "SessionHistoryTests": int(sys.argv[4]),
+            "SessionReportTests": int(sys.argv[5]),
+            "SessionReportDurationTests": int(sys.argv[6]),
+        }
         passed = verify(directory, expected)
     sys.exit(0 if passed else 1)

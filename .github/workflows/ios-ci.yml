@@ -26,6 +26,9 @@ jobs:
       CI_BUILD_DIR: ${{ github.workspace }}/.build/ios-ci/build
       EXPECTED_SCHEDULE_TEST_COUNT: "36"
       EXPECTED_UNLOCK_RECOVERY_TEST_COUNT: "27"
+      EXPECTED_SESSION_HISTORY_TEST_COUNT: "7"
+      EXPECTED_SESSION_REPORT_TEST_COUNT: "7"
+      EXPECTED_SESSION_REPORT_DURATION_TEST_COUNT: "1"
     steps:
       - name: Check out code
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5

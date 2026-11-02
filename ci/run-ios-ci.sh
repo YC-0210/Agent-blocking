@@ -9,6 +9,9 @@ build_dir="${CI_BUILD_DIR:-$repo_root/.build/ios-ci/build}"
 runtime="${CI_SIMULATOR_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-2}"
 expected_schedule="${EXPECTED_SCHEDULE_TEST_COUNT:-36}"
 expected_recovery="${EXPECTED_UNLOCK_RECOVERY_TEST_COUNT:-27}"
+expected_history="${EXPECTED_SESSION_HISTORY_TEST_COUNT:-7}"
+expected_reports="${EXPECTED_SESSION_REPORT_TEST_COUNT:-7}"
+expected_report_duration="${EXPECTED_SESSION_REPORT_DURATION_TEST_COUNT:-1}"
 simulator_id=""
 
 mkdir -p "$results_dir" "$build_dir"
@@ -90,6 +93,9 @@ xcodebuild test-without-building -xctestrun "$xctestrun" \
   -parallel-testing-enabled NO \
   -only-testing:DoCardTests/ScheduleTests \
   -only-testing:DoCardTests/UnlockRecoveryTests \
+  -only-testing:DoCardTests/SessionHistoryTests \
+  -only-testing:DoCardTests/SessionReportTests \
+  -only-testing:DoCardTests/SessionReportDurationTests \
   -resultBundlePath "$result_bundle" \
   2>&1 | tee "$results_dir/tests.log" || test_status=$?
 
@@ -100,9 +106,10 @@ if [[ -d "$result_bundle" ]]; then
   xcrun xcresulttool get test-results tests --path "$result_bundle" --compact \
     > "$results_dir/test-tree.json" || true
 fi
-# Validate both suites even on an assertion failure, so their results reach the report.
+# Validate all selected suites even on assertion failure, so their results reach the report.
 validation_status=0
 python3 ci/ios-ci-results.py "$results_dir" "$expected_schedule" "$expected_recovery" \
+  "$expected_history" "$expected_reports" "$expected_report_duration" \
   || validation_status=$?
 if [[ "$test_status" -ne 0 ]]; then
   exit "$test_status"

@@ -10,13 +10,15 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
-SUMMARY = {"result": "Passed", "totalTestCount": 63, "passedTests": 63,
+SUMMARY = {"result": "Passed", "totalTestCount": 78, "passedTests": 78,
            "failedTests": 0, "skippedTests": 0, "expectedFailures": 0}
 TREE = {"testNodes": [{"nodeType": "Unit test bundle", "name": "DoCardTests", "children": [
     {"nodeType": "Test Suite", "name": suite, "children": [
         {"nodeType": "Test Case", "nodeIdentifier": f"{suite}/test{number}()", "result": "Passed"}
         for number in range(count)]}
-    for suite, count in [("ScheduleTests", 36), ("UnlockRecoveryTests", 27)]
+    for suite, count in [("ScheduleTests", 36), ("UnlockRecoveryTests", 27),
+                         ("SessionHistoryTests", 7), ("SessionReportTests", 7),
+                         ("SessionReportDurationTests", 1)]
 ]}]}
 
 UPGRADE_SUMMARY = {**SUMMARY, 'totalTestCount': 1, 'passedTests': 1}
@@ -68,7 +70,8 @@ elif args[0] in ['test', 'test-without-building']:
         if marker:
             print(marker)
         sys.exit(int(os.environ['SIMULATED_' + phase.upper() + '_STATUS']))
-    for suite in ['ScheduleTests', 'UnlockRecoveryTests']:
+    for suite in ['ScheduleTests', 'UnlockRecoveryTests', 'SessionHistoryTests',
+                  'SessionReportTests', 'SessionReportDurationTests']:
         assert '-only-testing:DoCardTests/' + suite in args
     sys.exit(int(os.environ['SIMULATED_TEST_STATUS']))
 elif args[0] == 'build':
@@ -109,6 +112,8 @@ class PipelineChecks(unittest.TestCase):
                    'CI_FIXTURE_DIR': str(fixture), 'CI_RESULTS_DIR': str(results),
                    'CI_BUILD_DIR': str(fixture / 'build'), 'CI_SIMULATOR_RUNTIME': 'test-runtime',
                    'EXPECTED_SCHEDULE_TEST_COUNT': '36', 'EXPECTED_UNLOCK_RECOVERY_TEST_COUNT': '27',
+                   'EXPECTED_SESSION_HISTORY_TEST_COUNT': '7', 'EXPECTED_SESSION_REPORT_TEST_COUNT': '7',
+                   'EXPECTED_SESSION_REPORT_DURATION_TEST_COUNT': '1',
                    'SIMULATED_TEST_STATUS': str(test_status),
                    'SIMULATED_MIGRATE_STATUS': str(migrate_status),
                    'SIMULATED_REOPEN_STATUS': str(reopen_status),
@@ -131,13 +136,16 @@ class PipelineChecks(unittest.TestCase):
         self.assertFalse(marker)
         self.assertIn('Release simulator build: **not reached**', report)
 
-    def test_complete_run_reaches_release_and_reports_both_suites(self):
+    def test_complete_run_reaches_release_and_reports_all_suites(self):
         status, release_called, marker, report = self.run_pipeline()
         self.assertEqual(status, 0)
         self.assertTrue(release_called)
         self.assertTrue(marker)
         self.assertIn('| ScheduleTests | 36 | 36 | 36 | 0 | 0 |', report)
         self.assertIn('| UnlockRecoveryTests | 27 | 27 | 27 | 0 | 0 |', report)
+        for suite, count in [('SessionHistoryTests', 7), ('SessionReportTests', 7),
+                             ('SessionReportDurationTests', 1)]:
+            self.assertIn(f'| {suite} | {count} | {count} | {count} | 0 | 0 |', report)
         self.assertIn('| migrate | Passed | 101 |', report)
         self.assertIn('| reopen | Passed | 202 |', report)
         builds = [args[1] for args in self.commands if args[0] == 'xcodebuild']
@@ -185,11 +193,34 @@ class PipelineChecks(unittest.TestCase):
 
     def test_missing_suite_cannot_be_replaced_by_extra_schedule_tests(self):
         tree = copy.deepcopy(TREE)
-        tree['testNodes'][0]['children'] = [tree['testNodes'][0]['children'][0]]
+        tree['testNodes'][0]['children'] = [suite for suite in tree['testNodes'][0]['children']
+                                            if suite['name'] != 'UnlockRecoveryTests']
         children = tree['testNodes'][0]['children'][0]['children']
         children.extend({'nodeType': 'Test Case', 'nodeIdentifier': f'ScheduleTests/extra{n}()',
                          'result': 'Passed'} for n in range(27))
         self.assert_blocked(tree=tree)
+
+    def test_missing_new_suite_blocks_release_even_with_passing_summary(self):
+        for name in ['SessionHistoryTests', 'SessionReportTests', 'SessionReportDurationTests']:
+            with self.subTest(suite=name):
+                tree = copy.deepcopy(TREE)
+                tree['testNodes'][0]['children'] = [suite for suite in tree['testNodes'][0]['children']
+                                                    if suite['name'] != name]
+                self.assert_blocked(tree=tree)
+
+    def test_failed_or_skipped_new_case_blocks_release(self):
+        for name in ['SessionHistoryTests', 'SessionReportTests', 'SessionReportDurationTests']:
+            for result in ['Failed', 'Skipped']:
+                with self.subTest(suite=name, result=result):
+                    tree = copy.deepcopy(TREE)
+                    suite = next(s for s in tree['testNodes'][0]['children'] if s['name'] == name)
+                    suite['children'][0]['result'] = result
+                    self.assert_blocked(tree=tree)
+
+    def test_old_63_test_run_cannot_satisfy_expanded_gate(self):
+        tree = copy.deepcopy(TREE)
+        tree['testNodes'][0]['children'] = tree['testNodes'][0]['children'][:2]
+        self.assert_blocked(tree=tree, summary={**SUMMARY, 'totalTestCount': 63, 'passedTests': 63})
 
     def test_skipped_case_blocks_release_even_with_passing_summary(self):
         tree = copy.deepcopy(TREE)
