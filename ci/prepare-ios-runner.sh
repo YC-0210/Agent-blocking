@@ -8,6 +8,17 @@ case "$kind" in
       printf 'Self-hosted CI must run in the dedicated docardci account.\n' >&2
       exit 1
     }
+    if [[ "${CI_JOB_STAGE:-}" == maestro ]]; then
+      authorization="$(DevToolsSecurity -status)"
+      case "$authorization" in
+        *' enabled.'*) ;;
+        *) printf 'Maestro needs Apple developer-tools authorization enabled. Use the shared authorization helper from chen.\n' >&2; exit 1 ;;
+      esac
+      case " $(id -Gn docardci) " in
+        *' _developer '*|*' admin '*) ;;
+        *) printf 'Maestro needs developer-tools group membership for docardci (_developer).\n' >&2; exit 1 ;;
+      esac
+    fi
     # Use the selected local Xcode, not a GitHub image-specific bundle name.
     export DEVELOPER_DIR="${DOCARD_CI_XCODE_PATH:-$(xcode-select -p)}"
     ;;

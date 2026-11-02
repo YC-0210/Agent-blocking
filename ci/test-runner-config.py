@@ -24,7 +24,8 @@ class RunnerPreflightTests(unittest.TestCase):
         self.env.pop("DOCARD_CI_XCODE_PATH", None)
         self.env.pop("CI_JOB_STAGE", None)
         scripts = {
-            "id": 'print(os.environ["TEST_ACCOUNT"])',
+            "id": 'print(os.environ.get("TEST_GROUPS", "staff _developer") if "-Gn" in sys.argv else os.environ["TEST_ACCOUNT"])',
+            "DevToolsSecurity": 'print("Developer mode is currently "+os.environ.get("TEST_DEVELOPER_MODE", "enabled")+".")',
             "uname": 'print("Darwin" if sys.argv[1] == "-s" else "arm64")',
             "xcode-select": 'print(os.environ["TEST_XCODE"])',
             "xcodebuild": 'print(os.environ.get("TEST_VERSION", "Xcode 26.2\\nBuild version 17C52"))',
@@ -96,6 +97,24 @@ class RunnerPreflightTests(unittest.TestCase):
                                  str(self.root / f"docard-123-2/{stage}-results"))
                 self.assertEqual(values["CI_BUILD_DIR"], str(self.root / "docard-123-2/core-build"))
                 self.assertEqual(values["MAESTRO_APP_DIR"], str(self.root / "docard-123-2/app"))
+
+    def test_ui_preflight_refuses_disabled_developer_authorization(self):
+        result = self.invoke(CI_JOB_STAGE="maestro", TEST_DEVELOPER_MODE="disabled",
+                             RUNNER_TEMP=str(self.root), GITHUB_RUN_ID="123", GITHUB_RUN_ATTEMPT="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("developer-tools", result.stderr)
+        self.assertFalse((self.root / "github-env").exists())
+
+    def test_ui_preflight_refuses_missing_developer_group(self):
+        result = self.invoke(CI_JOB_STAGE="maestro", TEST_GROUPS="staff",
+                             RUNNER_TEMP=str(self.root), GITHUB_RUN_ID="123", GITHUB_RUN_ATTEMPT="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("developer-tools group", result.stderr)
+        self.assertFalse((self.root / "github-env").exists())
+
+    def test_core_can_run_without_optional_ui_authorization(self):
+        result = self.invoke(TEST_GROUPS="staff", TEST_DEVELOPER_MODE="disabled")
+        self.assertEqual(result.returncode, 0, result.stderr)
 
 
 if __name__ == "__main__":

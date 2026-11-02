@@ -131,3 +131,13 @@ Inspection also found that attempt-specific app artifact names broke UI-only job
 App artifacts now use the immutable workflow run ID, with replacement on a successful
 core rerun; per-attempt result artifacts remain distinct. Actual UI retry verification
 is required to establish recovery without repeating the core suite.
+
+Focused UI probes rejected GUI visibility, foreground-account selection and the runner
+security-session flag as explanations for the slow status-bar snapshots. The exact
+tested app was fast in chen (about 0.07 seconds per status-bar lookup), while docardci
+remained slow even through Terminal. Investigation found that the standard CI account
+lacked developer-group membership and Apple's developer-tools mode was disabled.
+Add an optional-UI-only readiness guard with lower-level controlled-response checks;
+core checks remain available independently. Any actual authorization change is made
+through a separate, reviewed native macOS administrator dialog, not through a CI job.
+This records a prerequisite and a testable next step, not a claim of a latency fix.

@@ -83,6 +83,18 @@ checks first-launch readiness, and uses `xcode-select -p` (or repository variabl
 require Xcode 26.2 and the available iOS 26.2 runtime. Hosted runs explicitly use
 `/Applications/Xcode_26.2.app/Contents/Developer`.
 
+The optional self-hosted Maestro job also checks Apple's developer-tools authorization
+and the account's developer-group membership before starting UI work. Apple's local
+`man DevToolsSecurity` describes the policy for unattended Apple-signed debugger and
+analysis tools. The reviewed helper
+`/Users/Shared/DOCard Runner Setup/Files/authorize-developer-tools.applescript` requests
+macOS administrator authorization to enable that policy and add only `docardci` to
+`_developer`; it does not make the account an administrator. Enter credentials only in
+the native macOS dialog. The authorization right applies to processes belonging to the
+same user. Core checks remain available without this optional UI prerequisite.
+Passing these readiness checks does not establish that all UI journeys pass; retain
+the measured workflow result. No CI job silently grants itself these permissions.
+
 Only same-repository pull requests whose author association is OWNER, MEMBER, or
 COLLABORATOR can execute the core job. Fork pull requests are skipped. Repository write
 access remains a trust boundary: a writer who can modify a workflow can change its guards.
@@ -126,7 +138,7 @@ Do not erase all simulators or automatically delete unrelated files to make spac
 
 `python3 ci/test-runner-config.py` exercises the actual shell preflight with controlled
 host tools, covering account enforcement, selected/override Xcode paths, version/runtime
-failures and isolated output paths. It complements workflow lint and the existing result
+failures, isolated output paths and UI authorization readiness. It complements workflow lint and the existing result
 gate tests; successful guards do not establish an actual CI pass. Record the run URL,
 revision, executed IDs, durations, and any interactive-development impact after real runs.
 One full runner run is sufficient for an unchanged revision; avoid an immediate duplicate
