@@ -101,3 +101,23 @@ packaging so local and hosted paths archive the same Debug app. A local complete
 entry point adds the optional Maestro stage without a second Debug compile. No source
 model/schema, production Family Controls authorization, fixture data or branch protection
 setting is changed by this integration. No GitHub push is included.
+
+## Dedicated self-hosted CI with manual hosted fallback (YAN-85, 2026-11-02)
+
+Routine CI now selects the repository-scoped ARM64 `docard-ios` runner in the separate
+`docardci` macOS account. Manual dispatch can choose `hosted`; automatic fallback is
+deliberately absent so an offline Mac does not unexpectedly spend hosted allowance.
+The core and optional Maestro jobs share one self-hosted concurrency group, retain
+the existing required-check name, and use separate per-run/attempt result/build paths.
+The preflight uses the selected local Xcode, enforces the runner account, and validates
+Xcode 26.2 readiness and the iOS 26.2 runtime. Hosted execution keeps its pinned Xcode path.
+Same-repository trusted-author PR checks and read-only, non-persistent checkout credentials
+reduce exposure; repository writers remain trusted. Job-scoped sleep assertions protect
+the long-running core and UI commands.
+
+Changes are limited to the CI workflow, preflight/helper tests, and CI documentation.
+Exact method-ID selection, one Debug build, deterministic → serial StoreKit → separate
+upgrade processes → Release ordering, reused Maestro app and failure artifacts remain.
+No app/model/schema, fixture, authorization, purchase behavior, signing or billing settings
+are modified. Actual workflow results are recorded separately from controlled guard tests;
+full self-hosted and hosted-fallback acceptance require real runs.

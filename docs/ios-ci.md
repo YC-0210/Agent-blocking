@@ -1,6 +1,7 @@
 # iOS CI: deterministic checks, StoreKit and first-release upgrade
 
-`iOS CI` uses a core GitHub-hosted `macos-26` job, followed by an optional Maestro job. It selects Xcode 26.2 and creates
+`iOS CI` defaults to the dedicated self-hosted Mac, followed by an optional Maestro job.
+A manual dispatch can select the GitHub-hosted `macos-26` fallback. It selects Xcode 26.2 and creates
 a disposable iPhone 17 Pro simulator using the installed iOS 26.2 runtime.
 The runner image's installed tools can change; setup fails explicitly if the
 chosen Xcode or runtime is missing. Update these choices deliberately after verification.
@@ -70,6 +71,61 @@ The initial pull request can exercise the workflow before merge. Branch protecti
 is a separate setting: this workflow reports failures but does not configure merge
 blocking. Required checks for this private repository depend on the GitHub plan.
 Nothing here uploads to TestFlight or submits an App Store release.
+
+## Self-hosted Mac and manual hosted fallback (YAN-85)
+
+The self-hosted runner is `docard-m5-docardci`, registered only to this private repository
+with labels `self-hosted`, `macOS`, `ARM64`, and `docard-ios`. It runs in the standard
+`docardci` macOS account, with its checkout under
+`/Users/docardci/actions-runner-docard/_work`. The preflight refuses another local account,
+checks first-launch readiness, and uses `xcode-select -p` (or repository variable
+`DOCARD_CI_XCODE_PATH`) rather than requiring a hosted-image bundle name. Both paths
+require Xcode 26.2 and the available iOS 26.2 runtime. Hosted runs explicitly use
+`/Applications/Xcode_26.2.app/Contents/Developer`.
+
+Only same-repository pull requests whose author association is OWNER, MEMBER, or
+COLLABORATOR can execute the core job. Fork pull requests are skipped. Repository write
+access remains a trust boundary: a writer who can modify a workflow can change its guards.
+Keep this runner repository-scoped and run trusted revisions. Checkout does not retain
+Git credentials. No signing secrets or personal GitHub credentials are installed in CI.
+
+Both jobs share a non-cancelling `docard-ios-self-hosted` job-concurrency group across
+branches, limiting this pipeline to one running self-hosted job. GitHub may replace an
+older pending job; this is not an unlimited queue. The existing workflow-level setting
+still cancels outdated runs on the same ref. The core required-check name is unchanged.
+
+Every job writes to a run-ID/attempt-specific folder under `RUNNER_TEMP`, outside the
+development checkout. Core and Maestro have separate result folders. Each creates and
+deletes only its own simulator. A job-scoped `caffeinate -i` holds idle sleep during the
+core/UI runner. Keep the Mac powered, online, and `docardci` logged in; fast user switching
+does not log it out. After reboot, log in to that account before starting work.
+
+From `docardci`, open `/Users/Shared/DOCard Runner Setup/2 - Start Runner.command` to
+start the user LaunchAgent, `3 - Runner Status.command` for local service status, and
+`4 - Stop Runner.command` to stop it between jobs. The Start launcher also holds an
+idle-sleep assertion while its Terminal window stays open. Closing it ends the assertion,
+not the service. Confirm Online/Idle on the repository's Settings → Actions → Runners page.
+
+For a full run, dispatch `iOS CI` on the reviewed branch with `runner_target=self-hosted`
+and `run_maestro=true`. If the Mac is unavailable, explicitly choose `runner_target=hosted`
+instead. There is **no automatic fallback**: a self-hosted job queues when its runner is
+offline. Hosted compute/artifact usage still requires available allowance; this workflow
+does not change billing or spending limits.
+
+The runner's temporary files are cleared by GitHub between jobs; retain diagnostics via
+uploaded artifacts (seven days for test results, one day for the transported Debug app).
+If cleaning persistent checkout/build data manually, first stop the runner and confirm
+no job is active. Remove only disposable run/build folders in the runner account, retaining
+the runner installation, credentials, LaunchAgent and other accounts' development data.
+Do not erase all simulators or automatically delete unrelated files to make space.
+
+`python3 ci/test-runner-config.py` exercises the actual shell preflight with controlled
+host tools, covering account enforcement, selected/override Xcode paths, version/runtime
+failures and isolated output paths. It complements workflow lint and the existing result
+gate tests; successful guards do not establish an actual CI pass. Record the run URL,
+revision, executed IDs, durations, and any interactive-development impact after real runs.
+One full runner run is sufficient for an unchanged revision; avoid an immediate duplicate
+full manual local run on the same Mac.
 
 ## Run the same command locally
 
