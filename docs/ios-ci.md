@@ -114,6 +114,11 @@ does not change billing or spending limits.
 
 The runner's temporary files are cleared by GitHub between jobs; retain diagnostics via
 uploaded artifacts (seven days for test results, one day for the transported Debug app).
+The transported app name is stable within a workflow run, so re-running just the Maestro
+job can reuse the successful core job's app. A successful repeated core job replaces that
+run's app artifact; it still builds the same immutable workflow revision. Result artifacts
+remain separate by attempt. Re-running UI within the app's one-day retention avoids a
+redundant full build/test run; an expired app artifact requires a fresh core run.
 If cleaning persistent checkout/build data manually, first stop the runner and confirm
 no job is active. Remove only disposable run/build folders in the runner account, retaining
 the runner installation, credentials, LaunchAgent and other accounts' development data.

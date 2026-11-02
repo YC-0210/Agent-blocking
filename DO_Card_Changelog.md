@@ -121,3 +121,13 @@ upgrade processes → Release ordering, reused Maestro app and failure artifacts
 No app/model/schema, fixture, authorization, purchase behavior, signing or billing settings
 are modified. Actual workflow results are recorded separately from controlled guard tests;
 full self-hosted and hosted-fallback acceptance require real runs.
+
+The first real self-hosted core job passed 139 deterministic methods, four serial
+StoreKit methods, both upgrade processes and Release. Three Maestro journeys passed;
+the suite timeout interrupted the final journey amid slow runner status-bar snapshots.
+The hosted fallback was selected correctly but GitHub billing blocked it before execution.
+These are partial results, not a full pipeline pass. Diagnostic evidence is retained.
+Inspection also found that attempt-specific app artifact names broke UI-only job reruns.
+App artifacts now use the immutable workflow run ID, with replacement on a successful
+core rerun; per-attempt result artifacts remain distinct. Actual UI retry verification
+is required to establish recovery without repeating the core suite.

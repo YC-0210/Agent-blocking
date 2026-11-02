@@ -73,8 +73,10 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && inputs.run_maestro
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: maestro-debug-app-${{ github.run_id }}-${{ github.run_attempt }}
+          # Re-running only Maestro must find the app from the successful core job.
+          name: maestro-debug-app-${{ github.run_id }}
           path: ${{ env.MAESTRO_APP_DIR }}/
+          overwrite: true
           retention-days: 1
           if-no-files-found: error
 
@@ -126,7 +128,7 @@ jobs:
       - name: Download the tested simulator app
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: maestro-debug-app-${{ github.run_id }}-${{ github.run_attempt }}
+          name: maestro-debug-app-${{ github.run_id }}
           path: ${{ env.MAESTRO_APP_DIR }}
 
       - name: Check architecture and unpack app
