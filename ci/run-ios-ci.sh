@@ -15,7 +15,10 @@ mkdir -p "$results_dir" "$build_dir"
 # Repeated local runs must not reuse an earlier success marker or summary.
 rm -f -- "$results_dir/ci-passed" "$results_dir/test-summary.json" \
   "$results_dir/tests.log" "$results_dir/release.log" \
-  "$results_dir/test-tree.json" "$results_dir/suite-results.json"
+  "$results_dir/test-tree.json" "$results_dir/suite-results.json" \
+  "$results_dir/upgrade-results.json" "$results_dir/debug-build.log" \
+  "$results_dir/upgrade-runner.log" "$results_dir/migrate-validation.json" \
+  "$results_dir/reopen-validation.json"
 
 cleanup() {
   # Delete only the disposable simulator created by this invocation.
@@ -62,10 +65,26 @@ common_args=(
   CODE_SIGNING_ALLOWED=NO
 )
 
+# One Debug build supplies the regression run and both upgrade processes.
+xcodebuild build-for-testing "${common_args[@]}" \
+  -configuration Debug \
+  -destination "platform=iOS Simulator,id=$simulator_id" \
+  -destination-timeout 120 \
+  2>&1 | tee "$results_dir/debug-build.log"
+
+xctestrun="$(python3 - "$build_dir/DerivedData/Build/Products" <<'PY'
+from pathlib import Path
+import sys
+templates = list(Path(sys.argv[1]).glob('DoCard_DoCard_*.xctestrun'))
+if len(templates) != 1:
+    sys.exit('Expected one DoCard xctestrun from the Debug build')
+print(templates[0])
+PY
+)"
+
 # pipefail preserves xcodebuild's failure when its output is also written by tee.
 test_status=0
-xcodebuild test "${common_args[@]}" \
-  -configuration Debug \
+xcodebuild test-without-building -xctestrun "$xctestrun" \
   -destination "platform=iOS Simulator,id=$simulator_id" \
   -destination-timeout 120 \
   -parallel-testing-enabled NO \
@@ -87,6 +106,23 @@ python3 ci/ios-ci-results.py "$results_dir" "$expected_schedule" "$expected_reco
   || validation_status=$?
 if [[ "$test_status" -ne 0 ]]; then
   exit "$test_status"
+fi
+if [[ "$validation_status" -ne 0 ]]; then
+  exit "$validation_status"
+fi
+
+# The runner restarts this disposable simulator without erasing its migrated data.
+upgrade_dir="$results_dir/upgrade-$(date +%Y%m%d-%H%M%S)-$$"
+upgrade_status=0
+python3 scripts/upgrade1301/run_local.py \
+  --simulator "$simulator_id" \
+  --derived-data "$build_dir/DerivedData" \
+  --results "$upgrade_dir" --skip-build \
+  2>&1 | tee "$results_dir/upgrade-runner.log" || upgrade_status=$?
+validation_status=0
+python3 ci/ios-ci-results.py "$results_dir" --upgrade "$upgrade_dir" || validation_status=$?
+if [[ "$upgrade_status" -ne 0 ]]; then
+  exit "$upgrade_status"
 fi
 if [[ "$validation_status" -ne 0 ]]; then
   exit "$validation_status"

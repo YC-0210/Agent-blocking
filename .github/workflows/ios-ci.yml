@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   schedule-tests:
-    name: Schedule, unlock/recovery tests and Release build
+    name: Schedule, unlock/recovery, upgrade tests and Release build
     runs-on: macos-26
     timeout-minutes: 30
     env:
@@ -35,7 +35,7 @@ jobs:
       - name: Verify CI result gates
         run: python3 ci/test-ios-ci.py
 
-      - name: Run both test suites and build Release
+      - name: Run regression and upgrade checks, then build Release
         run: bash ci/run-ios-ci.sh
 
       - name: Write result summary

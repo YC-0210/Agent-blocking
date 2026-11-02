@@ -1,0 +1,108 @@
+{
+  "sourceVersion": "1.30.1",
+  "sourceBuild": "1",
+  "profiles": [
+    {
+      "createdAt": "2026-03-15T12:00:00+08:00",
+      "updatedAt": "2026-03-16T07:00:00+08:00",
+      "id": "13010000-0000-4000-8000-000000000001",
+      "name": "Work",
+      "order": 0,
+      "strategy": "NFCBlockingStrategy",
+      "timerJSON": null,
+      "enableLiveActivity": true,
+      "reminderTimeInSeconds": 1200,
+      "enableBreaks": true,
+      "breakTimeInMinutes": 5,
+      "enableAllowMode": false,
+      "enableAllowModeDomains": true,
+      "enableSafariBlocking": true,
+      "cardIds": [
+        "fixture-card-work",
+        "fixture-card-backup"
+      ],
+      "domains": [
+        "example.com",
+        "work.example"
+      ],
+      "customReminderMessage": "Return to Work",
+      "schedule": {
+        "name": "Work mornings",
+        "days": [
+          2,
+          4
+        ],
+        "startHour": 9,
+        "startMinute": 0,
+        "endHour": 10,
+        "endMinute": 0,
+        "endType": "specificTime",
+        "updatedAt": "2026-03-16T07:00:00+08:00"
+      }
+    },
+    {
+      "createdAt": "2026-03-15T12:00:00+08:00",
+      "updatedAt": "2026-03-16T07:00:00+08:00",
+      "id": "13010000-0000-4000-8000-000000000002",
+      "name": "Study",
+      "order": 1,
+      "strategy": "NFCTimerBlockingStrategy",
+      "timerJSON": "{\"durationInMinutes\":40,\"hideStopButton\":false}",
+      "enableLiveActivity": false,
+      "reminderTimeInSeconds": null,
+      "enableBreaks": false,
+      "breakTimeInMinutes": 15,
+      "enableAllowMode": true,
+      "enableAllowModeDomains": false,
+      "enableSafariBlocking": false,
+      "cardIds": null,
+      "domains": null,
+      "customReminderMessage": null,
+      "schedule": {
+        "name": "Study afternoons",
+        "days": [
+          3,
+          5
+        ],
+        "startHour": 14,
+        "startMinute": 0,
+        "endHour": 15,
+        "endMinute": 0,
+        "endType": "cardTap",
+        "updatedAt": "2026-03-16T07:00:00+08:00"
+      }
+    }
+  ],
+  "sessions": [
+    {
+      "id": "1301-session-1",
+      "profileId": "13010000-0000-4000-8000-000000000001",
+      "tag": "NFCBlockingStrategy",
+      "startTime": "2026-03-16T08:00:00+08:00",
+      "endTime": "2026-03-16T08:30:00+08:00",
+      "breakStartTime": null,
+      "breakEndTime": null,
+      "forceStarted": false
+    },
+    {
+      "id": "1301-session-2",
+      "profileId": "13010000-0000-4000-8000-000000000001",
+      "tag": "NFCBlockingStrategy",
+      "startTime": "2026-03-16T09:00:00+08:00",
+      "endTime": "2026-03-16T09:20:00+08:00",
+      "breakStartTime": "2026-03-16T09:05:00+08:00",
+      "breakEndTime": "2026-03-16T09:10:00+08:00",
+      "forceStarted": false
+    },
+    {
+      "id": "1301-session-3",
+      "profileId": "13010000-0000-4000-8000-000000000002",
+      "tag": "NFCTimerBlockingStrategy",
+      "startTime": "2026-03-17T14:00:00+08:00",
+      "endTime": "2026-03-17T14:40:00+08:00",
+      "breakStartTime": null,
+      "breakEndTime": null,
+      "forceStarted": true
+    }
+  ]
+}

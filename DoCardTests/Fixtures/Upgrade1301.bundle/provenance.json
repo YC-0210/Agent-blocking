@@ -1,0 +1,56 @@
+{
+  "sourceVersion": "1.30.1",
+  "sourceBuild": "1",
+  "sourceModelFiles": [
+    {
+      "path": "DoCard/DoCardApp.swift",
+      "sha256": "3c28aafdf8712dfe3019ce03ea288f37dc16a0311e73f966c6e4d196111acf0c",
+      "matchesDO1": true,
+      "matchesGitCommit": true
+    },
+    {
+      "path": "DoCard/Models/BlockedProfiles.swift",
+      "sha256": "a8ee2b4a9f369cbc623e49623a462638bb7926fe5abb19e40aa5995b54ab5ef8",
+      "matchesDO1": true,
+      "matchesGitCommit": true
+    },
+    {
+      "path": "DoCard/Models/BlockedProfileSessions.swift",
+      "sha256": "39a0b8f8f5ece2214a945e31d2ca0cfbaf203947512d5ec1040817bf16e12891",
+      "matchesDO1": true,
+      "matchesGitCommit": true
+    },
+    {
+      "path": "DoCard/Models/Schedule.swift",
+      "sha256": "620e462dbfa37340bd251b33dfa1e8ac9ce8f2e387e164bf07d2112ef1c73542",
+      "matchesDO1": true,
+      "matchesGitCommit": true
+    }
+  ],
+  "archiveBinarySHA256": "2173fe7e97bab0a09dd781b892bfca0336d22a1408a81d47184bac196d0a5ef0",
+  "archiveBinaryUUID": "6EBF90C4-B53F-355B-85AC-6262B32B96AE",
+  "oldOpenConfiguration": "Unversioned ModelContainer for BlockedProfileSession and BlockedProfiles; no explicit migration plan",
+  "generator": "Upgrade1301WriterTests.testCreateFirstReleaseSavedData",
+  "xcode": "Xcode 26.2\nBuild version 17C52",
+  "generatedRuntime": "iOS Simulator 26.3.1 (23D8133)",
+  "generatedDateTaipei": "2026-11-02",
+  "storeFiles": {
+    "source-store-metadata.plist": "7db9348da2c179e35ea73e87df7c9eddbf0eab4706009f58add8de21699f0632",
+    "expected.json": "1beb9c2a7f6aeebe9765736a70c74f770a4c261924ef6c09b1d3b4742b8c804f",
+    "default.store": "5188b177f331274a487c21e3fe6ce2c4a233d37da6a923b662cd4d3fed40ea4a",
+    "default.store-wal": "16ac3e275753552fe054c4377f326f42dd4bfa7caf9a64b43d6b78968639188a",
+    "default.store-shm": "0326304fa6cea1ad933e5b414461607308373b06c5bbae257d1811e7e93f4149"
+  },
+  "oldStoreSchemaVersion": "1.0.0",
+  "oldStoreEntities": [
+    "BlockedProfiles",
+    "BlockedProfileSession"
+  ],
+  "identityLimit": "The archive upload and debug symbols strongly support the DO.1/DO-founder data-model baseline. No source checksum or selected-release record proves every archived app source byte is identical. Git commit 346118b has the same four database-related files but working-tree release/version and other non-model edits also exist.",
+  "dataLimit": "Artificial records, empty FamilyActivitySelection; no real customer store, device tokens or original-device runtime coverage.",
+  "generatorSourceSHA256": "936cabce32365df85a269de6accb83f6c0f649e418da148ae39e4225afdb3174",
+  "expectedDataSHA256": "1beb9c2a7f6aeebe9765736a70c74f770a4c261924ef6c09b1d3b4742b8c804f",
+  "writerResult": "1 passed, 0 failed, 0 skipped",
+  "generatedAppVersion": "1.30.1",
+  "generatedAppBuild": "1"
+}

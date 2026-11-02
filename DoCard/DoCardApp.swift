@@ -14,11 +14,7 @@ private let container: ModelContainer = {
   let schema = Schema(versionedSchema: AppSchemaV5.self)
   let config = ModelConfiguration(schema: schema)
   do {
-    return try ModelContainer(
-      for: schema,
-      migrationPlan: AppMigrationPlan.self,
-      configurations: [config]
-    )
+    return try AppModelStore.open(configuration: config)
   } catch {
     // Strategy B: back up the corrupt store and recreate a fresh one.
     // This fires only when SwiftData cannot apply the migration plan —
@@ -47,11 +43,7 @@ private let container: ModelContainer = {
     UserDefaults.standard.set(true, forKey: "didResetStoreOnMigrationFailure")
 
     do {
-      return try ModelContainer(
-        for: schema,
-        migrationPlan: AppMigrationPlan.self,
-        configurations: [config]
-      )
+      return try AppModelStore.open(configuration: config)
     } catch {
       fatalError("Couldn’t create ModelContainer even after store reset: \(error)")
     }

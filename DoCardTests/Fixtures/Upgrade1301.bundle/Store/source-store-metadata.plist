@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>NSPersistenceFrameworkVersion</key>
+	<integer>1525</integer>
+	<key>NSPersistenceMaximumFrameworkVersion</key>
+	<integer>1525</integer>
+	<key>NSStoreModelVersionChecksumKey</key>
+	<string>/Hzw9tjLwZ9CZe9dNnIx+HiiBiXeHY8kPzg9PLpoMdc=</string>
+	<key>NSStoreModelVersionHashes</key>
+	<dict>
+		<key>BlockedProfileSession</key>
+		<data>
+		7F9QX4Fp7ZWnrpZ9gMURVvMkIpJGopJaB0VdwJnkpCM=
+		</data>
+		<key>BlockedProfiles</key>
+		<data>
+		M8ljpww6Z298UmZGfRSRFQjMJ6QMRL+9D3r+n3ppHpg=
+		</data>
+	</dict>
+	<key>NSStoreModelVersionHashesDigest</key>
+	<string>c1TRUcFGNDaGP6L4uRkqD2aP1bkzQjIi116Xd88D3gaFtgSgb/v0xv+VYxO06ubHBnanOw42DI0Is1IfkVHH1Q==</string>
+	<key>NSStoreModelVersionHashesVersion</key>
+	<integer>3</integer>
+	<key>NSStoreModelVersionIdentifiers</key>
+	<array>
+		<string>1.0.0</string>
+	</array>
+	<key>NSStoreType</key>
+	<string>SQLite</string>
+	<key>NSStoreUUID</key>
+	<string>9EB367F8-81F3-4650-8F1F-6ABCAE72FAF7</string>
+	<key>_NSAutoVacuumLevel</key>
+	<string>2</string>
+</dict>
+</plist>
