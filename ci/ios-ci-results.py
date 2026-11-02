@@ -2,10 +2,12 @@
 
 import json
 from pathlib import Path
+import re
 import sys
 
 
-def verify(results, expected):
+def verify(results, expected, summary_file="test-summary.json", tree_file="test-tree.json",
+           report_file="suite-results.json", identifiers=None):
     errors = []
     suites = {
         name: {"expected": count, "discovered": 0, "passed": 0, "failed": 0, "skipped": 0}
@@ -23,8 +25,8 @@ def verify(results, expected):
             errors.append(f"Cannot read {name}: {error}")
             return {}
 
-    summary = read("test-summary.json")
-    tree = read("test-tree.json")
+    summary = read(summary_file)
+    tree = read(tree_file)
 
     def visit(node, bundle=None, suite=None):
         kind = node.get("nodeType")
@@ -39,6 +41,8 @@ def verify(results, expected):
                 return
             if not isinstance(identifier, str) or not identifier.startswith(suite + "/"):
                 errors.append(f"Invalid test identifier: {identifier}")
+            if identifiers is not None and identifier not in identifiers:
+                errors.append(f"Unexpected test method: {identifier}")
             identity = (bundle, identifier)
             if identity in seen:
                 errors.append(f"Duplicate test: {identity}")
@@ -80,7 +84,7 @@ def verify(results, expected):
     ):
         errors.append(f"Expected {total} passed, none failed or skipped in Xcode summary")
     report = {"result": "Failed" if errors else "Passed", "suites": suites, "errors": errors}
-    (results / "suite-results.json").write_text(json.dumps(report, indent=2) + "\n")
+    (results / report_file).write_text(json.dumps(report, indent=2) + "\n")
     for name, counts in suites.items():
         print(f"{name}: {counts['passed']}/{counts['expected']} passed; "
               f"{counts['failed']} failed; {counts['skipped']} skipped")
@@ -89,7 +93,56 @@ def verify(results, expected):
     return not errors
 
 
+def verify_upgrade(results, phases_dir):
+    errors = []
+    phases = {}
+    try:
+        executions = json.loads((phases_dir / "results.json").read_text())
+        if not isinstance(executions, dict):
+            raise ValueError("expected phase executions")
+    except (OSError, ValueError) as error:
+        executions = {}
+        errors.append(f"Cannot read upgrade executions: {error}")
+    method = "Upgrade1301Tests/testFirstReleaseSavedDataSurvivesUpdate()"
+    for phase in ["migrate", "reopen"]:
+        # Write validation beside the top-level reports even if setup produced no phase directory.
+        prefix = str(phases_dir.relative_to(results) / phase)
+        valid = verify(results, {"Upgrade1301Tests": 1}, prefix + "-summary.json",
+                       prefix + "-tree.json", phase + "-validation.json", {method})
+        if not valid:
+            errors.append(f"{phase}: missing, incomplete or failed Xcode results")
+        try:
+            log = (phases_dir / (phase + ".log")).read_text(errors="replace")
+        except OSError:
+            log = ""
+        markers = re.findall(r"UPGRADE1301_RESULT: phase=(\w+), pid=(\d+)", log)
+        pid = None
+        if len(markers) == 1 and markers[0][0] == phase and int(markers[0][1]) > 0:
+            pid = int(markers[0][1])
+        else:
+            errors.append(f"{phase}: require one completion marker with the correct phase and process ID")
+        execution = executions.get(phase, {})
+        command_passed = (execution.get("exitCode") == 0 and execution.get("expectedFailure") is False
+                          and pid is not None and execution.get("processID") == pid)
+        if not command_passed:
+            errors.append(f"{phase}: missing or unsuccessful process execution")
+        phases[phase] = {"result": "Passed" if valid and command_passed else "Failed",
+                         "processID": pid, "wallSeconds": execution.get("wallSeconds")}
+    if phases["migrate"]["processID"] == phases["reopen"]["processID"]:
+        errors.append("Reopen must run in a different process")
+    report = {"result": "Failed" if errors else "Passed", "phases": phases,
+              "uniqueTestMethods": 1, "requiredProcessChecks": 2, "errors": errors}
+    (results / "upgrade-results.json").write_text(json.dumps(report, indent=2) + "\n")
+    for error in errors:
+        print(error, file=sys.stderr)
+    return not errors
+
+
 if __name__ == "__main__":
     directory = Path(sys.argv[1])
-    expected = {"ScheduleTests": int(sys.argv[2]), "UnlockRecoveryTests": int(sys.argv[3])}
-    sys.exit(0 if verify(directory, expected) else 1)
+    if sys.argv[2] == "--upgrade":
+        passed = verify_upgrade(directory, Path(sys.argv[3]))
+    else:
+        expected = {"ScheduleTests": int(sys.argv[2]), "UnlockRecoveryTests": int(sys.argv[3])}
+        passed = verify(directory, expected)
+    sys.exit(0 if passed else 1)
