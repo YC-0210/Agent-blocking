@@ -18,6 +18,7 @@ struct SubscriptionRequiredView: View {
           if !subscriptionManager.isPremium { manager.reconcileSubscription(context: context) }
         }
         Button(String(localized: "Emergency Unlock")) { showEmergency = true }
+          .accessibilityIdentifier("access.emergency")
       }
       if let profile = manager.activeSession?.blockedProfile {
         Button(String(localized: "Tap card to stop")) {

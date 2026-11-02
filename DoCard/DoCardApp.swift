@@ -11,6 +11,9 @@ import SwiftData
 import SwiftUI
 
 private let container: ModelContainer = {
+  #if DEBUG && targetEnvironment(simulator)
+    if let fixture = MaestroFixture.makeContainerIfRequested() { return fixture }
+  #endif
   let schema = Schema(versionedSchema: AppSchemaV5.self)
   let config = ModelConfiguration(schema: schema)
   do {
@@ -52,6 +55,10 @@ private let container: ModelContainer = {
 
 @main
 struct DoCardApp: App {
+  #if DEBUG && targetEnvironment(simulator)
+    // Force fixture preparation before any app services read persisted state.
+    private let preparedContainer: ModelContainer = container
+  #endif
   @Environment(\.scenePhase) private var scenePhase
   @StateObject private var requestAuthorizer = RequestAuthorizer()
   @StateObject private var navigationManager = NavigationManager()
@@ -132,6 +139,13 @@ struct DoCardApp: App {
         reconcileSubscription()
         Task { await subscriptionManager.checkCurrentEntitlements() }
       }
+      #if DEBUG && targetEnvironment(simulator)
+        .safeAreaInset(edge: .top) {
+          if MaestroFixture.isRequested {
+            MaestroSessionPanel(container: container, manager: startegyManager)
+          }
+        }
+      #endif
       .preferredColorScheme(.dark)
     }
     .modelContainer(container)

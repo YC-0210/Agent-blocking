@@ -1,0 +1,71 @@
+appId: online.do.card.app
+name: manual-lock-unlock
+---
+- launchApp:
+    arguments:
+      docardUITestScenario: manual
+      docardUITestReset: "true"
+      AppleLanguages: "(zh-Hant)"
+      AppleLocale: zh_TW
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: focus.start
+- longPressOn:
+    id: focus.start
+- assertVisible:
+    id: journey.scan
+    text: "pending"
+- tapOn:
+    id: journey.card
+- assertVisible:
+    id: journey.state
+    text: "active"
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · on"
+- assertVisible: 正常鎖定中
+- tapOn:
+    id: journey.clock.15
+- longPressOn:
+    id: focus.stop
+- assertVisible:
+    id: journey.scan
+    text: "pending"
+- tapOn:
+    id: journey.card
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: focus.start
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · off"
+- assertVisible:
+    id: journey.history
+    text: "saved=1;reason=card_tap;source=manual;audits=0"
+- launchApp:
+    arguments:
+      docardUITestScenario: manual
+      docardUITestReset: "false"
+      AppleLanguages: "(zh-Hant)"
+      AppleLocale: zh_TW
+- assertVisible:
+    id: focus.start
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: focus.start
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · off"
+- assertVisible:
+    id: journey.history
+    text: "saved=1;reason=card_tap;source=manual;audits=0"
+- assertVisible:
+    id: journey.safety
+    text: "quota=3;reblocks=0"
+- takeScreenshot: manual-complete

@@ -3,6 +3,7 @@
 import copy
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 import sys
@@ -10,16 +11,28 @@ import tempfile
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
-SUMMARY = {"result": "Passed", "totalTestCount": 78, "passedTests": 78,
-           "failedTests": 0, "skippedTests": 0, "expectedFailures": 0}
-TREE = {"testNodes": [{"nodeType": "Unit test bundle", "name": "DoCardTests", "children": [
-    {"nodeType": "Test Suite", "name": suite, "children": [
-        {"nodeType": "Test Case", "nodeIdentifier": f"{suite}/test{number}()", "result": "Passed"}
-        for number in range(count)]}
-    for suite, count in [("ScheduleTests", 36), ("UnlockRecoveryTests", 27),
-                         ("SessionHistoryTests", 7), ("SessionReportTests", 7),
-                         ("SessionReportDurationTests", 1)]
-]}]}
+SUITES = {"ScheduleTests": 36, "UnlockRecoveryTests": 28, "SessionHistoryTests": 8,
+          "SessionReportTests": 7, "SessionReportDurationTests": 1,
+          "SubscriptionAccessTests": 12, "EntitlementsTests": 2, "SelectionRulesTests": 4,
+          "SelectionEnforcementTests": 1, "SubscriptionLifecycleTests": 20,
+          "SubscriptionStoreTests": 4, "SubscriptionRefreshTests": 1, "SettingsLayoutTests": 15}
+
+
+def tree_for(suites):
+    return {"testNodes": [{"nodeType": "Unit test bundle", "name": "DoCardTests", "children": [
+        {"nodeType": "Test Suite", "name": suite, "children": [
+            {"nodeType": "Test Case", "nodeIdentifier": f"{suite}/{method}()", "result": "Passed"}
+            for method in re.findall(r"^  func (test\w+)\(",
+                (ROOT / "DoCardTests" / f"{suite}.swift").read_text(), re.MULTILINE)]}
+        for suite in suites]}]}
+
+
+SUMMARY = {"result": "Passed", "totalTestCount": sum(SUITES.values()),
+           "passedTests": sum(SUITES.values()), "failedTests": 0, "skippedTests": 0,
+           "expectedFailures": 0}
+TREE = tree_for(SUITES)
+STOREKIT_SUMMARY = {**SUMMARY, "totalTestCount": 4, "passedTests": 4}
+STOREKIT_TREE = tree_for(["StoreKitAccessTests"])
 
 UPGRADE_SUMMARY = {**SUMMARY, 'totalTestCount': 1, 'passedTests': 1}
 UPGRADE_TREE = {'testNodes': [{'nodeType': 'Unit test bundle', 'name': 'DoCardTests', 'children': [
@@ -44,6 +57,8 @@ elif args[:3] == ['xcresulttool', 'get', 'test-results']:
     phase = pathlib.Path(args[args.index('--path') + 1]).stem
     if phase in ['migrate', 'reopen']:
         name = phase + '-' + name
+    elif phase.startswith('storekit-'):
+        name = 'storekit-' + name
     print((fixture / name).read_text())
 '''
 XCODEBUILD = '''import json, os, pathlib, plistlib, sys
@@ -70,9 +85,14 @@ elif args[0] in ['test', 'test-without-building']:
         if marker:
             print(marker)
         sys.exit(int(os.environ['SIMULATED_' + phase.upper() + '_STATUS']))
-    for suite in ['ScheduleTests', 'UnlockRecoveryTests', 'SessionHistoryTests',
-                  'SessionReportTests', 'SessionReportDurationTests']:
-        assert '-only-testing:DoCardTests/' + suite in args
+    selected = [arg for arg in args if arg.startswith('-only-testing:')]
+    expected = (['StoreKitAccessTests'] if phase.startswith('storekit-')
+                else json.loads(os.environ['EXPECTED_DETERMINISTIC_SUITES']))
+    assert sorted(selected) == sorted('-only-testing:DoCardTests/' + suite for suite in expected)
+    assert args[args.index('-parallel-testing-enabled') + 1] == 'NO'
+    if phase.startswith('storekit-'):
+        pathlib.Path(fixture, 'storekit-called').touch()
+        sys.exit(int(os.environ['SIMULATED_STOREKIT_STATUS']))
     sys.exit(int(os.environ['SIMULATED_TEST_STATUS']))
 elif args[0] == 'build':
     pathlib.Path(os.environ['CI_FIXTURE_DIR'], 'release-called').touch()
@@ -84,7 +104,8 @@ elif args[0] == 'build':
 
 class PipelineChecks(unittest.TestCase):
     def run_pipeline(self, summary=None, tree=None, test_status=0, release_status=0,
-                     upgrade=None, markers=None, migrate_status=0, reopen_status=0):
+                     upgrade=None, markers=None, migrate_status=0, reopen_status=0,
+                     storekit_summary=None, storekit_tree=None, storekit_status=0):
         with tempfile.TemporaryDirectory(prefix="docard-ci-guard-") as temporary:
             fixture = Path(temporary)
             binary = fixture / 'bin'
@@ -96,6 +117,10 @@ class PipelineChecks(unittest.TestCase):
             for name, value in [('test-summary.json', SUMMARY if summary is None else summary),
                                 ('test-tree.json', TREE if tree is None else tree)]:
                 (fixture / name).write_text(value if isinstance(value, str) else json.dumps(value))
+            for kind, value in [('summary', STOREKIT_SUMMARY if storekit_summary is None else storekit_summary),
+                                ('tree', STOREKIT_TREE if storekit_tree is None else storekit_tree)]:
+                (fixture / ('storekit-test-' + kind + '.json')).write_text(
+                    value if isinstance(value, str) else json.dumps(value))
             for phase in ['migrate', 'reopen']:
                 for kind, default in [('summary', UPGRADE_SUMMARY), ('tree', UPGRADE_TREE)]:
                     value = (upgrade or {}).get(phase + '-' + kind, default)
@@ -111,9 +136,8 @@ class PipelineChecks(unittest.TestCase):
             env = {**os.environ, 'PATH': str(binary) + os.pathsep + os.environ['PATH'],
                    'CI_FIXTURE_DIR': str(fixture), 'CI_RESULTS_DIR': str(results),
                    'CI_BUILD_DIR': str(fixture / 'build'), 'CI_SIMULATOR_RUNTIME': 'test-runtime',
-                   'EXPECTED_SCHEDULE_TEST_COUNT': '36', 'EXPECTED_UNLOCK_RECOVERY_TEST_COUNT': '27',
-                   'EXPECTED_SESSION_HISTORY_TEST_COUNT': '7', 'EXPECTED_SESSION_REPORT_TEST_COUNT': '7',
-                   'EXPECTED_SESSION_REPORT_DURATION_TEST_COUNT': '1',
+                   'EXPECTED_DETERMINISTIC_SUITES': json.dumps(list(SUITES)),
+                   'SIMULATED_STOREKIT_STATUS': str(storekit_status),
                    'SIMULATED_TEST_STATUS': str(test_status),
                    'SIMULATED_MIGRATE_STATUS': str(migrate_status),
                    'SIMULATED_REOPEN_STATUS': str(reopen_status),
@@ -125,6 +149,7 @@ class PipelineChecks(unittest.TestCase):
                                  capture_output=True, text=True)
             rendered = subprocess.run([sys.executable, str(ROOT / 'ci/ios-ci-summary.py'), str(results)],
                                       capture_output=True, text=True, check=True)
+            self.storekit_called = (fixture / 'storekit-called').exists()
             self.commands = [json.loads(line) for line in (fixture / 'commands.jsonl').read_text().splitlines()]
             return (run.returncode, (fixture / 'release-called').exists(),
                     (results / 'ci-passed').exists(), rendered.stdout)
@@ -142,19 +167,37 @@ class PipelineChecks(unittest.TestCase):
         self.assertTrue(release_called)
         self.assertTrue(marker)
         self.assertIn('| ScheduleTests | 36 | 36 | 36 | 0 | 0 |', report)
-        self.assertIn('| UnlockRecoveryTests | 27 | 27 | 27 | 0 | 0 |', report)
-        for suite, count in [('SessionHistoryTests', 7), ('SessionReportTests', 7),
-                             ('SessionReportDurationTests', 1)]:
+        self.assertIn('| UnlockRecoveryTests | 28 | 28 | 28 | 0 | 0 |', report)
+        for suite, count in {**SUITES, 'StoreKitAccessTests': 4}.items():
             self.assertIn(f'| {suite} | {count} | {count} | {count} | 0 | 0 |', report)
         self.assertIn('| migrate | Passed | 101 |', report)
         self.assertIn('| reopen | Passed | 202 |', report)
         builds = [args[1] for args in self.commands if args[0] == 'xcodebuild']
         self.assertEqual(builds.count('build-for-testing'), 1)
-        self.assertEqual(builds.count('test-without-building'), 3)
+        self.assertEqual(builds.count('test-without-building'), 4)
         self.assertNotIn('test', builds)
         self.assertNotIn('erase', [arg for command in self.commands for arg in command])
         deleted = [args for args in self.commands if args[:3] == ['xcrun', 'simctl', 'delete']]
         self.assertEqual(deleted, [['xcrun', 'simctl', 'delete', 'fixture-simulator']])
+
+    def test_deterministic_failure_stops_before_storekit(self):
+        self.assert_blocked(test_status=65)
+        self.assertFalse(self.storekit_called)
+
+    def test_storekit_incomplete_or_failed_results_block_release(self):
+        for result in ['Failed', 'Skipped']:
+            tree = copy.deepcopy(STOREKIT_TREE)
+            tree['testNodes'][0]['children'][0]['children'][0]['result'] = result
+            with self.subTest(result=result):
+                self.assert_blocked(storekit_tree=tree)
+        self.assert_blocked(storekit_tree={'testNodes': []})
+        self.assert_blocked(storekit_summary='invalid json')
+        self.assert_blocked(storekit_status=65)
+
+    def test_wrong_storekit_method_blocks_release(self):
+        tree = copy.deepcopy(STOREKIT_TREE)
+        tree['testNodes'][0]['children'][0]['children'][0]['nodeIdentifier'] = 'StoreKitAccessTests/other()'
+        self.assert_blocked(storekit_tree=tree)
 
     def test_upgrade_failure_or_missing_results_blocks_release(self):
         self.assert_blocked(migrate_status=65)
@@ -186,6 +229,11 @@ class PipelineChecks(unittest.TestCase):
                 self.assert_blocked(markers={
                     'migrate': 'UPGRADE1301_RESULT: phase=migrate, pid=101', 'reopen': reopen})
 
+    def test_wrong_regression_method_blocks_release_with_unchanged_counts(self):
+        tree = copy.deepcopy(TREE)
+        tree['testNodes'][0]['children'][0]['children'][0]['nodeIdentifier'] = 'ScheduleTests/notARealTest()'
+        self.assert_blocked(tree=tree)
+
     def test_wrong_upgrade_method_blocks_release(self):
         tree = copy.deepcopy(UPGRADE_TREE)
         tree['testNodes'][0]['children'][0]['children'][0]['nodeIdentifier'] = 'Upgrade1301Tests/other()'
@@ -197,11 +245,11 @@ class PipelineChecks(unittest.TestCase):
                                             if suite['name'] != 'UnlockRecoveryTests']
         children = tree['testNodes'][0]['children'][0]['children']
         children.extend({'nodeType': 'Test Case', 'nodeIdentifier': f'ScheduleTests/extra{n}()',
-                         'result': 'Passed'} for n in range(27))
+                         'result': 'Passed'} for n in range(28))
         self.assert_blocked(tree=tree)
 
     def test_missing_new_suite_blocks_release_even_with_passing_summary(self):
-        for name in ['SessionHistoryTests', 'SessionReportTests', 'SessionReportDurationTests']:
+        for name in list(SUITES)[2:]:
             with self.subTest(suite=name):
                 tree = copy.deepcopy(TREE)
                 tree['testNodes'][0]['children'] = [suite for suite in tree['testNodes'][0]['children']
@@ -209,7 +257,7 @@ class PipelineChecks(unittest.TestCase):
                 self.assert_blocked(tree=tree)
 
     def test_failed_or_skipped_new_case_blocks_release(self):
-        for name in ['SessionHistoryTests', 'SessionReportTests', 'SessionReportDurationTests']:
+        for name in list(SUITES)[2:]:
             for result in ['Failed', 'Skipped']:
                 with self.subTest(suite=name, result=result):
                     tree = copy.deepcopy(TREE)

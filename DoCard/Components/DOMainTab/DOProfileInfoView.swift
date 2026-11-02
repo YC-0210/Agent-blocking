@@ -32,6 +32,7 @@ struct DOProfileInfoView: View {
         }
       }
       .disabled(isBlocking)
+      .accessibilityIdentifier("profile.select")
 
       Text(String(localized: "已阻擋 \(appCountText)"))
         .font(.system(size: 15))

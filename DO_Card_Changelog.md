@@ -51,3 +51,53 @@ confirmed no retired runtime references or SDK linkage, unchanged analytics conn
 valid catalog/runner syntax and 19 protected schema/fixture/configuration files unchanged.
 Physical-device checks were not run and remain deferred. Existing remote clients/server
 records are outside this removal; any old remote pairing/shield must be reset separately.
+
+## Maestro UI smoke layer (local, 2026-11-02)
+
+ADR-0009 adds five scripted UI smoke journeys after the current lower-level checks.
+The GitHub workflow is initially opt-in through manual dispatch. It packages the
+already-built Debug simulator app and reuses it in a downstream job, with pinned
+Maestro and explicit simulator/runtime selection. JUnit validation requires exactly
+five successful flows; artifacts are retained even after a flow failure.
+
+A Debug-simulator-only launcher seeds an isolated persistent store, resets defaults
+and the app HMAC key before services initialize, and preserves the store on resume
+launches. Production views receive accessibility identifiers. No model/schema,
+Family Controls authorization, extension, purchase or blocking behavior was changed.
+Real-device testing was not performed; this layer covers simulator UI boundaries.
+See docs/testing/maestro.md and the local validation report for commands and results.
+
+## Core locking journeys replace basic UI smoke flows (local, 2026-11-02)
+
+At the user's request, replace the five earlier smoke flows with four core journeys:
+manual card lock/unlock, scheduled start/end, early card unlock during a schedule,
+and complete Emergency Unlock. The last two check suppression after repeated schedule
+delivery and app relaunch. The emergency path also checks one saved audit event and
+one spent quota use. Add a lower-level manual-card round-trip test; local selection
+is now 143 methods, hosted regression selection 79 plus the upgrade test.
+
+ADR-0009 and docs/testing/maestro.md describe the boundaries. Real UI and production
+session/policy/schedule/storage code are used; hardware, clock, OS writes and quota
+storage are simulated only in Debug simulators. SharedData gains a simulator-only
+runtime fallback; existing TaskLocal runtimes take precedence. StrategyManager's
+Debug-simulator singleton accepts the test composition only for explicit fixture
+launches. No model/schema or Family Controls authorization change is made. No push
+or physical-device verification is included in this local task.
+
+## Combined audit fixes and Maestro pipeline (local, 2026-11-02)
+
+Combine the uncommitted local `codex/test-pipeline-audit-fixes` changes with the four
+Maestro locking journeys in a separate `codex/combined-test-pipeline` worktree. The
+remote branch was absent; both original source worktrees are preserved. Keep the
+audit's shared selection/exact-ID gates, deterministic → serial StoreKit → two-process
+upgrade → Release ordering and direct in-memory expiry-import history regression.
+Keep the Maestro Debug-simulator harness, four journeys and manual opt-in final job.
+
+The selected portfolio now has 139 deterministic methods, four StoreKit methods and
+one upgrade method (144 unique /145 executions). The audit's added history method and
+the manual-card integration method are both retained. Remove superseded hardcoded
+workflow counts, update guard fixtures to recovery28/history8, and centralize app
+packaging so local and hosted paths archive the same Debug app. A local complete-pipeline
+entry point adds the optional Maestro stage without a second Debug compile. No source
+model/schema, production Family Controls authorization, fixture data or branch protection
+setting is changed by this integration. No GitHub push is included.

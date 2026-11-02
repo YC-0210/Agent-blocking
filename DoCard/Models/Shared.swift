@@ -38,11 +38,24 @@ enum SharedData {
 
   @TaskLocal static var runtime: Runtime?
 
-  static var storageDefaults: UserDefaults { runtime?.defaults ?? appGroupDefaults }
-  static var currentDate: Date { runtime?.now() ?? Date() }
-  static var currentCalendar: Calendar { runtime?.calendar ?? .current }
+  #if DEBUG && targetEnvironment(simulator)
+    // Explicit UI harness only; ordinary app and XCTest calls leave this nil.
+    static var simulatorRuntime: Runtime?
+  #endif
+
+  private static var activeRuntime: Runtime? {
+    #if DEBUG && targetEnvironment(simulator)
+      return runtime ?? simulatorRuntime
+    #else
+      return runtime
+    #endif
+  }
+
+  static var storageDefaults: UserDefaults { activeRuntime?.defaults ?? appGroupDefaults }
+  static var currentDate: Date { activeRuntime?.now() ?? Date() }
+  static var currentCalendar: Calendar { activeRuntime?.calendar ?? .current }
   private static var suite: UserDefaults { storageDefaults }
-  private static var hmacSigningKey: SymmetricKey? { runtime?.signingKey ?? keychainSigningKey }
+  private static var hmacSigningKey: SymmetricKey? { activeRuntime?.signingKey ?? keychainSigningKey }
 
   // MARK: – Keys
   private enum Key: String {

@@ -7,11 +7,6 @@ cd "$repo_root"
 results_dir="${CI_RESULTS_DIR:-$repo_root/.build/ios-ci/results}"
 build_dir="${CI_BUILD_DIR:-$repo_root/.build/ios-ci/build}"
 runtime="${CI_SIMULATOR_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-2}"
-expected_schedule="${EXPECTED_SCHEDULE_TEST_COUNT:-36}"
-expected_recovery="${EXPECTED_UNLOCK_RECOVERY_TEST_COUNT:-27}"
-expected_history="${EXPECTED_SESSION_HISTORY_TEST_COUNT:-7}"
-expected_reports="${EXPECTED_SESSION_REPORT_TEST_COUNT:-7}"
-expected_report_duration="${EXPECTED_SESSION_REPORT_DURATION_TEST_COUNT:-1}"
 simulator_id=""
 
 mkdir -p "$results_dir" "$build_dir"
@@ -21,7 +16,11 @@ rm -f -- "$results_dir/ci-passed" "$results_dir/test-summary.json" \
   "$results_dir/test-tree.json" "$results_dir/suite-results.json" \
   "$results_dir/upgrade-results.json" "$results_dir/debug-build.log" \
   "$results_dir/upgrade-runner.log" "$results_dir/migrate-validation.json" \
-  "$results_dir/reopen-validation.json"
+  "$results_dir/reopen-validation.json" \
+  "$results_dir/deterministic-summary.json" "$results_dir/deterministic-tree.json" \
+  "$results_dir/deterministic-results.json" "$results_dir/deterministic.log" \
+  "$results_dir/storekit-summary.json" "$results_dir/storekit-tree.json" \
+  "$results_dir/storekit-results.json" "$results_dir/storekit.log"
 
 cleanup() {
   # Delete only the disposable simulator created by this invocation.
@@ -57,7 +56,6 @@ xcrun simctl boot "$simulator_id"
 xcrun simctl bootstatus "$simulator_id" -b
 
 # Each invocation owns a new bundle; repeated local runs may keep the other logs.
-result_bundle="$results_dir/app-tests-$(date +%Y%m%d-%H%M%S)-$$.xcresult"
 common_args=(
   -project DoCard.xcodeproj
   -scheme DoCard
@@ -68,7 +66,7 @@ common_args=(
   CODE_SIGNING_ALLOWED=NO
 )
 
-# One Debug build supplies the regression run and both upgrade processes.
+# One Debug build supplies deterministic, StoreKit and both upgrade processes.
 xcodebuild build-for-testing "${common_args[@]}" \
   -configuration Debug \
   -destination "platform=iOS Simulator,id=$simulator_id" \
@@ -85,38 +83,42 @@ print(templates[0])
 PY
 )"
 
-# pipefail preserves xcodebuild's failure when its output is also written by tee.
-test_status=0
-xcodebuild test-without-building -xctestrun "$xctestrun" \
-  -destination "platform=iOS Simulator,id=$simulator_id" \
-  -destination-timeout 120 \
-  -parallel-testing-enabled NO \
-  -only-testing:DoCardTests/ScheduleTests \
-  -only-testing:DoCardTests/UnlockRecoveryTests \
-  -only-testing:DoCardTests/SessionHistoryTests \
-  -only-testing:DoCardTests/SessionReportTests \
-  -only-testing:DoCardTests/SessionReportDurationTests \
-  -resultBundlePath "$result_bundle" \
-  2>&1 | tee "$results_dir/tests.log" || test_status=$?
+# Fast deterministic checks must pass before the serial Apple-local StoreKit cases.
+# Both groups and the two upgrade processes reuse the same Debug build.
+for group in deterministic storekit; do
+  python3 ci/ios_test_selection.py "$group" > "$results_dir/$group-selection.txt"
+  selections=()
+  while IFS= read -r selection; do
+    selections+=("$selection")
+  done < "$results_dir/$group-selection.txt"
+  result_bundle="$results_dir/$group-$(date +%Y%m%d-%H%M%S)-$$.xcresult"
+  test_status=0
+  xcodebuild test-without-building -xctestrun "$xctestrun" \
+    -destination "platform=iOS Simulator,id=$simulator_id" \
+    -destination-timeout 120 \
+    -parallel-testing-enabled NO \
+    -test-timeouts-enabled YES \
+    -default-test-execution-time-allowance 30 \
+    -maximum-test-execution-time-allowance 30 \
+    "${selections[@]}" \
+    -resultBundlePath "$result_bundle" \
+    2>&1 | tee "$results_dir/$group.log" || test_status=$?
 
-# Keep a machine-readable summary on assertion failure as well as success.
-if [[ -d "$result_bundle" ]]; then
-  xcrun xcresulttool get test-results summary --path "$result_bundle" --compact \
-    > "$results_dir/test-summary.json" || true
-  xcrun xcresulttool get test-results tests --path "$result_bundle" --compact \
-    > "$results_dir/test-tree.json" || true
-fi
-# Validate all selected suites even on assertion failure, so their results reach the report.
-validation_status=0
-python3 ci/ios-ci-results.py "$results_dir" "$expected_schedule" "$expected_recovery" \
-  "$expected_history" "$expected_reports" "$expected_report_duration" \
-  || validation_status=$?
-if [[ "$test_status" -ne 0 ]]; then
-  exit "$test_status"
-fi
-if [[ "$validation_status" -ne 0 ]]; then
-  exit "$validation_status"
-fi
+  if [[ -d "$result_bundle" ]]; then
+    xcrun xcresulttool get test-results summary --path "$result_bundle" --compact \
+      > "$results_dir/$group-summary.json" || true
+    xcrun xcresulttool get test-results tests --path "$result_bundle" --compact \
+      > "$results_dir/$group-tree.json" || true
+  fi
+  validation_status=0
+  python3 ci/ios-ci-results.py "$results_dir" "$group" || validation_status=$?
+  if [[ "$test_status" -ne 0 ]]; then
+    exit "$test_status"
+  fi
+  if [[ "$validation_status" -ne 0 ]]; then
+    exit "$validation_status"
+  fi
+done
 
 # The runner restarts this disposable simulator without erasing its migrated data.
 upgrade_dir="$results_dir/upgrade-$(date +%Y%m%d-%H%M%S)-$$"

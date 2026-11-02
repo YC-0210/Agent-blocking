@@ -315,6 +315,7 @@ private struct ScheduleCard: View {
       )
     }
     .buttonStyle(.plain)
+    .accessibilityIdentifier("schedule.card.\(schedule.id.uuidString)")
   }
 
   private var cardTitle: String {
@@ -403,6 +404,7 @@ struct ScheduleEditSheet: View {
                 .foregroundStyle(.secondary)
               Spacer()
               TextField(String(localized: "排程名稱"), text: $scheduleName)
+                .accessibilityIdentifier("schedule.name")
                 .multilineTextAlignment(.trailing)
             }
           }
@@ -560,6 +562,7 @@ struct ScheduleEditSheet: View {
                   .fill(themeManager.themeColor)
               )
           }
+          .accessibilityIdentifier("schedule.save")
           .opacity((!isEditing && selectedProfileId == nil) || selectedDays.isEmpty ? 0.4 : 1.0)
           .disabled((!isEditing && selectedProfileId == nil) || selectedDays.isEmpty)
 

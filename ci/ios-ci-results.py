@@ -5,6 +5,8 @@ from pathlib import Path
 import re
 import sys
 
+from ios_test_selection import GROUPS, expected_methods
+
 
 def verify(results, expected, summary_file="test-summary.json", tree_file="test-tree.json",
            report_file="suite-results.json", identifiers=None):
@@ -73,6 +75,10 @@ def verify(results, expected, summary_file="test-summary.json", tree_file="test-
             and counts["skipped"] == 0
         ):
             errors.append(f"{name}: expected {counts['expected']} passing tests; got {counts}")
+    if identifiers is not None:
+        missing = identifiers - {identifier for _, identifier in seen}
+        if missing:
+            errors.append("Missing test methods: " + ", ".join(sorted(missing)))
     total = sum(expected.values())
     if not (
         summary.get("result") == "Passed"
@@ -143,12 +149,9 @@ if __name__ == "__main__":
     if sys.argv[2] == "--upgrade":
         passed = verify_upgrade(directory, Path(sys.argv[3]))
     else:
-        expected = {
-            "ScheduleTests": int(sys.argv[2]),
-            "UnlockRecoveryTests": int(sys.argv[3]),
-            "SessionHistoryTests": int(sys.argv[4]),
-            "SessionReportTests": int(sys.argv[5]),
-            "SessionReportDurationTests": int(sys.argv[6]),
-        }
-        passed = verify(directory, expected)
+        group = sys.argv[2]
+        expected, identifiers = expected_methods(GROUPS[group])
+        passed = verify(directory, expected,
+                        summary_file=f"{group}-summary.json", tree_file=f"{group}-tree.json",
+                        report_file=f"{group}-results.json", identifiers=identifiers)
     sys.exit(0 if passed else 1)

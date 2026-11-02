@@ -121,6 +121,7 @@ private final class RecoveryFixture {
         return NFCBlockingStrategy(
           nfcScanner: self.scanner, appBlocker: self.blocker)
       },
+      makeNFCScanner: { [unowned self] in self.scanner },
       systemEffect: { _ in },
       readEmergencyUses: { [unowned self] in self.emergencyUses },
       writeEmergencyUses: { [unowned self] in self.emergencyUses = $0 })
@@ -160,6 +161,31 @@ final class UnlockRecoveryTests: XCTestCase {
       SharedData.subscriptionGrants = [SubscriptionGrant(productID: SubscriptionProduct.monthly,
         purchasedAt: fixture.date(day: 1, hour: 0), expiresAt: fixture.date(day: 10, hour: 0))]
       try body(fixture)
+    }
+  }
+
+  func testU5ManualCardStartAndStopSavesHistory() throws {
+    try withFixture { fixture in
+      fixture.profile.schedules = []
+      fixture.manager.startSessionWithNFCScan(context: fixture.context, profile: fixture.profile)
+      XCTAssertEqual(fixture.scanner.scans, 1)
+      XCTAssertNil(fixture.manager.activeSession)
+      fixture.scanner.read()
+      let session = try XCTUnwrap(fixture.manager.activeSession)
+      XCTAssertEqual(fixture.blocker.requests, [.block(fixture.profile.id)])
+      XCTAssertEqual(session.triggerSource, "manual")
+      fixture.clock.now = fixture.date(hour: 9, minute: 5)
+      fixture.manager.toggleBlocking(context: fixture.context, activeProfile: fixture.profile)
+      XCTAssertTrue(session.isActive)
+      fixture.scanner.read()
+      try fixture.context.save()
+      XCTAssertFalse(fixture.manager.activeSessionStatus.isBlocking)
+      XCTAssertEqual(fixture.blocker.requests.last, .unblock)
+      let reopened = ModelContext(fixture.container)
+      let rows = try reopened.fetch(FetchDescriptor<BlockedProfileSession>())
+      XCTAssertEqual(rows.count, 1)
+      XCTAssertEqual(rows.first?.endReason, "card_tap")
+      XCTAssertEqual(rows.first?.endTime, fixture.clock.now)
     }
   }
 

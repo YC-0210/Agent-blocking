@@ -16,16 +16,20 @@ private final class HistoryFixture {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   let suiteName = "SessionHistoryTests.\(UUID().uuidString)"
   let calendar: Calendar
+  let inMemory: Bool
   var container: ModelContainer?
   var context: ModelContext!
   let workID = UUID(uuidString: "53000000-0000-4000-8000-000000000001")!
   let studyID = UUID(uuidString: "53000000-0000-4000-8000-000000000002")!
 
-  init() throws {
+  init(inMemory: Bool = false) throws {
+    self.inMemory = inMemory
     var cal = Calendar(identifier: .gregorian)
     cal.timeZone = TimeZone(identifier: "Asia/Taipei")!
     calendar = cal
-    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    if !inMemory {
+      try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    }
     try open()
     for (id, name) in [(workID, "Work"), (studyID, "Study")] {
       let profile = BlockedProfiles(name: name)
@@ -36,9 +40,13 @@ private final class HistoryFixture {
   }
 
   func open() throws {
-    let configuration = ModelConfiguration(
-      schema: Schema(versionedSchema: AppSchemaV5.self),
-      url: directory.appendingPathComponent("history.store"), cloudKitDatabase: .none)
+    let schema = Schema(versionedSchema: AppSchemaV5.self)
+    let configuration =
+      inMemory
+      ? ModelConfiguration(schema: schema, isStoredInMemoryOnly: true, cloudKitDatabase: .none)
+      : ModelConfiguration(
+        schema: schema, url: directory.appendingPathComponent("history.store"),
+        cloudKitDatabase: .none)
     container = try AppModelStore.open(configuration: configuration)
     context = ModelContext(container!)
     context.autosaveEnabled = false
@@ -86,8 +94,10 @@ private final class HistoryFixture {
 
 @MainActor
 final class SessionHistoryTests: XCTestCase {
-  private func withFixture(_ body: (HistoryFixture) throws -> Void) throws {
-    let fixture = try HistoryFixture()
+  private func withFixture(
+    inMemory: Bool = false, _ body: (HistoryFixture) throws -> Void
+  ) throws {
+    let fixture = try HistoryFixture(inMemory: inMemory)
     defer { fixture.cleanup() }
     try SharedData.$runtime.withValue(fixture.runtime) { try body(fixture) }
   }
@@ -138,27 +148,37 @@ final class SessionHistoryTests: XCTestCase {
   }
 
   func testS4ForegroundLoaderImportsPendingHistoryWithoutActivatingIt() throws {
-    try withFixture { fixture in
-      let completed = fixture.snapshot(end: fixture.date(hour: 9, minute: 30))
-      SharedData.completedSessionsInSchedular = [completed]
-      let blocker = HistoryBlocker()
-      let manager = StrategyManager(
-        appBlocker: blocker, systemEffect: { _ in }, readEmergencyUses: { 3 },
-        writeEmergencyUses: { _ in })
-      defer { manager.stopTimer() }
+    for paid in [true, false] {
+      try withFixture { fixture in
+        if paid {
+          SharedData.subscriptionGrants = [
+            SubscriptionGrant(
+              productID: SubscriptionProduct.monthly,
+              purchasedAt: fixture.date(hour: 8), expiresAt: fixture.date(hour: 18))
+          ]
+        }
+        XCTAssertEqual(SharedData.effectiveSubscriptionTier, paid ? .premium : .free)
+        let completed = fixture.snapshot(end: fixture.date(hour: 9, minute: 30))
+        SharedData.completedSessionsInSchedular = [completed]
+        let blocker = HistoryBlocker()
+        let manager = StrategyManager(
+          appBlocker: blocker, systemEffect: { _ in }, readEmergencyUses: { 3 },
+          writeEmergencyUses: { _ in })
+        defer { manager.stopTimer() }
 
-      manager.loadActiveSession(context: fixture.context)
-      try fixture.context.save()
-      XCTAssertTrue(SharedData.getCompletedSessionsForSchedular().isEmpty)
-      manager.loadActiveSession(context: fixture.context)
-      XCTAssertNil(manager.activeSession)
-      XCTAssertFalse(manager.activeSessionStatus.isBlocking)
-      XCTAssertEqual(blocker.blockRequests, 0)
-      try fixture.reopen()
-      let saved = try fixture.context.fetch(FetchDescriptor<BlockedProfileSession>())
-      XCTAssertEqual(saved.count, 1)
-      XCTAssertEqual(saved.first?.id, completed.id)
-      XCTAssertEqual(saved.first?.endTime, completed.endTime)
+        manager.loadActiveSession(context: fixture.context)
+        try fixture.context.save()
+        XCTAssertTrue(SharedData.getCompletedSessionsForSchedular().isEmpty)
+        manager.loadActiveSession(context: fixture.context)
+        XCTAssertNil(manager.activeSession)
+        XCTAssertFalse(manager.activeSessionStatus.isBlocking)
+        XCTAssertEqual(blocker.blockRequests, 0)
+        try fixture.reopen()
+        let saved = try fixture.context.fetch(FetchDescriptor<BlockedProfileSession>())
+        XCTAssertEqual(saved.count, 1)
+        XCTAssertEqual(saved.first?.id, completed.id)
+        XCTAssertEqual(saved.first?.endTime, completed.endTime)
+      }
     }
   }
 
@@ -242,4 +262,52 @@ final class SessionHistoryTests: XCTestCase {
       }
     }
   }
+
+  func testExpiryImportPreservesSavedBreaksAtRemovalTime() throws {
+    for openBreak in [false, true] {
+      try withFixture(inMemory: true) { fixture in
+        let active = fixture.snapshot(reason: nil)
+        fixture.importSnapshot(active)
+        try fixture.context.save()
+        let row = try XCTUnwrap(
+          BlockedProfileSession.findSession(byID: active.id, in: fixture.context))
+        let breakStart = fixture.date(hour: 9, minute: 10)
+        let breakEnd = openBreak ? nil : fixture.date(hour: 9, minute: 20)
+        let removal = fixture.date(hour: 9, minute: 40)
+        row.breakStartTime = breakStart
+        row.breakEndTime = breakEnd
+        try fixture.context.save()
+
+        // The later importer clock must not replace the snapshot's removal time.
+        XCTAssertGreaterThan(SharedData.currentDate, removal)
+        var expired = active
+        expired.endTime = removal
+        expired.endReason = "subscription_access_ended"
+        XCTAssertNil(expired.breakStartTime)
+        XCTAssertNil(expired.breakEndTime)
+        fixture.importSnapshot(expired)
+
+        @MainActor func assertSavedEnding() throws {
+          let saved = try XCTUnwrap(
+            BlockedProfileSession.findSession(byID: active.id, in: fixture.context))
+          XCTAssertEqual(saved.startTime, active.startTime)
+          XCTAssertEqual(saved.endTime, removal)
+          XCTAssertEqual(saved.endReason, "subscription_access_ended")
+          XCTAssertEqual(saved.breakStartTime, breakStart)
+          XCTAssertEqual(saved.breakEndTime, breakEnd ?? removal)
+          XCTAssertEqual(
+            try fixture.context.fetchCount(FetchDescriptor<BlockedProfileSession>()), 1)
+        }
+        try assertSavedEnding()
+        fixture.importSnapshot(expired)
+        try assertSavedEnding()
+        var late = expired
+        late.endTime = fixture.date(hour: 9, minute: 50)
+        late.endReason = "timer_expired"
+        fixture.importSnapshot(late)
+        try assertSavedEnding()
+      }
+    }
+  }
+
 }

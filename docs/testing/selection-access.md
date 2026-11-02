@@ -78,13 +78,13 @@ python3 scripts/selection-access/run_local.py --mode all \
 ```
 
 `fast` selects 44 access rule/small integration methods plus 15 Settings layout checks
-for removal of the device-sync entry (59 total). `all` selects 142 methods: those 59,
-four Apple-local StoreKit methods, and the earlier 79 regression methods.
+for removal of the device-sync entry (59 total). `all` selects 144 methods: those 59,
+four Apple-local StoreKit methods, and 81 regression methods (including the direct expiry-import check and manual card round-trip).
 The two new access methods extend I1 (unsigned grants) and I8 (scheduled breaks);
 parameter rows are not counted as extra methods.
 
 `fast` selects the rule/small integration suites and the changed Settings layout suite. `storekit` selects only Apple's local framework
-checks. `regression` adds the earlier79 methods; `all` also includes StoreKit. This is the agreed
+checks. `regression` adds the 81 regression methods; `all` also includes StoreKit. This is the agreed
 selected portfolio, not a certification of older, unreworked test classes in the repository.
 The default upgrade method runs once here; the separate two-process upgrade runner remains
 available and is not duplicated in this suite. Compilation/app launch time is reported separately
@@ -100,8 +100,12 @@ No stored SwiftData fields/schema/migration stages or upgrade fixture changed. O
 folders and customer conversations are untouched. Existing recovery fixtures explicitly grant
 paid access, so those tests still exercise recovery rather than unintentionally denying starts.
 
-The GitHub workflow is unchanged in this local implementation. New suites are compiled but must
-be explicitly selected/verified when adding this work to the CI gate. No hosted run is claimed.
+The GitHub workflow now selects all access and Settings suites: deterministic cases run first,
+then four serial StoreKit cases, followed by the two upgrade processes. Exact method IDs are
+verified from source in each stage. Four manual/scheduled locking and unlocking Maestro
+journeys run last when enabled for a manual dispatch; see [Maestro guide](maestro.md). See [CI design](../ios-ci.md). The saved 142-method evidence
+remains historical; the current portfolio has 144 unique methods /145 CI executions. No new hosted
+run is claimed by this change.
 
 Before release, separately confirm App Store Connect **3-day grace / paid-to-paid renewals**.
 Local fixtures cannot configure or certify the production App Store setting. Real-device checks

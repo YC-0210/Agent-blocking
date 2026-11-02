@@ -29,6 +29,7 @@ struct EmergencyView: View {
     VStack(alignment: .leading, spacing: 12) {
       HStack {
         Text(String(localized: "緊急解鎖"))
+          .accessibilityIdentifier("emergency.title")
           .font(.title2).bold()
 
         Spacer()
@@ -98,6 +99,7 @@ struct EmergencyView: View {
         ) {
           performEmergencyUnblock()
         }
+        .accessibilityIdentifier("emergency.confirm")
       }
       .frame(height: 56)
 

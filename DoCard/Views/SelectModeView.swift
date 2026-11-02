@@ -65,6 +65,7 @@ struct SelectModeView: View {
                 .font(.system(size: 15, weight: .medium))
                 .foregroundColor(.primary)
             }
+            .accessibilityIdentifier("profile.edit.\(profile.id.uuidString)")
           }
           .padding(.horizontal, 20)
           .padding(.vertical, 16)

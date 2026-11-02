@@ -7,7 +7,12 @@ private let smLogger = Logger(subsystem: "app.docard", category: "StrategyManage
 
 @MainActor
 class StrategyManager: ObservableObject {
-  static let shared = StrategyManager()
+  static let shared: StrategyManager = {
+    #if DEBUG && targetEnvironment(simulator)
+      if MaestroFixture.isRequested { return MaestroSessionHarness.shared.makeManager() }
+    #endif
+    return StrategyManager()
+  }()
 
   static let availableStrategies: [BlockingStrategy] = [
     NFCBlockingStrategy(),

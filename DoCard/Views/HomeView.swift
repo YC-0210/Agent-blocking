@@ -102,6 +102,7 @@ struct HomeView: View {
         )
         .tabItem {
           Label("DO", systemImage: "shield.fill")
+            .accessibilityIdentifier("tab.do")
         }
         .tag(Tab.doMain)
 
@@ -109,6 +110,7 @@ struct HomeView: View {
         ScheduleTabView()
           .tabItem {
             Label(String(localized: "排程"), systemImage: "calendar.badge.clock")
+              .accessibilityIdentifier("tab.schedule")
           }
           .tag(Tab.schedule)
 
@@ -116,6 +118,7 @@ struct HomeView: View {
         ReportView()
           .tabItem {
             Label(String(localized: "週報"), systemImage: "chart.line.uptrend.xyaxis")
+              .accessibilityIdentifier("tab.report")
           }
           .tag(Tab.report)
 
@@ -125,6 +128,7 @@ struct HomeView: View {
         })
           .tabItem {
             Label(String(localized: "設定"), systemImage: "gear")
+              .accessibilityIdentifier("tab.settings")
           }
           .tag(Tab.settings)
       }

@@ -1,46 +1,51 @@
-# iOS CI: schedule, recovery, sessions/reports and first-release upgrade
+# iOS CI: deterministic checks, StoreKit and first-release upgrade
 
-`iOS CI` uses one GitHub-hosted `macos-26` job. It selects Xcode 26.2 and creates
+`iOS CI` uses a core GitHub-hosted `macos-26` job, followed by an optional Maestro job. It selects Xcode 26.2 and creates
 a disposable iPhone 17 Pro simulator using the installed iOS 26.2 runtime.
 The runner image's installed tools can change; setup fails explicitly if the
 chosen Xcode or runtime is missing. Update these choices deliberately after verification.
 
 ## What runs
 
-1. Build the app, tests and dependent extensions once in Debug with `build-for-testing`.
-   Reuse that build with `test-without-building` for `DoCardTests/ScheduleTests`
-   (36 tests), `DoCardTests/UnlockRecoveryTests` (27 tests), `DoCardTests/SessionHistoryTests`
-   (7), `DoCardTests/SessionReportTests` (7) and `DoCardTests/SessionReportDurationTests`
-   (1 calculation method with five break rows), in one 78-method regression run.
-2. Export Xcode’s combined summary and test tree. Require 36 passing schedule tests
-   and 27 passing unlock/recovery tests, plus 7 history, 7 report and 1 report-duration test
-   in the `DoCardTests` bundle, with unique
-   identifiers, none failed or skipped, and 78 passed in the combined summary.
-   A missing suite cannot be replaced by extra tests in the other suite.
-   Missing, unreadable, or inconsistent results fail the job.
-3. Reuse the same Debug build to run `Upgrade1301Tests/testFirstReleaseSavedDataSurvivesUpdate`
-   against a fresh copy of the committed artificial 1.30.1 store. Then restart the same
-   disposable simulator without erasing data and run the method in `reopen` mode.
-   Require the exact test to pass in each phase, no skips or expected failures, successful
-   commands, correct phase markers and different process IDs. The Swift test requires the
-   first process's checkpoint and checks stable schedule IDs and the full saved data again.
-4. Build the app and dependent extensions in Release for the simulator, only after all checks pass.
-5. Publish a job summary and upload logs and available `.xcresult` bundles,
-   including when an earlier step fails. Reports expire after 7 days.
+1. Run `python3 ci/test-ios-ci.py` before Xcode in the workflow. These controlled-response
+   checks verify stage ordering, result validation and failure handling.
+2. Build the app, tests and dependent extensions once in Debug with `build-for-testing`.
+3. Reuse that build for the 139 deterministic methods: schedule36, recovery28, history8,
+   reports7, duration1, access12, entitlements2, selection rules4, enforcement1, lifecycle20,
+   scripted store4, refresh1 and Settings15. Validate exact source method identities and
+   every result before advancing.
+4. Run the four `StoreKitAccessTests` serially using the same build and local Apple StoreKit
+   environment. These are separate from the deterministic batch and never make real purchases.
+5. Reuse the Debug build to run `Upgrade1301Tests/testFirstReleaseSavedDataSurvivesUpdate`
+   against a fresh copy of the committed artificial 1.30.1 store. Restart the dedicated
+   simulator without erasing data, then run the method in `reopen` mode. Require its exact
+   ID in both phases, successful commands, correct markers and different process IDs.
+6. Build Release only after all required checks pass. Publish the summary and upload logs
+   and available `.xcresult` bundles even on failure; artifact retention is seven days.
+7. When a manual dispatch enables `run_maestro`, archive the already-built Debug app.
+   A downstream job downloads it, checks architecture and runs four locking/unlocking
+   Maestro journeys on a new simulator. It uploads JUnit, screenshots and logs on failure
+   as well as success. No new compilation or Maestro Cloud account is required.
 
-The job stops after test failure; Release is then reported as not reached.
-It has a 30-minute timeout and cancels outdated runs for the same pull request or ref.
-The exact counts are intentional: update `EXPECTED_SCHEDULE_TEST_COUNT` or
-`EXPECTED_UNLOCK_RECOVERY_TEST_COUNT`, `EXPECTED_SESSION_HISTORY_TEST_COUNT`,
-`EXPECTED_SESSION_REPORT_TEST_COUNT` or `EXPECTED_SESSION_REPORT_DURATION_TEST_COUNT`
-when adding reviewed cases to the corresponding suite.
-The script has matching local defaults. `suite-results.json` records separate
-expected/discovered/passed/failed/skipped counts and any validation errors.
-A nonzero Xcode exit status is preserved even if result files look successful.
-`upgrade-results.json` records both phases, process IDs, durations and errors. Each phase
-also retains its own log, Xcode summary, test tree and `.xcresult` bundle in a new `upgrade-*`
-directory. There are **79 unique app test methods and 80 executions**: the upgrade method
-runs twice. CI gate tests are separate from those app test counts.
+There are **144 unique app methods / 145 executions** because upgrade runs in two processes.
+The added manual-card method checks NFC start/stop, release requests and saved history.
+The additional history method directly tests closed/open break preservation during expiry import
+using an in-memory store. The existing foreground history-loader method now checks both paid
+and unpaid paths, with an explicit access precondition. The broader lifecycle tests remain.
+
+`ci/ios_test_selection.py` owns the two CI suite lists and derives expected method IDs/counts
+from their Swift source. Adding a reviewed method to a selected suite includes it automatically;
+adding a new suite requires explicitly selecting it. Do not substitute hardcoded counts for
+identity validation. Missing, unexpected, duplicate, skipped, failed or unreadable results fail
+validation, as do expected failures and nonzero Xcode command status.
+
+`deterministic-results.json` and `storekit-results.json` record per-suite expected/discovered/
+passed/failed/skipped counts and errors. Each stage retains its summary, tree, selection, log
+and result bundle. `upgrade-results.json` retains both process outcomes, with phase evidence
+under `upgrade-*`. Only this invocation's disposable simulator is deleted. One Debug build
+serves all four test commands; no default upgrade execution is included in the earlier batch.
+The job has a 30-minute timeout and cancels outdated runs for the same pull request or ref.
+These describe the configured pipeline, not a claim of a new GitHub-hosted pass.
 
 The fixed store package and expected data are hash checked against provenance before use.
 Normal CI does not build the historical app or require old-source folders. Fixture regeneration
@@ -49,9 +54,10 @@ The fixture was generated on iOS 26.3.1. Running it on hosted iOS 26.2 is a dist
 check. A failure must retain the actual error; do not rewrite store metadata or substitute empty data.
 
 The workflow uses read-only repository permissions and no Apple signing secrets.
-The action dependencies are pinned to full commit SHAs. Package resolution uses
-the committed `Package.resolved`. Build/package files stay outside the uploaded reports.
-No cache or parallel test matrix is introduced. One job runs all required checks.
+The action dependencies are pinned to full commit SHAs. The existing build uses `-onlyUsePackageVersionsFromResolvedFile`; this checkout
+has no Swift package dependency lockfile after the removed SDK dependency. Build/package files stay outside the uploaded reports.
+No cache or parallel test matrix is introduced. One core job runs all required XCTest/upgrade/Release checks; the optional Maestro
+job runs after it succeeds. The core required-check name is unchanged.
 
 ## Triggers
 
@@ -86,6 +92,20 @@ CI_SIMULATOR_RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-26-3 \
 Runtime overrides are for local diagnosis; GitHub's workflow pins iOS 26.2.
 `CI_RESULTS_DIR` and `CI_BUILD_DIR` may be overridden to keep separate run outputs.
 
+## Run the complete combined pipeline locally
+
+```sh
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  bash ci/run-test-pipeline.sh --maestro
+```
+
+Put Java 17 and pinned Maestro 2.10.0 on PATH first. The complete runner runs gate
+checks, the core shell runner, the app archive/unpack step, and the four UI journeys.
+It uses a new results directory and writes `pipeline-passed` only when every requested
+stage passed. `CI_RESULTS_DIR` and `CI_BUILD_DIR` can select separate output/build paths.
+The default `--core-only` mode omits the optional UI stage. The four journeys and mock
+boundaries are documented in [the Maestro guide](testing/maestro.md).
+
 ## Limits
 
 The schedule checks use fixed dates and an explicit Taipei calendar. The existing
@@ -104,9 +124,11 @@ paths. The upgrade check covers the artificial source-generated old store throug
 production opener and a new test process; it does not certify every original user store.
 Actual shields, NFC radio reads, cross-process background delivery, phone reboot, App Store
 installation, real app-selection tokens, timer ticks and indefinite card-ended lifetime
-across midnight still require other checks. Section D and subscription policy changes remain excluded.
-Session/report checks use signed isolated settings, file-backed history stores that are reopened
-within one process, real in-memory report queries, and five small break-calculation inputs. P5/P6
+across midnight still require other checks. Paid-only access policy now has selected local checks;
+production grace configuration remains a separate release requirement.
+Session/report checks use signed isolated settings, file-backed history stores reopened within
+one process, one direct in-memory expiry-import regression, real report queries, and five small
+break-calculation inputs. P5/P6
 overlap cases and advanced report cards are excluded. See [the testing overview](testing/overview.html)
 and [the local session/report evidence](testing/evidence/DOCard-sessions-reports-results.md).
 See ADR-0004 for dependencies, ADR-0005 for upgrade evidence and ADR-0006 for history/report rules. Extend the reviewed suites as each
@@ -120,10 +142,10 @@ python3 ci/test-ios-ci.py
 ```
 
 These checks run the actual CI shell script with controlled Xcode/simulator responses.
-They verify all five selected regression suites, per-suite reporting, missing/duplicate/skipped/failed
+They verify all selected deterministic and StoreKit suites, per-suite reporting, missing/wrong-ID/duplicate/skipped/failed
 tests, unreadable results, preservation of command failures, Release gating, and removal
 of stale success markers. They also require both upgrade phases, a new process, the exact
-upgrade method, one Debug build reused by all test runs, and cleanup of only the owned
+upgrade method, deterministic failure stopping before StoreKit, one Debug build reused by all test runs, and cleanup of only the owned
 simulator without erasing data. They do not replace a real local or GitHub-hosted Xcode run.
 
 ## References
@@ -131,3 +153,26 @@ simulator without erasing data. They do not replace a real local or GitHub-hoste
 - [GitHub macOS 26 runner image](https://github.com/actions/runner-images/blob/main/images/macos/macos-26-arm64-Readme.md)
 - [Workflow triggers](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)
 - [Concurrency controls](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency)
+
+## Combined local validation — 2026-11-02
+
+A fresh build and a complete `ci/run-test-pipeline.sh --maestro` run passed:
+139 deterministic methods, four serial Apple-local StoreKit methods, upgrade migration
+and reopen in distinct processes (69805 and 70105), Release compilation, artifact
+archive/unpack, and all four Maestro locking journeys. This is 144 unique XCTest
+methods /145 executions, followed by four UI journeys. No Xcode methods were skipped.
+The wrapper wrote its `pipeline-passed` marker with mode `--maestro` only after the
+final UI result gate passed. The core summary and final UI outcome are reported separately.
+
+The run also passed 22 existing controlled-response CI gate checks and ten Maestro
+result-gate checks. Three isolated orchestration probes confirmed core failure stops
+before packaging/UI, UI failure cannot produce whole-pipeline success, and reused
+results directories are refused. These probes control dependencies; they are not
+physical-device tests. The packaged Debug app matched its build products byte for
+byte, and the Release binary excludes the simulator harness controls/clock/type.
+
+The requested remote audit branch was absent. Integration used the nine uncommitted
+files in the existing local `codex/test-pipeline-audit-fixes` worktree and the 32-file
+local Maestro implementation. Both input worktrees remain unchanged. The combined
+result is a separate local `codex/combined-test-pipeline` checkout. No GitHub push,
+workflow dispatch, backend or physical-device change was made.

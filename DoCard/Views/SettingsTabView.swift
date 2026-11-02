@@ -502,6 +502,7 @@ struct SettingsTabView: View {
           .foregroundStyle(.secondary)
       }
     }
+    .accessibilityIdentifier("settings.emergency")
   }
 
   @ViewBuilder

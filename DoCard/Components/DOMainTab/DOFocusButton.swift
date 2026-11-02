@@ -80,6 +80,7 @@ struct DOFocusButton: View {
     .scaleEffect(isPressed ? 0.97 : 1.0)
     .animation(.spring(response: 0.3), value: isPressed)
     .contentShape(Capsule())
+    .accessibilityIdentifier(isBlocking ? "focus.stop" : "focus.start")
 
     if useLongPress {
       pillContent

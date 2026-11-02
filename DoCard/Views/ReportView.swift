@@ -82,6 +82,7 @@ struct ReportView: View {
                         value: "\(viewModel.sessionCount)",
                         icon: "flame.fill"
                     )
+                    .accessibilityIdentifier("report.session-count")
                     statCard(
                         title: String(localized: "平均專注"),
                         subtitle: String(localized: "（本週每次專注的平均時間）"),
@@ -166,6 +167,7 @@ struct ReportView: View {
             }
 
             Text(formatDuration(viewModel.totalBlockDuration))
+                .accessibilityIdentifier("report.total-duration")
                 .font(.system(size: 40, weight: .bold, design: .rounded))
                 .foregroundStyle(.primary)
         }

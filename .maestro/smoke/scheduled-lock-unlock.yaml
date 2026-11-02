@@ -1,0 +1,37 @@
+appId: online.do.card.app
+name: scheduled-lock-unlock
+---
+- runFlow: ../helpers/scheduled-start.yaml
+- tapOn:
+    id: journey.clock.60
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: focus.start
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · off"
+- assertVisible:
+    id: journey.history
+    text: "saved=1;reason=timer_expired;source=scheduled;audits=0"
+- launchApp:
+    arguments:
+      docardUITestScenario: scheduled
+      docardUITestReset: "false"
+      AppleLanguages: "(zh-Hant)"
+      AppleLocale: zh_TW
+- assertVisible:
+    id: focus.start
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: focus.start
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · off"
+- assertVisible:
+    id: journey.history
+    text: "saved=1;reason=timer_expired;source=scheduled;audits=0"
+- takeScreenshot: scheduled-complete

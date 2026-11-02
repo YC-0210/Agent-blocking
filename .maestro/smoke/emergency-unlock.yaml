@@ -1,0 +1,73 @@
+appId: online.do.card.app
+name: emergency-unlock
+---
+- runFlow: ../helpers/scheduled-start.yaml
+- tapOn:
+    id: tab.settings
+- scrollUntilVisible:
+    element:
+      id: settings.emergency
+    direction: DOWN
+- tapOn:
+    id: settings.emergency
+- assertVisible:
+    id: emergency.title
+    text: "緊急解鎖"
+- tapOn:
+    id: break-glass.overlay
+    repeat: 3
+    delay: 400
+- extendedWaitUntil:
+    notVisible:
+      id: break-glass.overlay
+    timeout: 5000
+- tapOn:
+    id: emergency.confirm
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · off"
+- assertVisible:
+    id: journey.history
+    text: "saved=1;reason=emergency_unlock;source=scheduled;audits=1"
+- assertVisible:
+    id: journey.safety
+    text: "quota=2;reblocks=0"
+- tapOn:
+    id: tab.do
+- assertVisible:
+    id: focus.start
+- tapOn:
+    id: journey.clock.15
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · off"
+- assertVisible:
+    id: journey.safety
+    text: "quota=2;reblocks=0"
+- launchApp:
+    arguments:
+      docardUITestScenario: scheduled
+      docardUITestReset: "false"
+      AppleLanguages: "(zh-Hant)"
+      AppleLocale: zh_TW
+- assertVisible:
+    id: focus.start
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · off"
+- assertVisible:
+    id: journey.history
+    text: "saved=1;reason=emergency_unlock;source=scheduled;audits=1"
+- assertVisible:
+    id: journey.safety
+    text: "quota=2;reblocks=0"
+- takeScreenshot: emergency-complete

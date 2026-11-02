@@ -364,6 +364,7 @@ struct BlockedProfileView: View {
         .foregroundColor(.secondary)
       Spacer()
       TextField(String(localized: "模式名稱"), text: $name)
+        .accessibilityIdentifier("profile.name")
         .textContentType(.none)
         .multilineTextAlignment(.trailing)
         .onSubmit {
@@ -550,6 +551,7 @@ struct BlockedProfileView: View {
             .fill(name.isEmpty || isBlocking ? Color.gray.opacity(0.5) : themeManager.themeColor)
         )
     }
+    .accessibilityIdentifier("profile.save")
     .disabled(name.isEmpty || isBlocking)
     .padding(.horizontal, 16)
   }

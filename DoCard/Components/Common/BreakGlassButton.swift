@@ -80,6 +80,7 @@ struct BreakGlassButton<Content: View>: View {
               }
           )
           .allowsHitTesting(true)
+          .accessibilityIdentifier("break-glass.overlay")
         }
         .clipShape(RoundedRectangle(cornerRadius: 16))
       }

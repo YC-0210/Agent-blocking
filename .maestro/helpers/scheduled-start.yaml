@@ -1,0 +1,35 @@
+appId: online.do.card.app
+---
+- launchApp:
+    arguments:
+      docardUITestScenario: scheduled
+      docardUITestReset: "true"
+      AppleLanguages: "(zh-Hant)"
+      AppleLocale: zh_TW
+- assertVisible:
+    id: journey.state
+    text: "idle"
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · off"
+- tapOn:
+    id: tab.schedule
+- tapOn:
+    id: schedule.card.*
+- scrollUntilVisible:
+    element:
+      id: schedule.save
+    direction: DOWN
+- tapOn:
+    id: schedule.save
+- tapOn:
+    id: tab.do
+- tapOn:
+    id: journey.clock.0
+- assertVisible:
+    id: journey.state
+    text: "active"
+- assertVisible:
+    id: journey.shield
+    text: "Simulated hardware · on"
+- assertVisible: 排程鎖定中
