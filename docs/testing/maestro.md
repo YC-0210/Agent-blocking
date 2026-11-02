@@ -59,10 +59,14 @@ python3 ci/run-maestro.py \
 ```
 
 Each run requires a new results directory. The runner creates and deletes only its
-own simulator. A ten-minute timeout bounds the Maestro process group. A success
+own simulator. The Maestro process group has a ten-minute default budget; self-hosted
+CI supplies a fifteen-minute budget for its measured slower status-bar snapshots.
+`MAESTRO_SUITE_TIMEOUT_SECONDS` accepts only an integer from 1 to 900. A success
 requires CLI exit zero and exactly the four expected JUnit SUCCESS cases. Missing,
 duplicate, failed, warning, skipped or old flow names cannot pass. No test retries
 hide a failure. Reports, screenshots, command records and logs are retained.
+`python3 ci/test-maestro-runner.py` checks the command boundary: even a complete passing
+report cannot override a timed-out command, and invalid budgets fail before device work.
 
 ## Pipeline
 

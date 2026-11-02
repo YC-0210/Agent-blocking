@@ -147,3 +147,15 @@ Remove the Maestro upload path's trailing slash so a preflight failure with an u
 variable cannot turn the upload target into the filesystem root. A verification run
 was stopped before the UI stage while this error path was corrected. No root-directory
 artifact upload was executed. Workflow lint passes; final workflow execution is pending.
+
+Native authorization subsequently enabled developer-tools mode and added docardci to
+_developer without administrator membership. The next probe still had slow status-bar
+snapshots despite the readiness checks passing. Stop treating this prerequisite as a
+proven latency fix. The measured first full UI run had valid progress and three passing
+journeys before the outer ten-minute cap interrupted the final journey. Give only the
+optional self-hosted UI command a bounded fifteen-minute budget (25 minutes including
+job setup); retain the hosted/local ten-minute default and every assertion/result gate.
+Add three controlled-command tests, including a real one-second timeout after a passing
+JUnit report, proving that the command failure still prevents a success marker and that
+only the owned simulator is cleaned. Invalid or unbounded budgets are rejected before
+device commands. Full final execution remains the acceptance proof.

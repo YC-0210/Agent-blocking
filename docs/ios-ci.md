@@ -95,6 +95,14 @@ same user. Core checks remain available without this optional UI prerequisite.
 Passing these readiness checks does not establish that all UI journeys pass; retain
 the measured workflow result. No CI job silently grants itself these permissions.
 
+The optional self-hosted Maestro command has a bounded 900-second suite budget and a
+25-minute job limit, including setup and artifact transfer. Hosted execution keeps its
+600-second suite /20-minute job limits; standalone local execution defaults to 600
+seconds. `MAESTRO_SUITE_TIMEOUT_SECONDS` can select 1–900 seconds. The longer self-hosted
+outer budget reflects measured tool latency in the dedicated account. Individual flow
+assertions, required identities, failure behavior and the no-retry policy are unchanged.
+No speed improvement from the account or permission setup is assumed.
+
 Only same-repository pull requests whose author association is OWNER, MEMBER, or
 COLLABORATOR can execute the core job. Fork pull requests are skipped. Repository write
 access remains a trust boundary: a writer who can modify a workflow can change its guards.

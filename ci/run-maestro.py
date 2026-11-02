@@ -38,6 +38,12 @@ def main():
     parser.add_argument("--results", type=Path, required=True,
                         help="New results directory; reuse is rejected to prevent stale passes")
     args = parser.parse_args()
+    try:
+        suite_timeout = int(os.environ.get("MAESTRO_SUITE_TIMEOUT_SECONDS", "600"))
+    except ValueError:
+        raise ValueError("MAESTRO_SUITE_TIMEOUT_SECONDS must be an integer from 1 to 900") from None
+    if not 1 <= suite_timeout <= 900:
+        raise ValueError("MAESTRO_SUITE_TIMEOUT_SECONDS must be an integer from 1 to 900")
     app = args.app.resolve()
     results = args.results.resolve()
     results.mkdir(parents=True, exist_ok=False)
@@ -53,7 +59,7 @@ def main():
         version = subprocess.check_output(["maestro", "--version"], text=True, timeout=60).strip()
         if version != "2.10.0":
             raise ValueError(f"Expected Maestro 2.10.0, got {version!r}")
-        log.write_text(log.read_text() + f"\nMaestro: {version}\nRuntime: {runtime}\n")
+        log.write_text(log.read_text() + f"\nMaestro: {version}\nRuntime: {runtime}\nSuite command budget: {suite_timeout}s\n")
         runtimes = json.loads(subprocess.check_output(
             ["xcrun", "simctl", "list", "runtimes", "--json"], timeout=30))
         if not any(r["identifier"] == runtime and r.get("isAvailable") for r in runtimes["runtimes"]):
@@ -73,7 +79,7 @@ def main():
         try:
             run(["maestro", "--device", simulator, "test", "--format", "junit",
                  "--output", results / "report.xml", "--test-output-dir", results / "artifacts",
-                 "--debug-output", results / "debug", ROOT / ".maestro/smoke"], log, timeout=600)
+                 "--debug-output", results / "debug", ROOT / ".maestro/smoke"], log, timeout=suite_timeout)
         except (RuntimeError, subprocess.TimeoutExpired) as error:
             log.write_text(log.read_text() + f"\n{error}\n")
             status = 1
