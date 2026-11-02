@@ -158,6 +158,12 @@ class BlockedProfiles {
     physicalUnblockNFCTagIds: [String]? = nil,
     schedules: [BlockedProfileSchedule]? = nil
   ) throws -> BlockedProfiles {
+    guard SelectionRules.canSave(appCount: (selection ?? profile.selectedActivity).applicationTokens.count,
+      hasAccess: SharedData.effectiveSubscriptionTier == .premium) else {
+      throw NSError(domain: "SubscriptionAccess", code: 1,
+        userInfo: [NSLocalizedDescriptionKey: String(localized: "An active subscription and a selection of at most 50 apps are required.")])
+    }
+
     if let newName = name {
       profile.name = newName
     }
@@ -328,6 +334,12 @@ class BlockedProfiles {
     physicalUnblockNFCTagIds: [String]? = nil,
     schedules: [BlockedProfileSchedule] = []
   ) throws -> BlockedProfiles {
+    guard SelectionRules.canSave(appCount: selection.applicationTokens.count,
+      hasAccess: SharedData.effectiveSubscriptionTier == .premium) else {
+      throw NSError(domain: "SubscriptionAccess", code: 1,
+        userInfo: [NSLocalizedDescriptionKey: String(localized: "An active subscription and a selection of at most 50 apps are required.")])
+    }
+
     let profileOrder = getNextOrder(in: context)
 
     let profile = BlockedProfiles(
@@ -365,6 +377,12 @@ class BlockedProfiles {
     in context: ModelContext,
     newName: String
   ) throws -> BlockedProfiles {
+    guard SelectionRules.canSave(appCount: source.selectedActivity.applicationTokens.count,
+      hasAccess: SharedData.effectiveSubscriptionTier == .premium) else {
+      throw NSError(domain: "SubscriptionAccess", code: 1,
+        userInfo: [NSLocalizedDescriptionKey: String(localized: "An active subscription and a selection of at most 50 apps are required.")])
+    }
+
     let nextOrder = getNextOrder(in: context)
     let cloned = BlockedProfiles(
       name: newName,

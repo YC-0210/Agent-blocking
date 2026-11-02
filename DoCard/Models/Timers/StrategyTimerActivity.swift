@@ -58,12 +58,6 @@ class StrategyTimerActivity: TimerActivity {
     // End the active strategy session
     SharedData.endActiveStrategySharedSession()
 
-    // Per-session timer expired in the background. The main app's
-    // MacSessionSyncService.endSession() never fires for this path because we
-    // don't go through onSessionCreation(.ended). Tell paired Mac directly so
-    // it doesn't stay blocked forever. PATCH failure is queued for retry by
-    // the main app on next foreground.
-    MacExtensionSyncWriter.notifySessionEnded()
 
     if let scheduledProfile = SharedData.currentScheduledProfileSnapshot() {
       log.info(
@@ -72,9 +66,6 @@ class StrategyTimerActivity: TimerActivity {
       SharedData.createSessionForSchedular(for: scheduledProfile.id)
       appBlocker.activateRestrictions(for: scheduledProfile)
 
-      // Schedule resumed (e.g., card-tap window's timer expired and the
-      // underlying schedule is back in effect). Mac should re-block.
-      MacExtensionSyncWriter.notifySessionStarted()
     }
   }
 }

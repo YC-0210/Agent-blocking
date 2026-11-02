@@ -1,0 +1,818 @@
+{
+  "recordedDate": "2026-11-02",
+  "timezone": "Asia/Taipei",
+  "testedBase": "dbc9c3f75c1b520b466c2836c41411f19ea514d6",
+  "scope": "local verification before publication",
+  "finalTests": {
+    "passed": true,
+    "mode": "all",
+    "simulator": "3CFC3FB7-13E2-4324-9147-D9AFF307244A",
+    "expectedCount": 142,
+    "executedCount": 142,
+    "wallSeconds": 75.524,
+    "testBodySeconds": 5.9581,
+    "missing": [],
+    "unexpected": [],
+    "cases": [
+      {
+        "id": "EntitlementsTests/testB1PaidCapabilitiesRemainAvailable()",
+        "result": "Passed",
+        "seconds": 0.0017780065536499023
+      },
+      {
+        "id": "EntitlementsTests/testB1UnpaidCapabilitiesAreAllDisabled()",
+        "result": "Passed",
+        "seconds": 0.0009599924087524414
+      },
+      {
+        "id": "ScheduleTests/testA10MorningBeforeSelectedStartDay()",
+        "result": "Passed",
+        "seconds": 0.001219034194946289
+      },
+      {
+        "id": "ScheduleTests/testA11UnselectedEvening()",
+        "result": "Passed",
+        "seconds": 0.001175999641418457
+      },
+      {
+        "id": "ScheduleTests/testA12FollowingWeek()",
+        "result": "Passed",
+        "seconds": 0.0009139776229858398
+      },
+      {
+        "id": "ScheduleTests/testA1BeforeOvernightStart()",
+        "result": "Passed",
+        "seconds": 0.0009549856185913086
+      },
+      {
+        "id": "ScheduleTests/testA2ExactOvernightStart()",
+        "result": "Passed",
+        "seconds": 0.0008380413055419922
+      },
+      {
+        "id": "ScheduleTests/testA3BeforeMidnight()",
+        "result": "Passed",
+        "seconds": 0.0008169412612915039
+      },
+      {
+        "id": "ScheduleTests/testA4LastSecondBeforeMidnight()",
+        "result": "Passed",
+        "seconds": 0.0007690191268920898
+      },
+      {
+        "id": "ScheduleTests/testA5OvernightWindowIncludesTuesdayMidnight()",
+        "result": "Passed",
+        "seconds": 0.0009340047836303711
+      },
+      {
+        "id": "ScheduleTests/testA6FollowingMorning()",
+        "result": "Passed",
+        "seconds": 0.06014895439147949
+      },
+      {
+        "id": "ScheduleTests/testA7LastSecondBeforeOvernightEnd()",
+        "result": "Passed",
+        "seconds": 0.0008820295333862305
+      },
+      {
+        "id": "ScheduleTests/testA8ExactOvernightEnd()",
+        "result": "Passed",
+        "seconds": 0.0008319616317749023
+      },
+      {
+        "id": "ScheduleTests/testA9AfterOvernightEnd()",
+        "result": "Passed",
+        "seconds": 0.0008020401000976562
+      },
+      {
+        "id": "ScheduleTests/testB1BeforeSameDayStart()",
+        "result": "Passed",
+        "seconds": 0.001011967658996582
+      },
+      {
+        "id": "ScheduleTests/testB2ExactSameDayStart()",
+        "result": "Passed",
+        "seconds": 0.0009229183197021484
+      },
+      {
+        "id": "ScheduleTests/testB3InsideSameDayWindow()",
+        "result": "Passed",
+        "seconds": 0.000800013542175293
+      },
+      {
+        "id": "ScheduleTests/testB4LastSecondBeforeSameDayEnd()",
+        "result": "Passed",
+        "seconds": 0.0009490251541137695
+      },
+      {
+        "id": "ScheduleTests/testB5ExactSameDayEnd()",
+        "result": "Passed",
+        "seconds": 0.0008199214935302734
+      },
+      {
+        "id": "ScheduleTests/testB6SameTimeOnUnselectedDay()",
+        "result": "Passed",
+        "seconds": 0.0008330345153808594
+      },
+      {
+        "id": "ScheduleTests/testC1SaturdayToSunday()",
+        "result": "Passed",
+        "seconds": 0.0008219480514526367
+      },
+      {
+        "id": "ScheduleTests/testC2SaturdayToSundayEnd()",
+        "result": "Passed",
+        "seconds": 0.0010470151901245117
+      },
+      {
+        "id": "ScheduleTests/testC3MultipleSelectedDays()",
+        "result": "Passed",
+        "seconds": 0.009747028350830078
+      },
+      {
+        "id": "ScheduleTests/testC4GapBetweenSelectedDays()",
+        "result": "Passed",
+        "seconds": 0.0011229515075683594
+      },
+      {
+        "id": "ScheduleTests/testC5NoSelectedDays()",
+        "result": "Passed",
+        "seconds": 0.0009759664535522461
+      },
+      {
+        "id": "ScheduleTests/testC6EndAtMidnight()",
+        "result": "Passed",
+        "seconds": 0.0009319782257080078
+      },
+      {
+        "id": "ScheduleTests/testC7StartAtMidnight()",
+        "result": "Passed",
+        "seconds": 0.0010120868682861328
+      },
+      {
+        "id": "ScheduleTests/testCardTapEndPreservesExemptionFromTimeValidation()",
+        "result": "Passed",
+        "seconds": 0.0008289813995361328
+      },
+      {
+        "id": "ScheduleTests/testFullDayAfterEnd()",
+        "result": "Passed",
+        "seconds": 0.0009870529174804688
+      },
+      {
+        "id": "ScheduleTests/testFullDayBeforeStart()",
+        "result": "Passed",
+        "seconds": 0.0008440017700195312
+      },
+      {
+        "id": "ScheduleTests/testFullDayExactEnd()",
+        "result": "Passed",
+        "seconds": 0.0009020566940307617
+      },
+      {
+        "id": "ScheduleTests/testFullDayExactStart()",
+        "result": "Passed",
+        "seconds": 0.0011599063873291016
+      },
+      {
+        "id": "ScheduleTests/testFullDayLastSecond()",
+        "result": "Passed",
+        "seconds": 0.0008480548858642578
+      },
+      {
+        "id": "ScheduleTests/testFullDayMidnight()",
+        "result": "Passed",
+        "seconds": 0.0008929967880249023
+      },
+      {
+        "id": "ScheduleTests/testNextDayEqualTimesAreAcceptedAs24Hours()",
+        "result": "Passed",
+        "seconds": 0.0008680820465087891
+      },
+      {
+        "id": "ScheduleTests/testNextDayLaterEndPreservesExistingMismatchValidation()",
+        "result": "Passed",
+        "seconds": 0.0008149147033691406
+      },
+      {
+        "id": "ScheduleTests/testSameDayEarlierEndIsRejected()",
+        "result": "Passed",
+        "seconds": 0.007744908332824707
+      },
+      {
+        "id": "ScheduleTests/testSameDayEqualTimesAreRejected()",
+        "result": "Passed",
+        "seconds": 0.0008161067962646484
+      },
+      {
+        "id": "SelectionEnforcementTests/testB5UnpaidAllowModeCannotActivate()",
+        "result": "Passed",
+        "seconds": 0.01716601848602295
+      },
+      {
+        "id": "SelectionRulesTests/testB3AppCountBoundariesWithoutOldThreeAppLimit()",
+        "result": "Passed",
+        "seconds": 0.0009059906005859375
+      },
+      {
+        "id": "SelectionRulesTests/testB4SelectionIsPreservedAndWebsitesDoNotUseAppSlots()",
+        "result": "Passed",
+        "seconds": 0.0008790493011474609
+      },
+      {
+        "id": "SelectionRulesTests/testB5AllowOnlyModeCannotBypassSubscription()",
+        "result": "Passed",
+        "seconds": 0.0007870197296142578
+      },
+      {
+        "id": "SelectionRulesTests/testB6NewPlanDropsOldSelectionAndDisabledBrowserTokens()",
+        "result": "Passed",
+        "seconds": 0.001037001609802246
+      },
+      {
+        "id": "SessionHistoryTests/testS1RepeatedImportSavesOneSessionAfterReopen()",
+        "result": "Passed",
+        "seconds": 0.08320999145507812
+      },
+      {
+        "id": "SessionHistoryTests/testS2DistinctImportsKeepTheirProfilesAfterReopen()",
+        "result": "Passed",
+        "seconds": 0.03139698505401611
+      },
+      {
+        "id": "SessionHistoryTests/testS3CompletionUpdatesTheActiveRecord()",
+        "result": "Passed",
+        "seconds": 0.03148090839385986
+      },
+      {
+        "id": "SessionHistoryTests/testS4ForegroundLoaderImportsPendingHistoryWithoutActivatingIt()",
+        "result": "Passed",
+        "seconds": 0.04918098449707031
+      },
+      {
+        "id": "SessionHistoryTests/testS6StaleStartCannotInflateSavedDuration()",
+        "result": "Passed",
+        "seconds": 0.03205299377441406
+      },
+      {
+        "id": "SessionHistoryTests/testS7LateTimerCannotExtendEmergencyEndedHistory()",
+        "result": "Passed",
+        "seconds": 0.0316929817199707
+      },
+      {
+        "id": "SessionHistoryTests/testS8OldActiveSnapshotCannotReopenCompletedHistory()",
+        "result": "Passed",
+        "seconds": 0.03321695327758789
+      },
+      {
+        "id": "SessionReportDurationTests/testP4DeductsOnlyBreakTimeInsideSession()",
+        "result": "Passed",
+        "seconds": 0.001322031021118164
+      },
+      {
+        "id": "SessionReportTests/testP1EmptyHistoryShowsZeroAndNoRanking()",
+        "result": "Passed",
+        "seconds": 0.0187910795211792
+      },
+      {
+        "id": "SessionReportTests/testP2ReloadKeepsTotalCountAndAverageStable()",
+        "result": "Passed",
+        "seconds": 0.017609000205993652
+      },
+      {
+        "id": "SessionReportTests/testP3ActiveSessionIsExcludedFromCompletedReport()",
+        "result": "Passed",
+        "seconds": 0.01368105411529541
+      },
+      {
+        "id": "SessionReportTests/testP4ReportsSubtractTheSavedBreak()",
+        "result": "Passed",
+        "seconds": 0.012387990951538086
+      },
+      {
+        "id": "SessionReportTests/testP7ExactMondayStartBelongsToTheNewWeek()",
+        "result": "Passed",
+        "seconds": 0.012195944786071777
+      },
+      {
+        "id": "SessionReportTests/testP7WholeSessionBelongsToItsStartingWeek()",
+        "result": "Passed",
+        "seconds": 0.011759042739868164
+      },
+      {
+        "id": "SessionReportTests/testP8GroupsSessionsAndRanksTheTopThreeProfiles()",
+        "result": "Passed",
+        "seconds": 0.01869797706604004
+      },
+      {
+        "id": "SettingsLayoutTests/testAboutRows()",
+        "result": "Passed",
+        "seconds": 0.0011730194091796875
+      },
+      {
+        "id": "SettingsLayoutTests/testAccountRows()",
+        "result": "Passed",
+        "seconds": 0.0009740591049194336
+      },
+      {
+        "id": "SettingsLayoutTests/testCardPairedDoesNotAffectOtherCategories()",
+        "result": "Passed",
+        "seconds": 0.0009510517120361328
+      },
+      {
+        "id": "SettingsLayoutTests/testCardRowsHideRenameUntilPaired()",
+        "result": "Passed",
+        "seconds": 0.0010319948196411133
+      },
+      {
+        "id": "SettingsLayoutTests/testCardRowsShowRenameWhenPaired()",
+        "result": "Passed",
+        "seconds": 0.0008300542831420898
+      },
+      {
+        "id": "SettingsLayoutTests/testCenterpieceOnlyAffectsPersonalization()",
+        "result": "Passed",
+        "seconds": 0.0008749961853027344
+      },
+      {
+        "id": "SettingsLayoutTests/testDebugRows()",
+        "result": "Passed",
+        "seconds": 0.0008959770202636719
+      },
+      {
+        "id": "SettingsLayoutTests/testEmergencyRowOnlyWhenBlocking()",
+        "result": "Passed",
+        "seconds": 0.0008189678192138672
+      },
+      {
+        "id": "SettingsLayoutTests/testLandingCategoriesAppendDebugLast()",
+        "result": "Passed",
+        "seconds": 0.0011419057846069336
+      },
+      {
+        "id": "SettingsLayoutTests/testLandingCategoriesDefault()",
+        "result": "Passed",
+        "seconds": 0.0008490085601806641
+      },
+      {
+        "id": "SettingsLayoutTests/testNotificationsRows()",
+        "result": "Passed",
+        "seconds": 0.0009330511093139648
+      },
+      {
+        "id": "SettingsLayoutTests/testPersonalizationHidesGalleryRowForCardCenterpiece()",
+        "result": "Passed",
+        "seconds": 0.0008959770202636719
+      },
+      {
+        "id": "SettingsLayoutTests/testPersonalizationHidesGalleryRowForTasksCenterpiece()",
+        "result": "Passed",
+        "seconds": 0.0008929967880249023
+      },
+      {
+        "id": "SettingsLayoutTests/testPersonalizationRows()",
+        "result": "Passed",
+        "seconds": 0.0009270906448364258
+      },
+      {
+        "id": "SettingsLayoutTests/testPersonalizationShowsGalleryRowOnlyWhenGallerySelected()",
+        "result": "Passed",
+        "seconds": 0.0011780261993408203
+      },
+      {
+        "id": "StoreKitAccessTests/testA4LocalStoreKitCancellationKeepsPaidAccess()",
+        "result": "Passed",
+        "seconds": 0.284527063369751
+      },
+      {
+        "id": "StoreKitAccessTests/testI7LocalStoreKitPurchaseThroughProductionAdapter()",
+        "result": "Passed",
+        "seconds": 1.287099003791809
+      },
+      {
+        "id": "StoreKitAccessTests/testI7LocalStoreKitRefundRemovesAccess()",
+        "result": "Passed",
+        "seconds": 0.6579949855804443
+      },
+      {
+        "id": "StoreKitAccessTests/testI7LocalStoreKitRestoreAfterSharedStateIsLost()",
+        "result": "Passed",
+        "seconds": 0.4177330732345581
+      },
+      {
+        "id": "SubscriptionAccessTests/testA10RenewalWinsRegardlessOfArrayOrder()",
+        "result": "Passed",
+        "seconds": 0.0012379884719848633
+      },
+      {
+        "id": "SubscriptionAccessTests/testA1NoPurchaseDoesNotGrantAccess()",
+        "result": "Passed",
+        "seconds": 0.0008320808410644531
+      },
+      {
+        "id": "SubscriptionAccessTests/testA2MonthlyAndAnnualHaveAccess()",
+        "result": "Passed",
+        "seconds": 0.0009609460830688477
+      },
+      {
+        "id": "SubscriptionAccessTests/testA3TrialAndRedeemedFreeOfferHaveAccessUntilTheirEnd()",
+        "result": "Passed",
+        "seconds": 0.0009160041809082031
+      },
+      {
+        "id": "SubscriptionAccessTests/testA5ExactExpirationBoundary()",
+        "result": "Passed",
+        "seconds": 0.001031041145324707
+      },
+      {
+        "id": "SubscriptionAccessTests/testA5ExpiredSavedPremiumDoesNotGrantAccess()",
+        "result": "Passed",
+        "seconds": 0.008898019790649414
+      },
+      {
+        "id": "SubscriptionAccessTests/testA6OnlyVerifiedPaidGraceExtendsAccess()",
+        "result": "Passed",
+        "seconds": 0.0011370182037353516
+      },
+      {
+        "id": "SubscriptionAccessTests/testA7ExpiredFreePeriodCannotReceiveGrace()",
+        "result": "Passed",
+        "seconds": 0.0011420249938964844
+      },
+      {
+        "id": "SubscriptionAccessTests/testA7NoInventedGrace()",
+        "result": "Passed",
+        "seconds": 0.0068160295486450195
+      },
+      {
+        "id": "SubscriptionAccessTests/testA8OfflineDecisionUsesSavedEndIncludingConfirmedGrace()",
+        "result": "Passed",
+        "seconds": 0.001098036766052246
+      },
+      {
+        "id": "SubscriptionAccessTests/testA9InvalidUnrelatedRevokedAndFuturePurchasesGrantNothing()",
+        "result": "Passed",
+        "seconds": 0.0011110305786132812
+      },
+      {
+        "id": "SubscriptionAccessTests/testB2UnpaidRecoveryAndBillingActionsRemainAvailable()",
+        "result": "Passed",
+        "seconds": 0.0010499954223632812
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testA5ExpiryMonitorCoversTheDayAndPreservesDeadlineTimezone()",
+        "result": "Passed",
+        "seconds": 0.009435057640075684
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testB6ProductionWriterReceivesChangedModeAndExpiryClear()",
+        "result": "Passed",
+        "seconds": 0.033795952796936035
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI1CorruptSnapshotDoesNotFallBackToPremiumFlag()",
+        "result": "Passed",
+        "seconds": 0.019404053688049316
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI1NewSharedReaderSeesTheSameVerifiedDeadline()",
+        "result": "Passed",
+        "seconds": 0.01571202278137207
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI1UnsignedGrantIsRejectedWithoutLegacyFallback()",
+        "result": "Passed",
+        "seconds": 0.017269015312194824
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI2UnpaidAppStartCreatesNoSession()",
+        "result": "Passed",
+        "seconds": 0.01421201229095459
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI2UnpaidBackgroundStartCreatesNoSession()",
+        "result": "Passed",
+        "seconds": 0.014526963233947754
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI2UnpaidDeepLinkAndDirectNFCStartCreateNoSession()",
+        "result": "Passed",
+        "seconds": 0.016795039176940918
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI2UnpaidScheduleCreatesNoSession()",
+        "result": "Passed",
+        "seconds": 0.013782978057861328
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI3NFCCompletionAfterExpiryCannotStart()",
+        "result": "Passed",
+        "seconds": 0.015104055404663086
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI3SelectionSaveRechecksAccessAndPreservesData()",
+        "result": "Passed",
+        "seconds": 0.023285984992980957
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI4ExpiryEndsManualAndScheduledSessionsOnlyOnce()",
+        "result": "Passed",
+        "seconds": 0.056550025939941406
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI5LateCardCallbackCannotChangeExpiryHistoryOrClearRenewedBlocking()",
+        "result": "Passed",
+        "seconds": 0.032829999923706055
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI5LateSnapshotAndScheduleCallbackCannotReblock()",
+        "result": "Passed",
+        "seconds": 0.03874504566192627
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI6EndedManualSessionRequiresNewCardTapAfterRenewal()",
+        "result": "Passed",
+        "seconds": 0.03288102149963379
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI6RenewalResumesOnlyEligibleSchedules()",
+        "result": "Passed",
+        "seconds": 0.0876319408416748
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI6StaleExpiryEventAfterRenewalDoesNotStopAccess()",
+        "result": "Passed",
+        "seconds": 0.020323991775512695
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI8ActualRemovalTimeBreakAndRenewedSessionReachReports()",
+        "result": "Passed",
+        "seconds": 0.03950297832489014
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI8ExpiryHistoryAndSettingsSurviveFileStoreReopen()",
+        "result": "Passed",
+        "seconds": 0.049661993980407715
+      },
+      {
+        "id": "SubscriptionLifecycleTests/testI8ScheduledExpiryPreservesSavedBreaks()",
+        "result": "Passed",
+        "seconds": 0.13162195682525635
+      },
+      {
+        "id": "SubscriptionRefreshTests/testA10OlderRefreshCannotOverwriteVerifiedRenewal()",
+        "result": "Passed",
+        "seconds": 0.03386497497558594
+      },
+      {
+        "id": "SubscriptionStoreTests/testI7CancelledPendingUnverifiedAndFailedPurchasesGrantNothing()",
+        "result": "Passed",
+        "seconds": 0.047271013259887695
+      },
+      {
+        "id": "SubscriptionStoreTests/testI7PurchaseFailureAndRestoreFailurePreserveValidOfflineProof()",
+        "result": "Passed",
+        "seconds": 0.11300194263458252
+      },
+      {
+        "id": "SubscriptionStoreTests/testI7VerifiedPurchaseAndRestoreUpdateSharedAccess()",
+        "result": "Passed",
+        "seconds": 0.02671992778778076
+      },
+      {
+        "id": "SubscriptionStoreTests/testI7VerifiedRevocationRemovesAccessAndUnrelatedPurchaseIsIgnored()",
+        "result": "Passed",
+        "seconds": 0.0178070068359375
+      },
+      {
+        "id": "UnlockRecoveryTests/testR10ExpiredFixedTimeSessionDoesNotReblock()",
+        "result": "Passed",
+        "seconds": 0.0341489315032959
+      },
+      {
+        "id": "UnlockRecoveryTests/testR11ManualOtherProfile()",
+        "result": "Passed",
+        "seconds": 0.024355053901672363
+      },
+      {
+        "id": "UnlockRecoveryTests/testR11ManualSameProfile()",
+        "result": "Passed",
+        "seconds": 0.02151501178741455
+      },
+      {
+        "id": "UnlockRecoveryTests/testR11TimerOtherProfile()",
+        "result": "Passed",
+        "seconds": 0.024130940437316895
+      },
+      {
+        "id": "UnlockRecoveryTests/testR11TimerSameProfile()",
+        "result": "Passed",
+        "seconds": 0.02104198932647705
+      },
+      {
+        "id": "UnlockRecoveryTests/testR12Card()",
+        "result": "Passed",
+        "seconds": 0.03371906280517578
+      },
+      {
+        "id": "UnlockRecoveryTests/testR12Emergency()",
+        "result": "Passed",
+        "seconds": 0.04038703441619873
+      },
+      {
+        "id": "UnlockRecoveryTests/testR1Card()",
+        "result": "Passed",
+        "seconds": 0.03160703182220459
+      },
+      {
+        "id": "UnlockRecoveryTests/testR1Emergency()",
+        "result": "Passed",
+        "seconds": 0.0650949478149414
+      },
+      {
+        "id": "UnlockRecoveryTests/testR2Card()",
+        "result": "Passed",
+        "seconds": 0.034494996070861816
+      },
+      {
+        "id": "UnlockRecoveryTests/testR2Emergency()",
+        "result": "Passed",
+        "seconds": 0.04045891761779785
+      },
+      {
+        "id": "UnlockRecoveryTests/testR3Card()",
+        "result": "Passed",
+        "seconds": 0.03560304641723633
+      },
+      {
+        "id": "UnlockRecoveryTests/testR3Emergency()",
+        "result": "Passed",
+        "seconds": 0.03215897083282471
+      },
+      {
+        "id": "UnlockRecoveryTests/testR4Card()",
+        "result": "Passed",
+        "seconds": 0.032302021980285645
+      },
+      {
+        "id": "UnlockRecoveryTests/testR4Emergency()",
+        "result": "Passed",
+        "seconds": 0.03343498706817627
+      },
+      {
+        "id": "UnlockRecoveryTests/testR5Card()",
+        "result": "Passed",
+        "seconds": 0.03144800662994385
+      },
+      {
+        "id": "UnlockRecoveryTests/testR5Emergency()",
+        "result": "Passed",
+        "seconds": 0.03088998794555664
+      },
+      {
+        "id": "UnlockRecoveryTests/testR6Card()",
+        "result": "Passed",
+        "seconds": 0.05790400505065918
+      },
+      {
+        "id": "UnlockRecoveryTests/testR6Emergency()",
+        "result": "Passed",
+        "seconds": 0.05347800254821777
+      },
+      {
+        "id": "UnlockRecoveryTests/testR7RepeatedEmergencyUnlockDoesNotSpendAnotherUse()",
+        "result": "Passed",
+        "seconds": 0.028604984283447266
+      },
+      {
+        "id": "UnlockRecoveryTests/testR8Card()",
+        "result": "Passed",
+        "seconds": 0.027142047882080078
+      },
+      {
+        "id": "UnlockRecoveryTests/testR8Emergency()",
+        "result": "Passed",
+        "seconds": 0.03553199768066406
+      },
+      {
+        "id": "UnlockRecoveryTests/testR9StillActiveSessionRestoresBlocking()",
+        "result": "Passed",
+        "seconds": 0.02319490909576416
+      },
+      {
+        "id": "UnlockRecoveryTests/testU1CardUnlockEndsScheduledSession()",
+        "result": "Passed",
+        "seconds": 0.02723097801208496
+      },
+      {
+        "id": "UnlockRecoveryTests/testU2EmergencyUnlockEndsScheduledSessionOnce()",
+        "result": "Passed",
+        "seconds": 0.029366016387939453
+      },
+      {
+        "id": "UnlockRecoveryTests/testU3CancelKeepsSessionActiveAndAllowsRetry()",
+        "result": "Passed",
+        "seconds": 0.027454018592834473
+      },
+      {
+        "id": "UnlockRecoveryTests/testU4WrongCardKeepsSessionActiveThenValidCardUnlocks()",
+        "result": "Passed",
+        "seconds": 0.030655980110168457
+      },
+      {
+        "id": "Upgrade1301Tests/testFirstReleaseSavedDataSurvivesUpdate()",
+        "result": "Passed",
+        "seconds": 0.9108760356903076
+      }
+    ]
+  },
+  "builds": {
+    "removalDebug": "BUILD SUCCEEDED",
+    "finalDebugTestBuild": "passed",
+    "arm64SimulatorRelease": "BUILD SUCCEEDED"
+  },
+  "beforeFixEvidence": [
+    {
+      "run": "red-scheduled-breaks",
+      "passed": false,
+      "resultCounts": {
+        "Passed": 57,
+        "Failed": 1
+      },
+      "failedCases": [
+        "SubscriptionLifecycleTests/testI8ScheduledExpiryPreservesSavedBreaks()"
+      ],
+      "missing": [],
+      "unexpected": []
+    },
+    {
+      "run": "green-scheduled-breaks",
+      "passed": true,
+      "resultCounts": {
+        "Passed": 58
+      },
+      "failedCases": [],
+      "missing": [],
+      "unexpected": []
+    },
+    {
+      "run": "red-unsigned-grant",
+      "passed": false,
+      "resultCounts": {
+        "Passed": 58,
+        "Failed": 1
+      },
+      "failedCases": [
+        "SubscriptionLifecycleTests/testI1UnsignedGrantIsRejectedWithoutLegacyFallback()"
+      ],
+      "missing": [],
+      "unexpected": []
+    }
+  ],
+  "sourceAudit": {
+    "protectedFilesUnchanged": {
+      "DoCard/Models/AppMigrationPlan.swift": true,
+      "DoCard/Models/AppModelStore.swift": true,
+      "DoCard/Utils/RequestAuthorizer.swift": true,
+      "DoCard/Utils/SubscriptionManager.swift": true,
+      "DoCard/Utils/SubscriptionStore.swift": true,
+      "DoCard/Utils/SessionReportDuration.swift": true,
+      "DoCard/DoCard.entitlements": true,
+      "DoCardShieldConfig/DoCardShieldConfig.entitlements": true,
+      "DoCardWidget/DoCardWidgetExtension.entitlements": true,
+      "DoCardDeviceMonitor/DoCardDeviceMonitor.entitlements": true,
+      "DoCardTests/Fixtures/Upgrade1301.bundle/expected.json": true,
+      "DoCardTests/Fixtures/Upgrade1301.bundle/provenance.json": true,
+      "DoCardTests/Fixtures/Upgrade1301.bundle/Info.plist": true,
+      "DoCardTests/Fixtures/Upgrade1301.bundle/Store/source-store-metadata.plist": true,
+      "DoCardTests/Fixtures/Upgrade1301.bundle/Store/expected.json": true,
+      "DoCardTests/Fixtures/Upgrade1301.bundle/Store/default.store": true,
+      "DoCardTests/Fixtures/Upgrade1301.bundle/Store/default.store-wal": true,
+      "DoCardTests/Fixtures/Upgrade1301.bundle/Store/default.store-shm": true,
+      ".github/workflows/ios-ci.yml": true
+    },
+    "retiredRuntimeReferences": [],
+    "supabaseSDKRemoved": true,
+    "analyticsConnectionUnchanged": true,
+    "stringCatalogJSON": "valid",
+    "runnerPythonSyntax": "valid"
+  },
+  "independentReviews": {
+    "standards": {
+      "findings": 0,
+      "report": "None. No documented standards violations introduced by this request were found in the request-only diff. The changes preserve the critical schema/migration, authorization, access-gating, and dual-store boundaries documented in AGENTS.md and CONTEXT.md. The three referenced references/*.md guides are absent from this checkout, so they could not supply additional standards."
+    },
+    "spec": {
+      "findings": 0,
+      "report": "No actionable Spec findings in the request-only changes. The removal covers UI, startup services, NFC diversion, extension/foreground sync calls and SDK linkage. Physical card pairing and local recovery/report paths remain. Analytics retains its separate REST transport and false/zero compatibility fields. The expiry import preserves saved breaks and closes open breaks at removal time. The new grant key requires an existing valid HMAC without unsigned migration or legacy fallback when present but invalid. Limits: read-only review; I did not rerun tests/builds. Physical NFC, actual shields, independent background delivery and real purchases remain unverified."
+    }
+  },
+  "limits": [
+    "Selected rebuilt portfolio, not every legacy class.",
+    "No real-phone or independent iOS background delivery check.",
+    "No hosted GitHub Actions run.",
+    "No App Store Connect grace-setting change.",
+    "No backend or external-device retirement/reset.",
+    "Default upgrade method ran once, separate two-process rehearsal not repeated."
+  ]
+}

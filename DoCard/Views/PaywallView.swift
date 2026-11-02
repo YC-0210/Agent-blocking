@@ -29,7 +29,7 @@ struct PaywallView: View {
                     VStack(spacing: 0) {
                         featureRow(
                             title: String(localized: "App 封鎖數量"),
-                            free: String(localized: "3 個"),
+                            free: "—",
                             premium: String(localized: "最多 50 個")
                         )
                         Divider()
@@ -41,7 +41,7 @@ struct PaywallView: View {
                         Divider()
                         featureRow(
                             title: String(localized: "網域封鎖"),
-                            free: "✓",
+                            free: "—",
                             premium: "✓"
                         )
                         Divider()
@@ -53,7 +53,7 @@ struct PaywallView: View {
                         Divider()
                         featureRow(
                             title: String(localized: "DO Card 觸發"),
-                            free: "✓",
+                            free: "—",
                             premium: "✓"
                         )
                         Divider()

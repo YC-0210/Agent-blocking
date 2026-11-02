@@ -34,6 +34,11 @@ class ManualBlockingStrategy: BlockingStrategy {
     profile: BlockedProfiles,
     forceStart: Bool?
   ) -> (any View)? {
+    guard SharedData.effectiveSubscriptionTier == .premium else {
+      onErrorMessage?(String(localized: "An active subscription is required."))
+      return nil
+    }
+
     self.appBlocker
       .activateRestrictions(for: BlockedProfiles.getSnapshot(for: profile))
 

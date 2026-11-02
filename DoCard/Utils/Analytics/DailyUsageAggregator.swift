@@ -96,8 +96,7 @@ enum DailyUsageAggregator {
       scheduledFired: scheduled.count,
       scheduledCompleted: scheduledCompleted,
       scheduledInterrupted: scheduledInterrupted,
-      // Phase 2: per-day co-focus / mac-sync counters are not yet wired (those
-      // features keep no local per-day usage log). Tracked as a follow-up.
+      // Retired feature columns stay zero for analytics table compatibility.
       cofocusUsed: false,
       cofocusSessionCount: 0,
       macsyncUsed: false,

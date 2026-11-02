@@ -52,6 +52,7 @@ private let container: ModelContainer = {
 
 @main
 struct DoCardApp: App {
+  @Environment(\.scenePhase) private var scenePhase
   @StateObject private var requestAuthorizer = RequestAuthorizer()
   @StateObject private var navigationManager = NavigationManager()
   @StateObject private var nfcWriter = NFCWriter()
@@ -63,8 +64,6 @@ struct DoCardApp: App {
   @StateObject private var themeManager = ThemeManager.shared
   @StateObject private var onboardingManager = OnboardingManager.shared
   @StateObject private var subscriptionManager = SubscriptionManager.shared
-  @StateObject private var coFocusManager = CoFocusManager.shared
-  @StateObject private var pairingDeviceStore = PairingDeviceStore.shared
   @StateObject private var whatsNewManager = WhatsNewManager.shared
 
   init() {
@@ -91,7 +90,9 @@ struct DoCardApp: App {
   var body: some Scene {
     WindowGroup {
       Group {
-        if onboardingManager.shouldShowOnboarding {
+        if !subscriptionManager.permits(.otherFeature) {
+          SubscriptionRequiredView()
+        } else if onboardingManager.shouldShowOnboarding {
           OnboardingView()
         } else {
           HomeView()
@@ -116,13 +117,31 @@ struct DoCardApp: App {
       .environmentObject(themeManager)
       .environmentObject(onboardingManager)
       .environmentObject(subscriptionManager)
-      .environmentObject(coFocusManager)
-      .environmentObject(pairingDeviceStore)
       .environmentObject(whatsNewManager)
-      .task { await coFocusManager.bootstrap() }
+      .task {
+        await subscriptionManager.checkCurrentEntitlements()
+        reconcileSubscription()
+      }
+      .onChange(of: subscriptionManager.accessRevision) { _, _ in reconcileSubscription() }
+      .onChange(of: requestAuthorizer.isAuthorized) { _, authorized in
+        if authorized { subscriptionManager.refreshLocalAccess() }
+      }
+      .onChange(of: scenePhase) { _, phase in
+        guard phase == .active else { return }
+        subscriptionManager.refreshLocalAccess()
+        reconcileSubscription()
+        Task { await subscriptionManager.checkCurrentEntitlements() }
+      }
       .preferredColorScheme(.dark)
     }
     .modelContainer(container)
+  }
+
+  private func reconcileSubscription() {
+    let context = container.mainContext
+    if subscriptionManager.isPremium {
+      startegyManager.loadActiveSession(context: context)
+    } else { startegyManager.reconcileSubscription(context: context) }
   }
 
   private func handleUniversalLink(_ url: URL) {

@@ -26,6 +26,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
+    if activity == SubscriptionExpiry.activityName {
+      SubscriptionExpiry.enforce(blocker: appBlocker)
+      return
+    }
+
 
     // Distraction-usage tracking is NOT a blocking activity. Initialize today's
     // bucket and return immediately so no blocking logic ever runs for it.
@@ -57,6 +62,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
+    if activity == SubscriptionExpiry.activityName {
+      SubscriptionExpiry.enforce(blocker: appBlocker)
+      return
+    }
+
 
     // Distraction-usage tracking activity: no blocking teardown to do.
     if activity.rawValue == DistractionTrackingShared.activityName {

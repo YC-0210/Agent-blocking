@@ -71,10 +71,12 @@ struct UsageDailyRow: Encodable {
 
 /// Thin REST client that posts daily usage rollups to Supabase.
 ///
-/// Reuses the project's Supabase base URL + anon key (defined in MacSupabaseClient)
-/// but deliberately omits the X-Iphone-Token header: usage_daily is an anonymous,
-/// insert-only table with no per-row ownership, so no RLS identification is needed.
+/// Uses anonymous insert-only access to usage_daily; it never sends pairing tokens.
 enum UsageAnalyticsClient {
+
+  private static let baseURL = URL(string: "https://wbhicuxbvnketbdqywds.supabase.co")!
+  private static let anonKey =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndiaGljdXhidm5rZXRiZHF5d2RzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkzOTM1MjksImV4cCI6MjA4NDk2OTUyOX0.WJv_uaZTyFkTFgHoKXh9-4rW5WJVancLTVI5n7o0It8"
 
   private static let session: URLSession = {
     let config = URLSessionConfiguration.default
@@ -93,12 +95,12 @@ enum UsageAnalyticsClient {
   /// `return=minimal` is required because the anon role has INSERT but no SELECT
   /// privilege — asking PostgREST to return the inserted row would otherwise fail.
   static func upload(_ row: UsageDailyRow) async throws {
-    let url = MacSupabaseClient.baseURL.appendingPathComponent("rest/v1/usage_daily")
+    let url = baseURL.appendingPathComponent("rest/v1/usage_daily")
 
     var req = URLRequest(url: url)
     req.httpMethod = "POST"
-    req.setValue(MacSupabaseClient.anonKey, forHTTPHeaderField: "apikey")
-    req.setValue("Bearer \(MacSupabaseClient.anonKey)", forHTTPHeaderField: "Authorization")
+    req.setValue(anonKey, forHTTPHeaderField: "apikey")
+    req.setValue("Bearer \(anonKey)", forHTTPHeaderField: "Authorization")
     req.setValue("application/json", forHTTPHeaderField: "Content-Type")
     req.setValue("return=minimal", forHTTPHeaderField: "Prefer")
     req.httpBody = try JSONEncoder().encode(row)
@@ -107,11 +109,11 @@ enum UsageAnalyticsClient {
     do {
       (data, response) = try await session.data(for: req)
     } catch {
-      throw MacSupabaseError.transportError(error)
+      throw UsageAnalyticsError.transportError(error)
     }
 
     guard let http = response as? HTTPURLResponse else {
-      throw MacSupabaseError.httpError(-1, "no response")
+      throw UsageAnalyticsError.httpError(-1, "no response")
     }
 
     // 409 = duplicate (install_id, date) already present — already sent today.
@@ -121,7 +123,12 @@ enum UsageAnalyticsClient {
     guard (200...299).contains(http.statusCode) else {
       let body = String(data: data, encoding: .utf8) ?? ""
       log.error("usage_daily upload failed: \(http.statusCode) \(body, privacy: .public)")
-      throw MacSupabaseError.httpError(http.statusCode, body)
+      throw UsageAnalyticsError.httpError(http.statusCode, body)
     }
   }
+}
+
+private enum UsageAnalyticsError: Error {
+  case httpError(Int, String)
+  case transportError(Error)
 }

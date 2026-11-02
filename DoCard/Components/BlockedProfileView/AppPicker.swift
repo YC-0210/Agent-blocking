@@ -25,12 +25,7 @@ struct AppPicker: View {
   }
 
   /// The max allowed for the current tier
-  private var appLimit: Int {
-    if allowMode {
-      return Entitlements.premiumAppLimit
-    }
-    return subscriptionManager.entitlements.appLimit
-  }
+  private var appLimit: Int { subscriptionManager.entitlements.appLimit }
 
   private var compactTitle: String {
     let displayText = FamilyActivityUtil.getCountDisplayText(selection, allowMode: allowMode)
@@ -52,10 +47,7 @@ struct AppPicker: View {
   }
 
   /// Whether the current selection exceeds free tier limits
-  private var exceedsFreeTierLimit: Bool {
-    guard !subscriptionManager.isPremium, !allowMode else { return false }
-    return appCount > Entitlements.freeAppLimit
-  }
+  private var exceedsFreeTierLimit: Bool { !subscriptionManager.isPremium }
 
   /// Whether the current selection exceeds premium tier limits (Apple hard limit)
   private var exceedsPremiumLimit: Bool {
@@ -121,7 +113,7 @@ struct AppPicker: View {
             Image(systemName: "lock.fill")
               .font(.caption)
               .foregroundStyle(.orange)
-            Text(String(localized: "免費版最多阻擋 3 個 App，請減少選擇或升級 Premium"))
+            Text(String(localized: "An active subscription is required."))
               .font(.caption)
               .foregroundStyle(.secondary)
             Spacer()
@@ -154,7 +146,7 @@ struct AppPicker: View {
             Image(systemName: "info.circle.fill")
               .foregroundStyle(.orange)
               .font(.caption)
-            Text(String(localized: "免費版最多阻擋 3 個 App"))
+            Text(String(localized: "An active subscription is required."))
               .font(.caption)
               .foregroundStyle(.secondary)
           }
@@ -222,13 +214,13 @@ struct AppPicker: View {
       } message: {
         Text(String(localized: "最多只能阻擋 50 個 App，請減少選擇"))
       }
-      .alert(String(localized: "超過免費版上限"), isPresented: $showFreeLimitAlert) {
+      .alert(String(localized: "Subscription required"), isPresented: $showFreeLimitAlert) {
         Button(String(localized: "好"), role: .cancel) {}
         Button(String(localized: "升級")) {
           showPaywall = true
         }
       } message: {
-        Text(String(localized: "免費版最多阻擋 3 個 App，請減少選擇或升級 Premium"))
+        Text(String(localized: "An active subscription is required."))
       }
       .sheet(isPresented: $showPaywall) {
         PremiumUpgradeView()

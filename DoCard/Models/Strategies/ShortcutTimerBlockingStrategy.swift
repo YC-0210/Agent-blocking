@@ -35,6 +35,11 @@ class ShortcutTimerBlockingStrategy: BlockingStrategy {
     profile: BlockedProfiles,
     forceStart: Bool?
   ) -> (any View)? {
+    guard SharedData.effectiveSubscriptionTier == .premium else {
+      onErrorMessage?(String(localized: "An active subscription is required."))
+      return nil
+    }
+
     guard profile.strategyData != nil else {
       self.onErrorMessage?("No timer duration specified for this profile")
       return nil

@@ -4,7 +4,6 @@ import SwiftUI
 struct ReportView: View {
     @EnvironmentObject var themeManager: ThemeManager
     @EnvironmentObject var subscriptionManager: SubscriptionManager
-    @EnvironmentObject var coFocusManager: CoFocusManager
     @Environment(\.modelContext) private var context
 
     @StateObject private var viewModel = ReportViewModel()
@@ -35,7 +34,6 @@ struct ReportView: View {
         }
         .onAppear {
             loadReport()
-            Task { await coFocusManager.refreshMonthlyTotal() }
         }
         .onChange(of: subscriptionManager.tier) { _, _ in loadReport() }
         .sheet(isPresented: $showPaywall) {
@@ -90,10 +88,6 @@ struct ReportView: View {
                         value: formatDuration(viewModel.averageSessionDuration),
                         icon: "timer"
                     )
-                }
-
-                if coFocusManager.monthlyTotal.sessionCount > 0 {
-                    coFocusMonthlyCard
                 }
 
                 if !viewModel.topProfiles.isEmpty {
@@ -260,39 +254,6 @@ struct ReportView: View {
                 }
             }
         }
-        .padding(20)
-        .background(
-            RoundedRectangle(cornerRadius: 16)
-                .fill(Color(.secondarySystemGroupedBackground))
-        )
-    }
-
-    // MARK: - Co-Focus Monthly Card
-
-    private var coFocusMonthlyCard: some View {
-        let total = coFocusManager.monthlyTotal
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 6) {
-                Image(systemName: "person.2.fill")
-                    .foregroundStyle(themeManager.themeColor)
-                    .font(.caption)
-                Text(String(localized: "本月共同專注"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text(formatDurationCompact(TimeInterval(total.totalSeconds)))
-                    .font(.title2.weight(.semibold))
-                    .monospacedDigit()
-                Text(String.localizedStringWithFormat(
-                    String(localized: "%lld 次"),
-                    Int64(total.sessionCount)
-                ))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(20)
         .background(
             RoundedRectangle(cornerRadius: 16)

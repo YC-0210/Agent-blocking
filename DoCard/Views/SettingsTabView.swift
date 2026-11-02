@@ -33,11 +33,6 @@ struct SettingsTabView: View {
   @State private var renameNameInput = ""
   @State private var renameState: RenameState = .idle
 
-  /// Programmatic-navigation flag for the Mac sync entry — tap goes through
-  /// a paywall check first; only premium users flip this to true to open
-  /// `MacPairingView`. Mirrors ScheduleTabView's premium-gated flow.
-  @State private var navigateToMacPairing = false
-
   // TEMP test entry for the Motivation Gallery edit screen (Phase 2).
   // The real entry point is the pencil on the main screen, added in Phase 3.
   @State private var showGalleryEditor = false
@@ -65,24 +60,8 @@ struct SettingsTabView: View {
       Form {
         Section {
           ForEach(SettingsLayout.landingCategories(includeDebug: includeDebug)) { category in
-            if SettingsLayout.isDirectLink(category) {
-              // 裝置同步 has a single destination (the pairing screen), so the
-              // landing entry navigates straight there — no intermediate hub
-              // page (#27). Routed through the same premium gate as before.
-              Button(action: deviceSyncTapped) {
-                HStack {
-                  categoryRow(category)
-                  Spacer()
-                  Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.tertiary)
-                }
-              }
-              .buttonStyle(.plain)
-            } else {
-              NavigationLink(value: category) {
-                categoryRow(category)
-              }
+            NavigationLink(value: category) {
+              categoryRow(category)
             }
           }
         }
@@ -104,9 +83,6 @@ struct SettingsTabView: View {
       .navigationTitle(String(localized: "設定"))
       .navigationDestination(for: SettingsCategory.self) { category in
         categoryPage(category)
-      }
-      .navigationDestination(isPresented: $navigateToMacPairing) {
-        MacPairingView()
       }
       .sheet(isPresented: $showPaywall) {
         PremiumUpgradeView()
@@ -181,9 +157,6 @@ struct SettingsTabView: View {
     case .personalization:
       return CategoryBadgeStyle(
         symbol: "photo.fill", glyph: brand, background: brand.opacity(0.16))
-    case .devices:
-      return CategoryBadgeStyle(
-        symbol: "laptopcomputer.and.iphone", glyph: brand, background: brand.opacity(0.16))
     case .about:
       return CategoryBadgeStyle(
         symbol: "info.circle.fill", glyph: brand, background: brand.opacity(0.16))
@@ -199,7 +172,6 @@ struct SettingsTabView: View {
     case .card: return String(localized: "DO Card")
     case .notifications: return String(localized: "通知與提醒")
     case .personalization: return String(localized: "個人化")
-    case .devices: return DeviceSyncStrings.featureTitle
     case .about: return String(localized: "關於")
     case .debug: return "🛠 Debug"  // verbatim — never enters the localization catalog
     }
@@ -487,19 +459,6 @@ struct SettingsTabView: View {
       description: String(localized: "專注結束後發送提醒通知"),
       isOn: $enableReminder
     )
-  }
-
-  /// Tap handler for the landing-page 裝置同步 direct link. Mac/device sync is a
-  /// Premium feature (v2.0.6+), so entry routes through a paywall check: premium
-  /// users flip `navigateToMacPairing` to open `MacPairingView` (destination
-  /// declared on the landing Form); free users see `PremiumUpgradeView` via the
-  /// `showPaywall` sheet. Mirrors ScheduleTabView's premium-gated flow.
-  private func deviceSyncTapped() {
-    if subscriptionManager.entitlements.canSyncExternalDevices {
-      navigateToMacPairing = true
-    } else {
-      showPaywall = true
-    }
   }
 
   private var versionRow: some View {

@@ -2,11 +2,32 @@
 
 Physical NFC card + iOS app that uses Apple's Screen Time API (Family Controls) to block distracting apps. The card tap is an intentional ritual — physical separation creates commitment that software-only solutions cannot replicate.
 
-**Repos:** iOS app (`DO-IOS-Claude-`), Chrome extension (`do-card-chrome-extension`), Safari extension (`DO-Card-Mac-Safari-Extension`)
+**Current repository:** iOS app (`DOCard-ios`). Browser-extension repositories are outside this change.
 **Live version:** v2.0.8 — Freemium + Focus Report + Motivation Gallery (動力相簿)
 **Phase:** Stabilise & grow — no large features in active development
 
 ---
+
+> **Paid-only access update (2026-11-02):** ADR-0007 supersedes the earlier freemium
+> rules. All remaining normal functions, including NFC starts, need active verified
+> subscription/trial/offer/grace access. Stops, Emergency Unlock, billing, help and legal
+> access remain available. Grace is Apple-confirmed, three days, paid-to-paid only; no
+> local extra-day extension. Expiry ends blocking as soon as iOS permits and preserves
+> history/settings. See `docs/testing/selection-access.md` for local checks and device limits.
+
+## Next-version scope (2026-11-02)
+
+Co-Focus and device synchronization are removed from the app: no shared-focus tab,
+pairing UI for external devices, sync badge, purchase advertising, network clients,
+background sync calls or NFC diversion. Physical DO Card pairing remains.
+The Supabase SDK dependency is removed. Anonymous usage analytics keeps its existing
+REST transport and zero-valued retired-feature columns for wire compatibility.
+No backend records, old pairing credentials, browser-extension repositories or stored
+SwiftData schemas are changed. See ADR-0008 and the local changelog.
+
+Subscription expiry imports preserve saved scheduled-session breaks and close an open
+break at removal time. New subscription grant snapshots require a valid signature;
+they do not use the unsigned legacy migration. Older keys keep their existing upgrade path.
 
 ## Language
 
@@ -34,18 +55,20 @@ _Avoid:_ to-do, 待辦, checklist
 One entry in Today's Tasks: a short **name** (shown on the centerpiece), an optional longer **detail** (revealed and edited by tapping the name), and a done state toggled by its checkbox. Tapping the name edits; the checkbox completes — two distinct tap targets.
 _Avoid:_ to-do item, todo
 
-**Freemium gate** — always two layers
-Every paid feature needs BOTH: (1) UI gate at the point of interaction and (2) enforcement gate in `AppBlockerUtil.swift`. One layer alone is never sufficient. Both layers ask the **Entitlements** rule book rather than re-deriving the free/premium rule inline.
-_Avoid:_ paywall (use "gate" in code, "upgrade" in user-facing copy)
+**Subscription access gate** — always UI and enforcement
+All normal features require active access. The root screen and picker gate interactions;
+profile writes, strategies, shortcut starts, schedule callbacks and `AppBlockerUtil` enforce
+access again. Stops and billing/help/legal access remain available. See ADR-0007.
 
 **Entitlements** (`Utils/Entitlements.swift`)
-The single rule book for "what is this tier allowed to do?" — a pure value type mapping `SubscriptionTier` → capabilities (`appLimit`, `canBlockCategories`, `canBlockWebDomains`, `canSchedule`, `canSyncExternalDevices`, `canSeeDeepReport`, `canUseCoFocus`). Every gate asks it instead of re-deriving limits at a call site. `Entitlements.current` is grace-aware (reads `effectiveSubscriptionTier`), so UI gates and the enforcement gate never disagree. Governs **paid** capabilities only — never the always-free flows (card tap, Emergency Unlock, RequestAuthorization). `canUseCoFocus` is `true` for every tier today; the slot exists so future gating is a one-line change.
-_Avoid:_ reading the tier and re-deriving limits inline; gating an always-free flow through it
-_Debug:_ `SharedData.debugForcedTier` (`#if DEBUG` only) force-overrides `effectiveSubscriptionTier` to preview free/premium on a real device; toggle UI is the "🛠 Debug" section at the bottom of Settings. Compiled out of release builds.
+The capability rule book maps `.free` to disabled normal features and `.premium` to the
+remaining paid capabilities (50 apps, categories, websites, schedules and reports).
+`SubscriptionAccess` resolves verified purchase/grace facts and the exceptional actions.
 
 **effectiveSubscriptionTier**
-The canonical subscription state accessor — reads `subscriptionTier` from App Group UserDefaults and applies the 16-day grace period. Always use this. Never read `subscriptionTier` directly.
-_Avoid:_ `subscriptionTier` (direct read)
+The canonical shared decision uses the signed `subscriptionGrants` snapshot and its verified
+end time. Older signed premium/expiration values retain only their remaining valid period.
+There is no automatic local grace extension. Debug force-tier remains Debug-only.
 
 **Suppression flag**
 An HMAC-signed App Group UserDefaults key that prevents a scheduled window from re-engaging after the user has explicitly ended it. Two reasons, each its own key namespace: `emergencyUnlockedSchedule_<activityId>` and `cardTapSuppressedSchedule_<activityId>`. Owned end-to-end by **Suppression Registry** — one place defines the prefixes, key shape, signing, and cleanup; no process keeps its own copy.
@@ -67,7 +90,7 @@ _Avoid:_ phase (implies horizontal)
 
 ## Architecture
 
-**Tech stack:** Swift / SwiftUI · SwiftData (schema V5, stamp 2.2.0) · Family Controls · Supabase (Co-Focus + Mac sync) · StoreKit 2 (no RevenueCat) · App Group `group.DO.version3` (HMAC-SHA256 signed via CryptoKit)
+**Tech stack:** Swift / SwiftUI · SwiftData (schema V5, stamp 2.2.0) · Family Controls · StoreKit 2 (no RevenueCat) · App Group `group.DO.version3` (HMAC-SHA256 signed via CryptoKit)
 
 **Session persistence — dual model (critical):**
 - Manual / NFC sessions → SwiftData (`BlockedProfileSession`) → restored by `loadActiveSession()`
@@ -79,7 +102,7 @@ _Avoid:_ phase (implies horizontal)
 | File | Role |
 |------|------|
 | `Utils/StrategyManager.swift` | Session lifecycle, Emergency Unlock, schedule restore, suppression flags |
-| `Utils/AppBlockerUtil.swift` | ⚠️ Enforcement gate — free tier token stripping (asks `Entitlements`) |
+| `Utils/AppBlockerUtil.swift` | ⚠️ Enforcement gate — verified access plus full restriction replacement |
 | `Components/BlockedProfileView/AppPicker.swift` | ⚠️ UI gate — free tier app selection (asks `Entitlements`) |
 | `Utils/Entitlements.swift` | Rule book — tier → capabilities; grace-aware `current`; UI + enforcement gates both ask it |
 | `Utils/SuppressionRegistry.swift` | Single owner of suppression-flag storage — prefixes, key shape, signing, cleanup; app + extension both cross it |
@@ -96,10 +119,10 @@ _Avoid:_ phase (implies horizontal)
 ## Rules — Never Violate
 
 1. **Emergency Unlock is always free** — no tier check anywhere in `emergencyUnblock()` or `EmergencyView.swift`
-2. **NFC trigger is always free** — `startBlocking()` / `stopBlocking()` never paywalled
-3. **`RequestAuthorization` (Family Controls) is always free**
-4. **Every paid feature needs two gates** — UI gate (user-facing block) + enforcement gate (`AppBlockerUtil.swift` token stripping)
-5. **Always use `SharedData.effectiveSubscriptionTier`** — never read `subscriptionTier` directly (bypasses 16-day grace period)
+2. **NFC starts require active access; NFC stops remain available** — ADR-0007 supersedes the old free-start rule.
+3. **Family Controls authorization implementation is unchanged** — the root app gate requires access before normal app/onboarding use; never charge separately for OS permission.
+4. **Every paid feature needs two gates** — UI gate (user-facing block) + enforcement gate (`AppBlockerUtil.swift` access check and full restriction plan)
+5. **Always use `SharedData.effectiveSubscriptionTier`** — raw tier flags do not prove an unexpired subscription.
 6. **`.fullScreenCover` zeroes the top safe area** in this app — use `.overlay` for any full-screen modal that needs status bar respect
 7. **SwiftData schema changes require a migration snapshot** — any new `@Model` property needs a new schema version in `AppMigrationPlan.swift`; older schema versions whose models diverge must be snapshotted inline
 8. **Brand orange is `ThemeManager.accentColor`** — never hardcode `#FF6B35` or `#F26419`
@@ -121,7 +144,7 @@ _Avoid:_ phase (implies horizontal)
 
 - **`completedSessionsInSchedular` visibility gap:** completed scheduled sessions may not propagate cross-process to the main app, causing Focus Report data loss for users who never foreground the app mid-session
 - **Non-NFC start path empty-token bypass:** `forceStartSession()`, `startSessionFromBackground()`, and `toggleSessionFromDeeplink()` bypass the empty-token preflight added in v2.0.4 (only the NFC path is protected)
-- **Mid-session premium expiry:** subscription downgrade during an active session silently reduces blocking from unlimited to 3 apps with no user notification
+- **Subscription expiry on a phone:** local access/cleanup tests now cover the agreed paid-only rule (ADR-0007); independent iOS background delivery and actual shields still require device checks.
 - **`LiveActivityManager` mutable-profile fallback:** countdown prefers shared timer snapshot but falls back to mutable profile settings when unavailable — a proper fix requires a SwiftData schema change
 
 ---
