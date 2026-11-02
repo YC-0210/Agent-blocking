@@ -52,6 +52,7 @@ enum SharedData {
     case completedScheduleSessions
     case subscriptionTier
     case subscriptionExpirationDate
+    case subscriptionGrants
   }
 
   // MARK: – HMAC Integrity Verification (V-17)
@@ -138,8 +139,20 @@ enum SharedData {
 
   /// Reads data from UserDefaults and verifies its HMAC.
   /// Returns nil if the signature does not match (possible tampering).
-  private static func verifiedRead(forKey key: String) -> Data? {
+  private static func verifiedRead(forKey key: String, requireSignature: Bool = false) -> Data? {
     guard let data = suite.data(forKey: key) else { return nil }
+
+    if requireSignature {
+      // New security-sensitive keys have no unsigned legacy representation.
+      guard let signingKey = hmacSigningKey,
+        let signature = suite.data(forKey: key + ".hmac"),
+        HMAC<SHA256>.isValidAuthenticationCode(signature, authenticating: data, using: signingKey)
+      else {
+        logger.error("Missing or invalid authentication for '\(key, privacy: .public)'")
+        return nil
+      }
+      return data
+    }
 
     // No HMAC key available (e.g. extension without Keychain access) — skip verification
     guard hmacSigningKey != nil else { return data }
@@ -738,24 +751,37 @@ enum SharedData {
     }
   }
 
-  /// Checks the effective tier, accounting for App Store billing grace period (16 days).
-  /// Extensions should use this instead of reading `subscriptionTier` directly.
+  /// The authoritative verified subscription snapshot, shared with the monitor/widget.
+  /// nil means a previous app version has not yet written the new snapshot.
+  static var subscriptionGrants: [SubscriptionGrant]? {
+    get {
+      guard let data = verifiedRead(forKey: Key.subscriptionGrants.rawValue, requireSignature: true)
+      else { return nil }
+      return (try? JSONDecoder().decode([SubscriptionGrant].self, from: data)) ?? []
+    }
+    set {
+      if let newValue, let data = try? JSONEncoder().encode(newValue) {
+        signedWrite(data, forKey: Key.subscriptionGrants.rawValue)
+      } else { signedRemove(forKey: Key.subscriptionGrants.rawValue) }
+    }
+  }
+
+  static var subscriptionAccessEnd: Date? {
+    // Do not fall back to legacy flags if a new snapshot exists but is corrupt.
+    if suite.object(forKey: Key.subscriptionGrants.rawValue) != nil {
+      return SubscriptionAccess.endDate(grants: subscriptionGrants ?? [], now: currentDate)
+    }
+    // Old releases saved verified purchase expiration. Honor only its remaining paid time.
+    if subscriptionTier == .premium, let expiration = subscriptionExpirationDate,
+      currentDate < expiration { return expiration }
+    return nil
+  }
+
   static var effectiveSubscriptionTier: SubscriptionTier {
     #if DEBUG
     if let forced = debugForcedTier { return forced }
     #endif
-    let tier = subscriptionTier
-    if tier == .premium { return .premium }
-
-    // Grace period: if subscription expired within the last 16 days, treat as premium
-    if let expiration = subscriptionExpirationDate {
-      let gracePeriod: TimeInterval = 16 * 24 * 60 * 60
-      if Date().timeIntervalSince(expiration) < gracePeriod {
-        return .premium
-      }
-    }
-
-    return .free
+    return subscriptionAccessEnd == nil ? .free : .premium
   }
 
   #if DEBUG

@@ -7,12 +7,6 @@ struct DOFocusButton: View {
   let isBlocking: Bool
   let showStopButton: Bool
   let simpleTapMode: Bool  // when true, start button uses simple tap instead of long press (for tutorial)
-  /// True when there is a co-focus pairing waiting for THIS user's NFC tap
-  /// (phase = .waitingTap, own tap not yet recorded). With this flag the
-  /// stop button's label switches from "停止專注" to "共同專注" so the user
-  /// understands their next tap will start co-focus, not end the session.
-  /// (Bug #8.)
-  let coFocusAwaitingMyTap: Bool
   let onStartTapped: () -> Void
   let onStopTapped: () -> Void
 
@@ -27,9 +21,7 @@ struct DOFocusButton: View {
       if isBlocking {
         if showStopButton {
           focusPillButton(
-            title: coFocusAwaitingMyTap
-              ? String(localized: "共同專注")
-              : String(localized: "停止專注"),
+            title: String(localized: "停止專注"),
             color: themeManager.themeColor,
             action: {
               UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
@@ -141,7 +133,6 @@ struct DOFocusButton: View {
       isBlocking: false,
       showStopButton: true,
       simpleTapMode: false,
-      coFocusAwaitingMyTap: false,
       onStartTapped: {},
       onStopTapped: {}
     )
@@ -150,7 +141,6 @@ struct DOFocusButton: View {
       isBlocking: true,
       showStopButton: true,
       simpleTapMode: false,
-      coFocusAwaitingMyTap: false,
       onStartTapped: {},
       onStopTapped: {}
     )

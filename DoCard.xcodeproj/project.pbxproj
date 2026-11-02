@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		747D3AAD2FAF92CF00FCC5B3 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = CF000002CFCFCF0000000002 /* Supabase */; };
 		74C0179F2F782636001A0A58 /* StoreKitConfig.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 74C0179E2F782635001A0A58 /* StoreKitConfig.storekit */; };
 		8017130B2DE6C78C00B77FE1 /* DeviceActivity.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 80DBF6132CB776D100EEA8A6 /* DeviceActivity.framework */; };
 		801713132DE6C78C00B77FE1 /* DoCardDeviceMonitor.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 8017130A2DE6C78C00B77FE1 /* DoCardDeviceMonitor.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -119,6 +118,10 @@
 				Models/Shared.swift,
 				Utils/AppBlockerUtil.swift,
 				Utils/Entitlements.swift,
+				Models/SubscriptionState.swift,
+				Utils/SubscriptionAccess.swift,
+				Utils/SubscriptionExpiry.swift,
+				Utils/RestrictionPlan.swift,
 				Utils/SuppressionRegistry.swift,
 			);
 			target = 80FF388C2D80DB540032BC5E /* DoCardWidgetExtension */;
@@ -144,8 +147,11 @@
 				Utils/AppBlockerUtil.swift,
 				Utils/DebugLogStore.swift,
 				Utils/Entitlements.swift,
+				Models/SubscriptionState.swift,
+				Utils/SubscriptionAccess.swift,
+				Utils/SubscriptionExpiry.swift,
+				Utils/RestrictionPlan.swift,
 				Utils/KeychainHelper.swift,
-				Utils/MacSync/MacExtensionSyncWriter.swift,
 				Utils/SuppressionRegistry.swift,
 			);
 			target = 801713092DE6C78C00B77FE1 /* DoCardDeviceMonitor */;
@@ -231,7 +237,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				747D3AAD2FAF92CF00FCC5B3 /* Supabase in Frameworks */,
 				803989B32CCC06D600E87F57 /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -357,7 +362,6 @@
 			);
 			name = DoCard;
 			packageProductDependencies = (
-				CF000002CFCFCF0000000002 /* Supabase */,
 			);
 			productName = DoCard;
 			productReference = 801B20952CB363A10073E9E2 /* DoCard.app */;
@@ -493,7 +497,6 @@
 			mainGroup = 801B208C2CB363A10073E9E2;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				CF000001CFCFCF0000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 801B20962CB363A10073E9E2 /* Products */;
@@ -1185,24 +1188,7 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		CF000001CFCFCF0000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/supabase/supabase-swift";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.27.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
 
-/* Begin XCSwiftPackageProductDependency section */
-		CF000002CFCFCF0000000002 /* Supabase */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = CF000001CFCFCF0000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Supabase;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 801B208D2CB363A10073E9E2 /* Project object */;
 }

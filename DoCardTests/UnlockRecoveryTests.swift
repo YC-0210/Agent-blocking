@@ -119,7 +119,7 @@ private final class RecoveryFixture {
           return ManualBlockingStrategy(appBlocker: self.blocker)
         }
         return NFCBlockingStrategy(
-          nfcScanner: self.scanner, appBlocker: self.blocker, divertCardTap: { false })
+          nfcScanner: self.scanner, appBlocker: self.blocker)
       },
       systemEffect: { _ in },
       readEmergencyUses: { [unowned self] in self.emergencyUses },
@@ -127,7 +127,7 @@ private final class RecoveryFixture {
   }
 
   var activity: ScheduleTimerActivity {
-    ScheduleTimerActivity(appBlocker: blocker, systemEffect: { _ in })
+    ScheduleTimerActivity(appBlocker: blocker)
   }
 
   @discardableResult
@@ -156,7 +156,11 @@ final class UnlockRecoveryTests: XCTestCase {
   private func withFixture(_ body: (RecoveryFixture) throws -> Void) throws {
     let fixture = try RecoveryFixture()
     defer { fixture.cleanup() }
-    try SharedData.$runtime.withValue(fixture.runtime) { try body(fixture) }
+    try SharedData.$runtime.withValue(fixture.runtime) {
+      SharedData.subscriptionGrants = [SubscriptionGrant(productID: SubscriptionProduct.monthly,
+        purchasedAt: fixture.date(day: 1, hour: 0), expiresAt: fixture.date(day: 10, hour: 0))]
+      try body(fixture)
+    }
   }
 
   func testU1CardUnlockEndsScheduledSession() throws {

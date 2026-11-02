@@ -16,14 +16,14 @@ final class SettingsLayoutTests: XCTestCase {
   func testLandingCategoriesDefault() {
     XCTAssertEqual(
       SettingsLayout.landingCategories(includeDebug: false),
-      [.account, .card, .notifications, .personalization, .devices, .about],
-      "The landing shows six categories in this order")
+      [.account, .card, .notifications, .personalization, .about],
+      "The landing shows five local categories in this order")
   }
 
   func testLandingCategoriesAppendDebugLast() {
     let categories = SettingsLayout.landingCategories(includeDebug: true)
     XCTAssertEqual(categories.last, .debug, "Debug, when present, is the last category")
-    XCTAssertEqual(categories.count, 7)
+    XCTAssertEqual(categories.count, 6)
   }
 
   // MARK: - Emergency row (landing-level, not a category)
@@ -90,29 +90,6 @@ final class SettingsLayoutTests: XCTestCase {
       SettingsLayout.rows(in: .personalization, cardPaired: false, centerpiece: .tasks),
       [.homeCenterpiece],
       "我的動力 is hidden when 今日目標 is the chosen centerpiece")
-  }
-
-  func testDevicesHasNoSubPageRows() {
-    XCTAssertEqual(
-      SettingsLayout.rows(in: .devices, cardPaired: false),
-      [],
-      "裝置同步 is a direct link, not a hub — it has no sub-page rows (#27)")
-  }
-
-  // MARK: - Direct-link categories (no intermediate sub-page)
-
-  func testDevicesIsADirectLink() {
-    XCTAssertTrue(
-      SettingsLayout.isDirectLink(.devices),
-      "裝置同步 navigates straight to the pairing screen, skipping the old 連動裝置 hub (#27)")
-  }
-
-  func testOtherCategoriesAreNotDirectLinks() {
-    for category in SettingsLayout.landingCategories(includeDebug: true) where category != .devices {
-      XCTAssertFalse(
-        SettingsLayout.isDirectLink(category),
-        "Only 裝置同步 is a direct link; every other category drills into a sub-page")
-    }
   }
 
   func testAboutRows() {

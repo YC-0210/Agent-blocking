@@ -28,7 +28,6 @@ struct PremiumUpgradeView: View {
         FeatureItem(icon: "clock.fill",              title: String(localized: "排程自動化"),          detail: String(localized: "固定時段自動啟動")),
         FeatureItem(icon: "chart.line.uptrend.xyaxis", title: String(localized: "深度 Focus Report"), detail: String(localized: "習慣曲線 & 趨勢")),
         FeatureItem(icon: "star.fill",               title: String(localized: "專注分數 & 週報"),    detail: String(localized: "看見你的成長")),
-        FeatureItem(icon: "laptopcomputer.and.iphone", title: String(localized: "Chrome / Safari 連動"), detail: String(localized: "刷卡時同步封鎖 Chrome / Safari 上的網站")),
     ]
 
     private var selectedProduct: Product? {

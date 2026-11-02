@@ -93,6 +93,7 @@ class BlockedProfileSession {
     endReason: String,
     onSaveError: ((Error) -> Void)? = nil
   ) {
+    guard isActive else { return }
     let hasExistingEndReason = !(self.endReason?.isEmpty ?? true)
     if hasExistingEndReason {
       if self.endReason != endReason {
@@ -217,7 +218,7 @@ class BlockedProfileSession {
       // Delayed active snapshots cannot reopen history. A timer completion must also
       // preserve the user's recorded Emergency Unlock time, not just its reason.
       if existingSession.endTime != nil
-        && (snapshot.endTime == nil || existingSession.endReason == "emergency_unlock")
+        && (snapshot.endTime == nil || (existingSession.endReason == "emergency_unlock" || existingSession.endReason == SubscriptionExpiry.endReason))
       {
         return
       }
@@ -227,8 +228,18 @@ class BlockedProfileSession {
       // App Group UserDefaults can corrupt elapsedTime display when the extension's UserDefaults
       // sync lags behind an Emergency Unlock (the stale snapshot still carries the old startTime).
       existingSession.endTime = snapshot.endTime
-      existingSession.breakStartTime = snapshot.breakStartTime
-      existingSession.breakEndTime = snapshot.breakEndTime
+      if snapshot.endReason == SubscriptionExpiry.endReason {
+        // The schedule slot may lack break facts saved by the app. Expiry must
+        // preserve those facts and close an open break at the actual removal time.
+        existingSession.breakStartTime = existingSession.breakStartTime ?? snapshot.breakStartTime
+        existingSession.breakEndTime = existingSession.breakEndTime ?? snapshot.breakEndTime
+        if existingSession.breakStartTime != nil && existingSession.breakEndTime == nil {
+          existingSession.breakEndTime = snapshot.endTime
+        }
+      } else {
+        existingSession.breakStartTime = snapshot.breakStartTime
+        existingSession.breakEndTime = snapshot.breakEndTime
+      }
       existingSession.forceStarted = snapshot.forceStarted
       existingSession.triggerSource = snapshot.triggerSource
       // Protect emergency_unlock audit trail: once set, it must not be overwritten by a

@@ -52,6 +52,7 @@ class StrategyManager: ObservableObject {
 
   private lazy var timersUtil = TimersUtil()
   private let appBlocker: AppBlockerUtil
+  private let makeNFCScanner: () -> NFCScannerUtil
   private let makeStrategy: (String) -> BlockingStrategy
   private let systemEffect: (() -> Void) -> Void
   private let readEmergencyUses: () -> Int
@@ -60,6 +61,7 @@ class StrategyManager: ObservableObject {
   init(
     appBlocker: AppBlockerUtil = AppBlockerUtil(),
     makeStrategy: ((String) -> BlockingStrategy)? = nil,
+    makeNFCScanner: @escaping () -> NFCScannerUtil = { NFCScannerUtil() },
     systemEffect: @escaping (() -> Void) -> Void = { $0() },
     readEmergencyUses: @escaping () -> Int = {
       KeychainHelper.load("emergencyUnblocksRemaining", defaultValue: 3)
@@ -69,6 +71,7 @@ class StrategyManager: ObservableObject {
     }
   ) {
     self.appBlocker = appBlocker
+    self.makeNFCScanner = makeNFCScanner
     self.makeStrategy = makeStrategy ?? { StrategyManager.getStrategyFromId(id: $0) }
     self.systemEffect = systemEffect
     self.readEmergencyUses = readEmergencyUses
@@ -171,6 +174,10 @@ class StrategyManager: ObservableObject {
   }
 
   func loadActiveSession(context: ModelContext) {
+    guard SharedData.effectiveSubscriptionTier == .premium else {
+      reconcileSubscription(context: context)
+      return
+    }
     let previousSession = activeSession
     activeSession = getActiveSession(context: context)
 
@@ -223,12 +230,6 @@ class StrategyManager: ObservableObject {
             }
             scheduleReminder(profile: session.blockedProfile)
 
-            // Mac sync: extension's notifySessionEnded may not have fired
-            // (extension was killed before delivery). Fire defensively here —
-            // PATCH WHERE state=eq.active is idempotent so a double-send is
-            // harmless. Without this a paired Mac stays blocked until next
-            // foreground reconcile (or forever if reconcile sees stale state).
-            self.systemEffect { MacSessionSyncService.shared.endSession() }
 
             restoreScheduledSessionIfNeeded()
             return
@@ -271,9 +272,6 @@ class StrategyManager: ObservableObject {
             }
             scheduleReminder(profile: session.blockedProfile)
 
-            // Mac sync: extension's notifySessionEnded may have failed or the
-            // PATCH may not have landed. Idempotent — harmless on a clean state.
-            self.systemEffect { MacSessionSyncService.shared.endSession() }
 
             restoreScheduledSessionIfNeeded()
             return
@@ -324,10 +322,6 @@ class StrategyManager: ObservableObject {
 
       if hadPreviouslyActiveSession {
         appBlocker.deactivateRestrictions()
-        // Mac sync: out-of-band session end (extension may have fired
-        // notifySessionEnded already, or may have failed). Fire defensively —
-        // idempotent PATCH on no-active-rows is harmless.
-        self.systemEffect { MacSessionSyncService.shared.endSession() }
         self.systemEffect { evaluateShareEligibility(session: previousSession) }
       }
 
@@ -420,10 +414,11 @@ class StrategyManager: ObservableObject {
   /// Long-press "開始專注" entry point: triggers an NFC scan first, then starts the session
   /// on successful card read. Cancel or error → no session started, no state changed.
   func startSessionWithNFCScan(context: ModelContext, profile: BlockedProfiles) {
+    guard requireSubscriptionAccess() else { return }
     guard !isToggling else { return }
     isToggling = true
 
-    let scanner = NFCScannerUtil()
+    let scanner = makeNFCScanner()
     pendingNFCScanner = scanner  // retain across async NFC session
 
     scanner.onTagScanned = { [weak self] result in
@@ -472,6 +467,7 @@ class StrategyManager: ObservableObject {
   /// Card-image tap entry point: bypasses NFC and starts the session immediately.
   /// triggerSource = "manual" → Focus Score weight = 1.0 (same as physical card tap).
   func forceStartSession(context: ModelContext, profile: BlockedProfiles) {
+    guard requireSubscriptionAccess() else { return }
     guard !isToggling, !isBlocking else { return }
     isToggling = true
 
@@ -489,6 +485,51 @@ class StrategyManager: ObservableObject {
       profile: profile,
       forceStart: true
     )
+  }
+
+  private func requireSubscriptionAccess() -> Bool {
+    guard SubscriptionAccess.permits(.startSession,
+      hasAccess: SharedData.effectiveSubscriptionTier == .premium) else {
+      errorMessage = String(localized: "An active subscription is required.")
+      isToggling = false
+      return false
+    }
+    return true
+  }
+
+  /// Reconcile both stores. Automatic expiry never uses Emergency Unlock quota or
+  /// writes manual-stop suppression, so eligible schedules can resume on renewal.
+  func reconcileSubscription(context: ModelContext) {
+    if SharedData.effectiveSubscriptionTier == .premium {
+      restoreScheduledSessionIfNeeded()
+      return
+    }
+    var hadSession = activeSession?.isActive == true || SharedData.getActiveSharedSession() != nil
+    SubscriptionExpiry.enforce(blocker: appBlocker)
+    syncScheduleSessions(context: context)
+    do {
+      let rows = try context.fetch(FetchDescriptor<BlockedProfileSession>(predicate: #Predicate { $0.endTime == nil }))
+      hadSession = hadSession || !rows.isEmpty
+      for row in rows {
+        row.endTime = SharedData.currentDate
+        row.endReason = SubscriptionExpiry.endReason
+        if row.breakStartTime != nil && row.breakEndTime == nil { row.breakEndTime = row.endTime }
+      }
+      try context.save()
+    } catch { errorMessage = error.localizedDescription }
+    activeSession = nil
+    activeStrategy = nil
+    dismissView()
+    stopTimer()
+    cancelPendingNFCScan()
+    guard hadSession else { return }
+    systemEffect {
+      liveActivityManager.endSessionActivity()
+      timersUtil.cancelAll()
+      DeviceActivityCenterUtil.removeAllBreakTimerActivities()
+      DeviceActivityCenterUtil.removeAllStrategyTimerActivities()
+      WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget")
+    }
   }
 
   func toggleBreak(context: ModelContext) {
@@ -652,6 +693,7 @@ class StrategyManager: ObservableObject {
     context: ModelContext,
     durationInMinutes: Int? = nil
   ) {
+    guard requireSubscriptionAccess() else { return }
     do {
       guard
         let profile = try BlockedProfiles.findProfile(
@@ -779,9 +821,8 @@ class StrategyManager: ObservableObject {
     // stopBlocking. The .ended callback fired inside stopBlocking calls
     // restoreScheduledSessionIfNeeded, which checks this flag to decide
     // whether to re-apply the schedule's shield. If the flag isn't there
-    // yet, restore re-applies the shield AND fires Mac sync startSession —
-    // leaving iOS shield up and Mac extensions blocked until the next
-    // foreground reconcile. (No-op for non-scheduled triggerSource via
+    // yet, restore re-applies the local shield after the user stopped it.
+    // (No-op for non-scheduled triggerSource via
     // internal guard in writeEmergencyUnlockSuppressionFlags.)
     suppressScheduledReblockIfNeeded(for: activeSession)
 
@@ -909,9 +950,6 @@ class StrategyManager: ObservableObject {
         // Refresh widgets when session starts
         self.systemEffect { WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget") }
 
-        // Notify any paired Mac (Chrome Extension) — fire-and-forget; failures
-        // here must never block the iPhone-side Screen Time flow.
-        self.systemEffect { MacSessionSyncService.shared.startSession() }
       case .ended(let endedProfile):
         // Capture before nil-ing so we can evaluate share eligibility on the just-ended session.
         let endedSession = self.activeSession
@@ -926,9 +964,6 @@ class StrategyManager: ObservableObject {
         // Refresh widgets when session ends
         self.systemEffect { WidgetCenter.shared.reloadTimelines(ofKind: "ProfileControlWidget") }
 
-        // Tell paired Mac the session ended; failures are queued for retry so
-        // the user's Mac doesn't stay blocked forever after a network blip.
-        self.systemEffect { MacSessionSyncService.shared.endSession() }
 
         // Remove all break timer activities
         self.systemEffect { DeviceActivityCenterUtil.removeAllBreakTimerActivities() }
@@ -1113,6 +1148,7 @@ class StrategyManager: ObservableObject {
     context: ModelContext,
     activeProfile: BlockedProfiles?
   ) {
+    guard requireSubscriptionAccess() else { return }
     guard let definedProfile = activeProfile else {
       smLogger.warning("No active profile found, calling stop blocking with no session")
       return
@@ -1245,6 +1281,10 @@ class StrategyManager: ObservableObject {
   }
 
   func restoreScheduledSessionIfNeeded() {
+    guard SharedData.effectiveSubscriptionTier == .premium else {
+      SubscriptionExpiry.enforce(blocker: appBlocker)
+      return
+    }
     SuppressionRegistry.cleanupExpired()
 
     guard activeSession == nil else {
@@ -1279,9 +1319,6 @@ class StrategyManager: ObservableObject {
         "branch=existingSharedSession reApply profile=\(profile.name)"
       )
       appBlocker.activateRestrictions(for: profile)
-      // Mac sync: schedule resumed in-app (no extension callback fires here),
-      // so paired Macs need an explicit start signal.
-      self.systemEffect { MacSessionSyncService.shared.startSession() }
       return
     }
 
@@ -1300,8 +1337,6 @@ class StrategyManager: ObservableObject {
       "branch=newWindow reApply profile=\(profile.name)"
     )
     appBlocker.activateRestrictions(for: profile)
-    // Mac sync: same as above — schedule activated in-app, not via extension.
-    self.systemEffect { MacSessionSyncService.shared.startSession() }
   }
 
   private func suppressScheduledReblockIfNeeded(for session: BlockedProfileSession) {

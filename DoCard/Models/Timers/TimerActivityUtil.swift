@@ -5,6 +5,7 @@ private let timerLog = Logger(subsystem: "app.docard.monitor", category: "TimerA
 
 class TimerActivityUtil {
   static func startTimerActivity(for activity: DeviceActivityName) {
+    guard !SubscriptionExpiry.enforce(blocker: AppBlockerUtil()) else { return }
     let parts = getTimerParts(from: activity)
 
     guard let timerActivity = getTimerActivity(for: parts.deviceActivityId) else {
@@ -21,6 +22,7 @@ class TimerActivityUtil {
   }
 
   static func stopTimerActivity(for activity: DeviceActivityName) {
+    guard !SubscriptionExpiry.enforce(blocker: AppBlockerUtil()) else { return }
     let parts = getTimerParts(from: activity)
 
     guard let timerActivity = getTimerActivity(for: parts.deviceActivityId) else {

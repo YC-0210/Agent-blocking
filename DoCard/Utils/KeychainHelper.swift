@@ -14,7 +14,7 @@ struct KeychainHelper {
   private static let serviceName = "com.do-app.security"
 
   /// Shared access group used for tokens that the DeviceActivityMonitor extension
-  /// also needs to read (e.g. macSync.iphoneToken). Both the main app and the
+  /// also needs to read. Both the main app and the
   /// extension target list `$(AppIdentifierPrefix)online.do.card.app.shared` in
   /// their `keychain-access-groups` entitlement; at runtime the prefix resolves
   /// to the team ID, so the literal value here is the same string.

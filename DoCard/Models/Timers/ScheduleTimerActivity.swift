@@ -7,14 +7,11 @@ class ScheduleTimerActivity: TimerActivity {
   static var id: String = "ScheduleTimerActivity"
 
   private let appBlocker: AppBlockerUtil
-  private let systemEffect: (() -> Void) -> Void
 
   init(
-    appBlocker: AppBlockerUtil = AppBlockerUtil(),
-    systemEffect: @escaping (() -> Void) -> Void = { $0() }
+    appBlocker: AppBlockerUtil = AppBlockerUtil()
   ) {
     self.appBlocker = appBlocker
-    self.systemEffect = systemEffect
   }
 
   func getDeviceActivityName(from profileId: String) -> DeviceActivityName {
@@ -87,6 +84,10 @@ class ScheduleTimerActivity: TimerActivity {
   }
 
   func start(for profile: SharedData.ProfileSnapshot) {
+    guard SharedData.effectiveSubscriptionTier == .premium else {
+      SubscriptionExpiry.enforce(blocker: appBlocker)
+      return
+    }
     let profileId = profile.id.uuidString
 
     guard SharedData.isScheduleCurrentlyActiveAndUnsuppressed(profile: profile) else {
@@ -129,12 +130,6 @@ class ScheduleTimerActivity: TimerActivity {
     log.info("Activating restrictions for scheduled profile '\(profileId)' — appTokens: \(appCount), categoryTokens: \(catCount), tier: \(SharedData.effectiveSubscriptionTier.rawValue)")
     appBlocker.activateRestrictions(for: profile)
 
-    // Notify any paired Mac (Chrome Extension) — best-effort. Schedule firings
-    // happen in the DeviceActivityMonitor extension, so we can't reach the
-    // main app's MacSessionSyncService singleton from here. The writer reads
-    // iphone_token from the App Group and POSTs synchronously within the
-    // extension's runtime budget.
-    systemEffect { MacExtensionSyncWriter.notifySessionStarted() }
   }
 
   func stop(for profile: SharedData.ProfileSnapshot) {
@@ -163,11 +158,6 @@ class ScheduleTimerActivity: TimerActivity {
     // End the active scheduled session
     SharedData.endActiveScheduleSharedSession()
 
-    // Tell paired Mac the scheduled session ended. PATCH failures get queued
-    // in the App Group retry queue so the main app's MacSessionSyncService
-    // can resend on next foreground — without this, listening Chromes would
-    // stay blocked indefinitely after a network blip at schedule end.
-    systemEffect { MacExtensionSyncWriter.notifySessionEnded() }
   }
 
   func getScheduleInterval(from schedule: BlockedProfileSchedule, weekday: Weekday) -> (

@@ -20,23 +20,13 @@ class NFCBlockingStrategy: BlockingStrategy {
 
   private let nfcScanner: NFCScannerUtil
   private let appBlocker: AppBlockerUtil
-  private let divertCardTap: () -> Bool
 
   init(
     nfcScanner: NFCScannerUtil = NFCScannerUtil(),
-    appBlocker: AppBlockerUtil = AppBlockerUtil(),
-    divertCardTap: @escaping () -> Bool = {
-      MainActor.assumeIsolated {
-        let manager = CoFocusManager.shared
-        guard manager.shouldDivertNFCTapToCoFocus else { return false }
-        manager.recordCoFocusTapFromNFC()
-        return true
-      }
-    }
+    appBlocker: AppBlockerUtil = AppBlockerUtil()
   ) {
     self.nfcScanner = nfcScanner
     self.appBlocker = appBlocker
-    self.divertCardTap = divertCardTap
   }
 
   func getIdentifier() -> String {
@@ -48,6 +38,11 @@ class NFCBlockingStrategy: BlockingStrategy {
     profile: BlockedProfiles,
     forceStart: Bool?
   ) -> (any View)? {
+    guard SharedData.effectiveSubscriptionTier == .premium else {
+      onErrorMessage?(String(localized: "An active subscription is required."))
+      return nil
+    }
+
     // Start blocking directly without requiring NFC tap
     self.appBlocker.activateRestrictions(for: BlockedProfiles.getSnapshot(for: profile))
 
@@ -77,17 +72,9 @@ class NFCBlockingStrategy: BlockingStrategy {
   ) -> (any View)? {
     nfcScanner.onTagScanned = { [weak self] scannedTag in
       guard let self else { return }
+      guard session.isActive else { return }
 
       self.onCardNameScanned?(scannedTag.cardName)
-
-      // Bug #6 (Co-Focus over Schedule): when a co-focus pairing is awaiting
-      // this user's tap, divert this NFC tap to record a co-focus tap rather
-      // than ending the active session. Schedule continues, apps remain
-      // blocked. The user's tap is interpreted as "start co-focus", not
-      // "end the current session". `NFCScannerUtil` always invokes this
-      // callback via `DispatchQueue.main.async`, so MainActor.assumeIsolated
-      // is safe here and lets us keep the dispatch decision synchronous.
-      if self.divertCardTap() { return }
 
       context.insert(NFCTapEvent(
         action: NFCTapEvent.actionEndBlock,

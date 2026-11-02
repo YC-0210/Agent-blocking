@@ -8,6 +8,11 @@ struct SessionRow: View {
 
   var body: some View {
     VStack(alignment: .leading, spacing: 8) {
+      if session.endReason == SubscriptionExpiry.endReason {
+        Text(String(localized: "Subscription access ended."))
+          .font(.caption)
+          .foregroundStyle(.secondary)
+      }
       HStack(alignment: .firstTextBaseline, spacing: 8) {
         Text(session.formattedDate)
           .font(.headline)

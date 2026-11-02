@@ -1,6 +1,166 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "An active subscription is required.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An active subscription is required."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要有效訂閱才能使用。"
+          }
+        }
+      }
+    },
+    "An active subscription and a selection of at most 50 apps are required.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "An active subscription and a selection of at most 50 apps are required."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要有效訂閱，且最多可選擇 50 個 App。"
+          }
+        }
+      }
+    },
+    "Unable to check subscription. Please try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unable to check subscription. Please try again."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法確認訂閱狀態，請再試一次。"
+          }
+        }
+      }
+    },
+    "Subscription required": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscription required"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要訂閱"
+          }
+        }
+      }
+    },
+    "Subscription access ended.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Subscription access ended."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "訂閱使用權已結束。"
+          }
+        }
+      }
+    },
+    "Stop blocking": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stop blocking"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "停止封鎖"
+          }
+        }
+      }
+    },
+    "Tap card to stop": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap card to stop"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輕觸卡片以停止"
+          }
+        }
+      }
+    },
+    "Redeem subscription offer": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Redeem subscription offer"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "兌換訂閱優惠"
+          }
+        }
+      }
+    },
+    "Manage subscription": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage subscription"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理訂閱"
+          }
+        }
+      }
+    },
+    "Help": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Help"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "協助"
+          }
+        }
+      }
+    },
     "" : {
 
     },
@@ -205,38 +365,6 @@
         }
       }
     },
-    "%@ 已就緒" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ is ready"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 已就緒"
-          }
-        }
-      }
-    },
-    "%@ 已結束共同專注" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ ended the co-focus"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ 已結束共同專注"
-          }
-        }
-      }
-    },
     "%lld" : {
 
     },
@@ -420,22 +548,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld 年"
-          }
-        }
-      }
-    },
-    "%lld 次" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld sessions"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 次"
           }
         }
       }
@@ -706,22 +818,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "10 分鐘"
-          }
-        }
-      }
-    },
-    "10 分鐘內可重複使用，可配對多個瀏覽器或 iPad" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Reusable for 10 minutes — pair multiple browsers or iPads"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "10 分鐘內可重複使用，可配對多個瀏覽器或 iPad"
           }
         }
       }
@@ -1870,86 +1966,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇你的專注，選擇你的未來"
-          }
-        }
-      }
-    },
-    "Chrome / Safari 同步中" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Syncing Chrome / Safari…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chrome / Safari 同步中"
-          }
-        }
-      }
-    },
-    "Chrome / Safari 同步失敗" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chrome / Safari sync failed"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chrome / Safari 同步失敗"
-          }
-        }
-      }
-    },
-    "Chrome / Safari 已連動" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chrome / Safari Connected"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chrome / Safari 已連動"
-          }
-        }
-      }
-    },
-    "Chrome / Safari 連動" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chrome / Safari Sync"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chrome / Safari 連動"
-          }
-        }
-      }
-    },
-    "Chrome / Safari 重試中" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Retrying Chrome / Safari…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chrome / Safari 重試中"
           }
         }
       }
@@ -3632,22 +3648,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "iPhone 和 Mac 都在手邊"
-          }
-        }
-      }
-    },
-    "iPhone 和要連動的 Mac / iPad 都在手邊" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your iPhone and the Mac / iPad you're syncing are both nearby"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "iPhone 和要連動的 Mac / iPad 都在手邊"
           }
         }
       }
@@ -7191,22 +7191,6 @@
         }
       }
     },
-    "了解，來試試" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Got it — let's try"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "了解，來試試"
-          }
-        }
-      }
-    },
     "二" : {
       "localizations" : {
         "en" : {
@@ -7261,48 +7245,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Today's Tasks"
-          }
-        }
-      }
-    },
-    "代碼將在 %d:%02d 後過期" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Code expires in %1$d:%2$02d"
-          }
-        }
-      }
-    },
-    "代碼格式錯誤" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invalid code format"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "代碼格式錯誤"
-          }
-        }
-      }
-    },
-    "代碼產生失敗，請稍後再試" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Failed to generate code. Please try again later."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "代碼產生失敗，請稍後再試"
           }
         }
       }
@@ -7490,22 +7432,6 @@
         }
       }
     },
-    "你的夥伴會在配對畫面看到這個名字。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Your partner will see this name on the pairing screen."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "你的夥伴會在配對畫面看到這個名字。"
-          }
-        }
-      }
-    },
     "你的完成表現已經不錯了" : {
       "localizations" : {
         "en" : {
@@ -7689,22 +7615,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保持設定"
-          }
-        }
-      }
-    },
-    "個人 %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Personal %@"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "個人 %@"
           }
         }
       }
@@ -8063,22 +7973,6 @@
         }
       }
     },
-    "兩個人各自刷卡，才算正式開始" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Both partners must tap to officially begin"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "兩個人各自刷卡，才算正式開始"
-          }
-        }
-      }
-    },
     "兩個人都刷一下 DO Card" : {
       "localizations" : {
         "en" : {
@@ -8107,54 +8001,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "六"
-          }
-        }
-      }
-    },
-    "共同專注" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Co-Focus"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共同專注"
-          }
-        }
-      }
-    },
-    "共同專注中" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Co-Focusing"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共同專注中"
-          }
-        }
-      }
-    },
-    "共同專注怎麼用？" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "How does Co-Focus work?"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "共同專注怎麼用？"
           }
         }
       }
@@ -8331,22 +8177,6 @@
         }
       }
     },
-    "出了一點狀況，請稍後再試" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Something went wrong. Please try again."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "出了一點狀況，請稍後再試"
-          }
-        }
-      }
-    },
     "分享" : {
       "localizations" : {
         "en" : {
@@ -8459,22 +8289,6 @@
         }
       }
     },
-    "刷卡時同步封鎖 Chrome / Safari 上的網站" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Block sites in Chrome / Safari when you tap your card"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刷卡時同步封鎖 Chrome / Safari 上的網站"
-          }
-        }
-      }
-    },
     "刷卡時同步封鎖 Mac (Chrome / Safari) 與 iPad 上的內容" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8492,22 +8306,6 @@
         }
       }
     },
-    "刷卡解鎖即可結束。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap your card to unlock and end."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刷卡解鎖即可結束。"
-          }
-        }
-      }
-    },
     "刷卡開始 session 時，Chrome / Safari 上的分心網站會自動封鎖。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8521,38 +8319,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刷卡開始 session 時，Chrome / Safari 上的分心網站會自動封鎖。"
-          }
-        }
-      }
-    },
-    "刷卡開始 session 時，Chrome / Safari 與 iPad 上的分心內容會自動封鎖。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "When you tap to start a session, distracting content on Chrome / Safari and iPad is blocked automatically."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刷卡開始 session 時，Chrome / Safari 與 iPad 上的分心內容會自動封鎖。"
-          }
-        }
-      }
-    },
-    "刷卡開始共同專注" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap to start co-focus"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刷卡開始共同專注"
           }
         }
       }
@@ -8605,22 +8371,6 @@
         }
       }
     },
-    "剩餘 %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ remaining"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "剩餘 %@"
-          }
-        }
-      }
-    },
     "剩餘次數" : {
       "localizations" : {
         "en" : {
@@ -8633,22 +8383,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "剩餘次數"
-          }
-        }
-      }
-    },
-    "加入" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Join"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加入"
           }
         }
       }
@@ -8769,22 +8503,6 @@
         }
       }
     },
-    "原配對碼將立即失效。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The current code will expire immediately."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "原配對碼將立即失效。"
-          }
-        }
-      }
-    },
     "去放第一張照片" : {
       "localizations" : {
         "en" : {
@@ -8879,38 +8597,6 @@
         }
       }
     },
-    "取消代碼" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel code"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取消代碼"
-          }
-        }
-      }
-    },
-    "取消配對" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cancel pairing"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取消配對"
-          }
-        }
-      }
-    },
     "只有你能控制封鎖設定" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8928,22 +8614,6 @@
         }
       }
     },
-    "可同時連動多個 Chrome / Safari 與 iPad。配對狀態由各裝置端記憶，iPhone 無法逐一查看。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You can sync multiple Chrome / Safari browsers and iPads at once. Each device remembers its own pairing, so the iPhone can't list them individually."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可同時連動多個 Chrome / Safari 與 iPad。配對狀態由各裝置端記憶，iPhone 無法逐一查看。"
-          }
-        }
-      }
-    },
     "可同時連動多個 Chrome / Safari。配對狀態由瀏覽器端記憶，iPhone 無法逐一查看。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8957,22 +8627,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "可同時連動多個 Chrome / Safari。配對狀態由瀏覽器端記憶，iPhone 無法逐一查看。"
-          }
-        }
-      }
-    },
-    "可在其他瀏覽器或 iPad 繼續輸入這組代碼" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter this code on other browsers or iPads too"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "可在其他瀏覽器或 iPad 繼續輸入這組代碼"
           }
         }
       }
@@ -9039,22 +8693,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "名稱"
-          }
-        }
-      }
-    },
-    "告訴夥伴這個代碼" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Share this code with your partner"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "告訴夥伴這個代碼"
           }
         }
       }
@@ -9168,22 +8806,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在 Chrome / Safari 中輸入這組代碼"
-          }
-        }
-      }
-    },
-    "在 Chrome / Safari 或 iPad 中輸入這組代碼" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter this code in Chrome / Safari or on your iPad"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 Chrome / Safari 或 iPad 中輸入這組代碼"
           }
         }
       }
@@ -9955,22 +9577,6 @@
         }
       }
     },
-    "已在 Mac 安裝 Chrome / Safari 擴充功能，或在 iPad 安裝 DO Card App" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Installed the Chrome / Safari extension on your Mac, or the DO Card app on your iPad"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已在 Mac 安裝 Chrome / Safari 擴充功能，或在 iPad 安裝 DO Card App"
-          }
-        }
-      }
-    },
     "已封鎖 %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10111,22 +9717,6 @@
         }
       }
     },
-    "已配對" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paired"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已配對"
-          }
-        }
-      }
-    },
     "已配對 %lld/%lld 張卡片" : {
       "localizations" : {
         "en" : {
@@ -10150,22 +9740,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已配對的 Chrome / Safari 將不再收到刷卡訊號。要徹底清除，請另外在每個瀏覽器 popup 上按「解除配對」。"
-          }
-        }
-      }
-    },
-    "已配對的 Chrome / Safari 與 iPad 將不再收到刷卡訊號。要徹底清除，請另外在每個瀏覽器 popup（或 iPad App）上按「解除配對」。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Paired Chrome / Safari browsers and iPads will stop receiving card-tap signals. To clear them completely, also tap \"Unpair\" in each browser popup (or the iPad app)."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已配對的 Chrome / Safari 與 iPad 將不再收到刷卡訊號。要徹底清除，請另外在每個瀏覽器 popup（或 iPad App）上按「解除配對」。"
           }
         }
       }
@@ -10622,22 +10196,6 @@
         }
       }
     },
-    "打開 Chrome / Safari，或 iPad 上的 DO Card" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Open Chrome / Safari, or DO Card on your iPad"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "打開 Chrome / Safari，或 iPad 上的 DO Card"
-          }
-        }
-      }
-    },
     "打開 Chrome 或 Safari" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10651,38 +10209,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "打開 Chrome 或 Safari"
-          }
-        }
-      }
-    },
-    "找不到代碼或已過期" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Code not found or expired"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "找不到代碼或已過期"
-          }
-        }
-      }
-    },
-    "找不到該配對" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pairing not found"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "找不到該配對"
           }
         }
       }
@@ -11106,22 +10632,6 @@
         }
       }
     },
-    "新增另一個 Chrome / Safari 或 iPad" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Add another Chrome / Safari or iPad"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新增另一個 Chrome / Safari 或 iPad"
-          }
-        }
-      }
-    },
     "新增排程" : {
       "localizations" : {
         "en" : {
@@ -11280,22 +10790,6 @@
         }
       }
     },
-    "暱稱" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nickname"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "暱稱"
-          }
-        }
-      }
-    },
     "更早" : {
       "localizations" : {
         "en" : {
@@ -11430,22 +10924,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本月"
-          }
-        }
-      }
-    },
-    "本月共同專注" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Co-Focus This Month"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本月共同專注"
           }
         }
       }
@@ -11930,22 +11408,6 @@
         }
       }
     },
-    "歷史記錄" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "History"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "歷史記錄"
-          }
-        }
-      }
-    },
     "每天" : {
       "localizations" : {
         "en" : {
@@ -12086,22 +11548,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除所有選擇"
-          }
-        }
-      }
-    },
-    "準備好了，產生代碼" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ready — generate code"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "準備好了，產生代碼"
           }
         }
       }
@@ -12400,38 +11846,6 @@
         }
       }
     },
-    "無法連線，請稍後再試" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connection failed. Please try again later."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無法連線，請稍後再試"
-          }
-        }
-      }
-    },
-    "無法連線到伺服器" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cannot connect to the server"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無法連線到伺服器"
-          }
-        }
-      }
-    },
     "無法驗證購買，請重試" : {
       "localizations" : {
         "en" : {
@@ -12579,22 +11993,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "的專注時間"
-          }
-        }
-      }
-    },
-    "目前已有進行中的配對" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "You already have an active pairing"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "目前已有進行中的配對"
           }
         }
       }
@@ -12935,38 +12333,6 @@
         }
       }
     },
-    "等待夥伴加入" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waiting for partner"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等待夥伴加入"
-          }
-        }
-      }
-    },
-    "等待對方刷卡…" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Waiting for partner to tap…"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "等待對方刷卡…"
-          }
-        }
-      }
-    },
     "管理主畫面的動力照片" : {
       "localizations" : {
         "en" : {
@@ -13032,22 +12398,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "結束"
-          }
-        }
-      }
-    },
-    "結束共同專注" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "End Co-Focus"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "結束共同專注"
           }
         }
       }
@@ -13394,22 +12744,6 @@
         }
       }
     },
-    "與 %@ 共同專注中" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Co-focusing with %@"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "與 %@ 共同專注中"
-          }
-        }
-      }
-    },
     "行動，" : {
       "localizations" : {
         "en" : {
@@ -13422,22 +12756,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "行動，"
-          }
-        }
-      }
-    },
-    "裝置同步" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Device Sync"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "裝置同步"
           }
         }
       }
@@ -13553,54 +12871,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "解鎖查看"
-          }
-        }
-      }
-    },
-    "解除所有" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revoke all"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解除所有"
-          }
-        }
-      }
-    },
-    "解除所有 Chrome / Safari 與 iPad 連動" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revoke all Chrome / Safari and iPad sync"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解除所有 Chrome / Safari 與 iPad 連動"
-          }
-        }
-      }
-    },
-    "解除所有 Chrome / Safari 與 iPad 連動？" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Revoke all Chrome / Safari and iPad sync?"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "解除所有 Chrome / Safari 與 iPad 連動？"
           }
         }
       }
@@ -13768,22 +13038,6 @@
         }
       }
     },
-    "設定你的暱稱" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Set your nickname"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設定你的暱稱"
-          }
-        }
-      }
-    },
     "設定完全由你做主" : {
       "localizations" : {
         "en" : {
@@ -13896,22 +13150,6 @@
         }
       }
     },
-    "請先登入" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please sign in first"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "請先登入"
-          }
-        }
-      }
-    },
     "請先選擇要封鎖的 App，才能開始專注" : {
       "localizations" : {
         "en" : {
@@ -13956,22 +13194,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請將 DO Card 靠近手機..."
-          }
-        }
-      }
-    },
-    "請輸入暱稱" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Please enter a nickname"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "請輸入暱稱"
           }
         }
       }
@@ -14334,38 +13556,6 @@
         }
       }
     },
-    "輸入上方代碼並按「配對」" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter the code above and click \"Pair\""
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "輸入上方代碼並按「配對」"
-          }
-        }
-      }
-    },
-    "輸入代碼" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter Code"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "輸入代碼"
-          }
-        }
-      }
-    },
     "輸入卡片名稱後點擊配對" : {
       "localizations" : {
         "en" : {
@@ -14378,22 +13568,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輸入卡片名稱後點擊配對"
-          }
-        }
-      }
-    },
-    "輸入夥伴的代碼" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter your partner's code"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "輸入夥伴的代碼"
           }
         }
       }
@@ -14426,22 +13600,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "返回"
-          }
-        }
-      }
-    },
-    "返回主頁" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Back to Home"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "返回主頁"
           }
         }
       }
@@ -14638,22 +13796,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連動裝置"
-          }
-        }
-      }
-    },
-    "連接前先確認" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Things to check before you connect"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "連接前先確認"
           }
         }
       }
@@ -14937,22 +14079,6 @@
         }
       }
     },
-    "還沒安裝？Chrome 在「Chrome 線上應用程式商店」、Safari 在 Mac App Store、iPad 在 App Store 搜尋「Do Card」即可找到。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Not installed yet? Search \"Do Card\" in the Chrome Web Store (Chrome), the Mac App Store (Safari), or the App Store (iPad)."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "還沒安裝？Chrome 在「Chrome 線上應用程式商店」、Safari 在 Mac App Store、iPad 在 App Store 搜尋「Do Card」即可找到。"
-          }
-        }
-      }
-    },
     "還沒安裝擴充功能？Chrome 在「Chrome 線上應用程式商店」、Safari 在 Mac App Store 搜尋「Do Card」即可找到。" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -14966,22 +14092,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "還沒安裝擴充功能？Chrome 在「Chrome 線上應用程式商店」、Safari 在 Mac App Store 搜尋「Do Card」即可找到。"
-          }
-        }
-      }
-    },
-    "還沒有共同專注的記錄。把代碼分享給朋友，一起做就對了。" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No co-focus history yet. Share your code with a friend — Just DO !"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "還沒有共同專注的記錄。把代碼分享給朋友，一起做就對了。"
           }
         }
       }
@@ -15018,22 +14128,6 @@
         }
       }
     },
-    "配對碼已過期，請重新產生" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pairing code expired — please regenerate"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "配對碼已過期，請重新產生"
-          }
-        }
-      }
-    },
     "重新命名 DO Card" : {
       "localizations" : {
         "en" : {
@@ -15046,54 +14140,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新命名 DO Card"
-          }
-        }
-      }
-    },
-    "重新產生" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Regenerate"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新產生"
-          }
-        }
-      }
-    },
-    "重新產生配對碼" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Regenerate pairing code"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新產生配對碼"
-          }
-        }
-      }
-    },
-    "重新產生配對碼？" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Regenerate pairing code?"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "重新產生配對碼？"
           }
         }
       }
@@ -15646,22 +14692,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "點擊此處來開始你的旅程"
-          }
-        }
-      }
-    },
-    "點擊瀏覽器擴充功能圖示，或 iPad App 的連動頁面" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tap the browser extension icon, or the sync page in the iPad app"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "點擊瀏覽器擴充功能圖示，或 iPad App 的連動頁面"
           }
         }
       }
