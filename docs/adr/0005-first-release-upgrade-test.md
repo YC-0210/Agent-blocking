@@ -1,6 +1,6 @@
 # 0005 — Read a source-generated first-release store through the production opener
 
-Status: implemented; CI integration pending hosted verification. 2026-11-02.
+Status: implemented, awaiting review. 2026-11-02.
 
 ## Decision
 
