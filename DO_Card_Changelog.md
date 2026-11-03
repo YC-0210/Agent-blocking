@@ -1,3 +1,44 @@
+# 2026-11-03 — isolated onboarding capture and PostHog delivery
+
+User authorized implementation while keeping the retention worktree untouched.
+OnboardingJournal saves drafts, immutable confirmed revisions and an outbox in one
+atomic, protected App Group file. OnboardingTracking restores answers after app
+restart, uses AnalyticsIdentity.installID, records start/question/setup/submit/final
+completion events, and drains in the foreground. OnboardingPostHogUploader sends
+allowlisted anonymous batch events with original timestamps, stable retry UUIDs,
+recognized receipts, persistent backoff and destination-specific checkpoints.
+No upload is allowed before the existing analytics disclosure. Plain visual-preview
+mode is still memory-only; a separate explicit simulator fixture flag marks test data.
+
+Architecture choice: the retention transport/config is private and uncommitted in the
+other session. Do not import/copy or edit those files now. Use the same public batch
+contract and configuration keys in a small onboarding adapter, leaving consolidation
+until integration. No second SDK or identity is introduced. The event-based entry SQL
+freezes the latest complete pre-session answer; later answers cannot rewrite it.
+
+Changed in this branch: OnboardingView, one onboarding startup call in DoCardApp,
+three new Onboarding analytics files, OnboardingTrackingTests, integration/proof SQL,
+a synthetic Swift proof runner and docs. Not changed: shared identity/consent files,
+retention code, shared config/Info.plist/project/CI files, models/migrations, permissions,
+NFC, emergency unlock, subscription logic, or any other worktree's source.
+
+Validation: 17 native iOS unit tests passed with 0 failures. Debug/ad-hoc-signed and
+Release simulator builds reported BUILD SUCCEEDED. A real UI driver verified custom
+answers and restore after terminating/relaunching the process (no duplicate unchanged
+submission). Direct iOS-to-PostHog validation verified five screen-generated synthetic
+events, matching install ID/arrays/custom answers. A separate live Swift fixture used
+the exact retention calculator/builder read-only: 21 rows/21 unique UUIDs, including 15
+onboarding and 6 retention records. Entry-label SQL returned expected study/exam/other,
+work and unknown groups; period-1 test rates matched 1/1, 1/1, 1/1, 0/1 and 1/1.
+All live records are marked development/is_synthetic. A temporary simulator disclosure
+fixture was restored after the direct delivery check. No production deployment or
+physical-device qualification is claimed. Production configuration stays owned by the
+other branch and must be integrated before normal Release delivery becomes enabled.
+
+Details and reproducible checks: docs/analytics/onboarding-tracking.md.
+
+---
+
 # 2026-11-03 — onboarding prototype review revision
 
 User review requested shorter options, writable “其他”, no phone-time subtitle,

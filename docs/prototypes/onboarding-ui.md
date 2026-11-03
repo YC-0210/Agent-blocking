@@ -20,10 +20,10 @@ The daily-time screen has no instruction subtitle and uses an explicit Continue
 button instead of auto-advancing. Habit options are short single-clause phrases.
 Selecting “其他” on either multi-select question opens a free-text field and
 requires a nonblank answer before continuing. Custom answers survive navigation
-and deselection/reselection in memory, but reset when the flow is recreated.
-All questionnaire answers stay in OnboardingView memory, survive back navigation,
-and reset when the flow is recreated. No questionnaire persistence, analytics events,
-PostHog SDK, keys, retention code, schema changes, or upload integration is added.
+and deselection/reselection. The plain visual-preview launch flag remains memory-only.
+The user subsequently authorized persisted onboarding capture and PostHog delivery;
+see [the tracking implementation](../analytics/onboarding-tracking.md) for that behavior.
+No SDK, retention code or SwiftData schema change is added.
 
 ## Review from the beginning
 
@@ -54,13 +54,13 @@ this mode is for a disposable simulator, not a production onboarding bypass.
 
 ## Integration boundary
 
-The other session owns PostHog, identity linkage, persistence, and delivery. Future
-integration should attach to the stable purpose/habit IDs and should preserve the
-in-memory back-navigation behavior. Do not merge this prototype until UI review.
-DoCardApp.swift contains the small simulator-only entry hook; it may need manual
-reconciliation with the other session's startup changes. Product session/locking,
-emergency unlock, Family Controls authorization, NFC, models, and subscriptions
-are not changed by this prototype.
+The other session owns retention delivery and the shared build configuration. This
+branch now owns the onboarding journal/events and a separate batch adapter, using the
+same installation ID/configuration/consent contracts. The other worktree's files remain
+untouched. See ../analytics/onboarding-tracking.md for the integration boundary.
+DoCardApp.swift contains the simulator-only review hook and one onboarding tracking
+startup call; reconcile those with the other branch at merge time. Product locking,
+emergency unlock, authorization, NFC, models and subscription logic remain unchanged.
 
 ## Validation
 

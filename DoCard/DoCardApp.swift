@@ -137,6 +137,7 @@ struct DoCardApp: App {
       .environmentObject(subscriptionManager)
       .environmentObject(whatsNewManager)
       .task {
+        OnboardingTracking.shared.start()
         guard !isOnboardingUIPrototype else { return }
         await subscriptionManager.checkCurrentEntitlements()
         reconcileSubscription()

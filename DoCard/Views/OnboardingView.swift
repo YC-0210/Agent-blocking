@@ -13,8 +13,24 @@ struct OnboardingView: View {
   @State private var habitOtherText = ""
   @State private var selectedPhoneTime: String?
   @State private var navigatingBack = false
+  @State private var restoredAnswers = false
 
   private let totalPages = 12
+
+  private var phoneTimeOptions: [(id: String, label: String)] {
+    [
+      ("under_1h", String(localized: "1 小時以內")), ("2_3h", String(localized: "2 - 3 小時")),
+      ("4_5h", String(localized: "4 - 5 小時")), ("6_7h", String(localized: "6 - 7 小時")),
+      ("8h_plus", String(localized: "8 小時以上")),
+    ]
+  }
+
+  private var draftAnswers: OnboardingAnswers {
+    OnboardingAnswers(
+      purposes: selectedPurposes, habits: selectedHabits,
+      purposeOtherText: purposeOtherText, habitOtherText: habitOtherText,
+      dailyPhoneTime: phoneTimeOptions.first { $0.label == selectedPhoneTime }?.id)
+  }
 
   /// Direction-aware transition: slides from left when going back, from right when going forward
   private var pageTransition: AnyTransition {
@@ -69,7 +85,7 @@ struct OnboardingView: View {
             totalSteps: 3,
             selectedIds: $selectedPurposes,
             otherText: $purposeOtherText,
-            onContinue: { _ in nextPage() }
+            onContinue: { _ in confirmQuestion("purposes") }
           )
           .id("purposes")
           .transition(pageTransition)
@@ -101,24 +117,18 @@ struct OnboardingView: View {
             totalSteps: 3,
             selectedIds: $selectedHabits,
             otherText: $habitOtherText,
-            onContinue: { _ in nextPage() }
+            onContinue: { _ in confirmQuestion("habits") }
           )
           .id("habits")
           .transition(pageTransition)
         case 6:
           OnboardingSurveyPage(
             question: String(localized: "你每天花多少時間\n在手機上？"),
-            options: [
-              String(localized: "1 小時以內"),
-              String(localized: "2 - 3 小時"),
-              String(localized: "4 - 5 小時"),
-              String(localized: "6 - 7 小時"),
-              String(localized: "8 小時以上"),
-            ],
+            options: phoneTimeOptions.map(\.label),
             currentStep: 3,
             totalSteps: 3,
             selectedOption: $selectedPhoneTime,
-            onOptionSelected: { _ in nextPage() }
+            onOptionSelected: { _ in confirmQuestion("daily_phone_time") }
           )
           .transition(pageTransition)
         case 7:
@@ -145,7 +155,7 @@ struct OnboardingView: View {
         case 11:
           OnboardingPromoPage(
             onComplete: {
-              onboardingManager.completeOnboarding()
+              finishOnboarding()
             }
           )
           .transition(pageTransition)
@@ -177,14 +187,42 @@ struct OnboardingView: View {
         .animation(.easeInOut(duration: 0.3), value: currentPage)
       }
     }
+    .onAppear {
+      guard !restoredAnswers else { return }
+      if let saved = OnboardingTracking.shared.restore() {
+        selectedPurposes = saved.purposes
+        selectedHabits = saved.habits
+        purposeOtherText = saved.purposeOtherText
+        habitOtherText = saved.habitOtherText
+        selectedPhoneTime = phoneTimeOptions.first { $0.id == saved.dailyPhoneTime }?.label
+      }
+      restoredAnswers = true
+    }
+    .onChange(of: draftAnswers) { _, answers in
+      if restoredAnswers { OnboardingTracking.shared.saveDraft(answers) }
+    }
+  }
+
+  private func confirmQuestion(_ question: String) {
+    OnboardingTracking.shared.confirm(question, answers: draftAnswers)
+    nextPage()
+  }
+
+  private func finishOnboarding() {
+    OnboardingTracking.shared.completeStep("offer")
+    OnboardingTracking.shared.complete()
+    onboardingManager.completeOnboarding()
   }
 
   private func nextPage() {
+    let setupSteps = [0: "welcome", 1: "intro_feeling", 2: "intro_context", 3: "card_introduction",
+                      7: "permissions", 8: "app_selection", 9: "card_pairing", 10: "gallery"]
+    if let step = setupSteps[currentPage] { OnboardingTracking.shared.completeStep(step) }
     navigatingBack = false
     if currentPage < totalPages - 1 {
       currentPage += 1
     } else {
-      onboardingManager.completeOnboarding()
+      finishOnboarding()
     }
   }
 
