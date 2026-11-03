@@ -1,3 +1,29 @@
+# 2026-11-03 — onboarding prototype review revision
+
+User review requested shorter options, writable “其他”, no phone-time subtitle,
+and removal of lifetime-loss calculations. Habit labels are now six short
+single-clause options. Both multi-select pages show a free-text field when “其他”
+is selected; nonblank text is required, retained in parent-owned memory across
+back/forward navigation, and not uploaded. The calculation, good/bad-news
+interstitial and lifetime-loss/recovery screens are removed from this flow;
+phone time now leads directly to the existing permissions screen. The years
+mapping is removed and the flow contains 12 screens. Unused legacy page files
+are left intact rather than changing project structure during this prototype.
+
+Changed: OnboardingView.swift, OnboardingMultiSelectPage.swift,
+OnboardingSurveyPage.swift, prototype docs and this changelog. No app startup,
+PostHog/identity/upload, session/locking, model/migration, authorization, emergency
+unlock, NFC or subscription code changed in this revision.
+
+Validation: Debug simulator BUILD SUCCEEDED. External temporary UI walkthrough
+passed with 0 failures (41.568 s): two custom text inputs, blank-answer gating,
+selection and typed-answer retention after back/forward, no phone-time subtitle,
+and direct arrival at the permission screen. Native screenshots captured under
+outputs/onboarding-native-revision in the review workspace. No physical-device
+or release qualification claimed; no product test files added.
+
+---
+
 # 2026-11-03 — isolated onboarding UI prototype
 
 Branch: `codex/onboarding-ui-prototype`, based on `392fe9e`. Selected design A

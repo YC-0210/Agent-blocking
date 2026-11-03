@@ -7,25 +7,14 @@ struct OnboardingView: View {
   @Environment(\.modelContext) private var modelContext
 
   @State private var currentPage: Int = 0
-  @State private var screenTimeYears: Int = 16  // default fallback
   @State private var selectedPurposes: Set<String> = []
   @State private var selectedHabits: Set<String> = []
+  @State private var purposeOtherText = ""
+  @State private var habitOtherText = ""
   @State private var selectedPhoneTime: String?
   @State private var navigatingBack = false
 
-  // Screen time option → projected years mapping
-  private var screenTimeMapping: [String: Int] {
-    [
-      String(localized: "1 小時以內"): 3,
-      String(localized: "2 - 3 小時"): 10,
-      String(localized: "4 - 5 小時"): 16,
-      String(localized: "6 - 7 小時"): 20,
-      String(localized: "8 小時以上"): 26,
-    ]
-  }
-
-  // Total pages — will grow as more pages are added
-  private let totalPages = 16
+  private let totalPages = 12
 
   /// Direction-aware transition: slides from left when going back, from right when going forward
   private var pageTransition: AnyTransition {
@@ -79,6 +68,7 @@ struct OnboardingView: View {
             currentStep: 1,
             totalSteps: 3,
             selectedIds: $selectedPurposes,
+            otherText: $purposeOtherText,
             onContinue: { _ in nextPage() }
           )
           .id("purposes")
@@ -89,27 +79,28 @@ struct OnboardingView: View {
             options: [
               .init(
                 id: "automatic_checking", emoji: "📱",
-                text: String(localized: "沒特別要看什麼，也會習慣性打開手機")),
+                text: String(localized: "習慣性地打開手機")),
               .init(
                 id: "boredom", emoji: "⏳",
-                text: String(localized: "一覺得無聊，或有空檔，就想滑手機")),
+                text: String(localized: "無聊時就想滑手機")),
               .init(
                 id: "task_avoidance", emoji: "📋",
-                text: String(localized: "不想面對手上的事，先滑手機再說")),
+                text: String(localized: "不想做事時就滑手機")),
               .init(
                 id: "emotional_relief", emoji: "☁️",
-                text: String(localized: "心情煩悶或有壓力時，想靠滑手機放鬆")),
+                text: String(localized: "靠滑手機紓解壓力")),
               .init(
                 id: "notification_cue", emoji: "🔔",
-                text: String(localized: "看到通知，就忍不住打開手機查看")),
+                text: String(localized: "看到通知就想查看")),
               .init(
                 id: "lost_time_awareness", emoji: "🌀",
-                text: String(localized: "原本只想看一下，回過神已經滑了很久")),
+                text: String(localized: "不知不覺滑了很久")),
               .init(id: "other", emoji: "＋", text: String(localized: "其他")),
             ],
             currentStep: 2,
             totalSteps: 3,
             selectedIds: $selectedHabits,
+            otherText: $habitOtherText,
             onContinue: { _ in nextPage() }
           )
           .id("habits")
@@ -127,39 +118,13 @@ struct OnboardingView: View {
             currentStep: 3,
             totalSteps: 3,
             selectedOption: $selectedPhoneTime,
-            onOptionSelected: { option in
-              screenTimeYears = screenTimeMapping[option] ?? 16
-              nextPage()
-            }
+            onOptionSelected: { _ in nextPage() }
           )
           .transition(pageTransition)
         case 7:
-          OnboardingCalculatingPage(
-            onComplete: { nextPage() }
-          )
-          .transition(pageTransition)
-        case 8:
-          OnboardingStatementPage(
-            text: String(localized: "有一個壞消息\n跟一個好消息"),
-            onContinue: { nextPage() }
-          )
-          .transition(pageTransition)
-        case 9:
-          OnboardingBadNewsPage(
-            targetYears: screenTimeYears,
-            onContinue: { nextPage() }
-          )
-          .transition(pageTransition)
-        case 10:
-          OnboardingGoodNewsPage(
-            targetYears: screenTimeYears,
-            onContinue: { nextPage() }
-          )
-          .transition(pageTransition)
-        case 11:
           OnboardingPermissionPage(onContinue: { nextPage() })
             .transition(pageTransition)
-        case 12:
+        case 8:
           OnboardingDistractionAppsPage(
             onContinue: { selection in
               handleDistractionSelection(selection)
@@ -167,17 +132,17 @@ struct OnboardingView: View {
             }
           )
           .transition(pageTransition)
-        case 13:
+        case 9:
           OnboardingDOCardPairingPage(
             onContinue: { nextPage() }
           )
           .transition(pageTransition)
-        case 14:
+        case 10:
           OnboardingPhotoGalleryPage(
             onContinue: { nextPage() }
           )
           .transition(pageTransition)
-        case 15:
+        case 11:
           OnboardingPromoPage(
             onComplete: {
               onboardingManager.completeOnboarding()

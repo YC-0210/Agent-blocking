@@ -9,13 +9,18 @@ Variant A: existing dark stacked list, orange selection outline, visible checkbo
 
 Welcome → existing statements → card introduction → purposes (multiple selection)
 → scrolling habits (multiple selection) → daily phone time (single selection)
-→ existing calculation and summary → permission → app selection → card pairing
+→ permission → app selection → card pairing
 → gallery → offer.
 
-Purposes replace the old age question. Daily-time choices and the existing years
-mapping remain unchanged. Question progress now uses three steps. Both multi-select
+Purposes replace the old age question. Daily-time choices remain unchanged. The
+calculation, good/bad-news interstitial, lifetime-loss and time-recovery screens
+are removed from the flow, including their years mapping. Question progress now uses three steps. Both multi-select
 questions require at least one choice; “其他” can coexist with other choices.
-The daily-time screen uses an explicit Continue button instead of auto-advancing.
+The daily-time screen has no instruction subtitle and uses an explicit Continue
+button instead of auto-advancing. Habit options are short single-clause phrases.
+Selecting “其他” on either multi-select question opens a free-text field and
+requires a nonblank answer before continuing. Custom answers survive navigation
+and deselection/reselection in memory, but reset when the flow is recreated.
 All questionnaire answers stay in OnboardingView memory, survive back navigation,
 and reset when the flow is recreated. No questionnaire persistence, analytics events,
 PostHog SDK, keys, retention code, schema changes, or upload integration is added.

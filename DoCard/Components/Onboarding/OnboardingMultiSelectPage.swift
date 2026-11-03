@@ -14,8 +14,16 @@ struct OnboardingMultiSelectPage: View {
   let currentStep: Int
   let totalSteps: Int
   @Binding var selectedIds: Set<String>
+  @Binding var otherText: String
   let onContinue: ([String]) -> Void
   @State private var showContent = false
+  @FocusState private var isOtherFocused: Bool
+
+  private var canContinue: Bool {
+    !selectedIds.isEmpty
+      && (!selectedIds.contains("other")
+        || !otherText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+  }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -64,8 +72,10 @@ struct OnboardingMultiSelectPage: View {
               withAnimation(.easeOut(duration: 0.15)) {
                 if isSelected {
                   selectedIds.remove(option.id)
+                  if option.id == "other" { isOtherFocused = false }
                 } else {
                   selectedIds.insert(option.id)
+                  if option.id == "other" { isOtherFocused = true }
                 }
               }
             } label: {
@@ -111,16 +121,34 @@ struct OnboardingMultiSelectPage: View {
             .accessibilityValue(isSelected ? String(localized: "已選擇") : String(localized: "未選擇"))
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
           }
+          if selectedIds.contains("other") {
+            TextField(String(localized: "請輸入你的答案"), text: $otherText)
+              .font(.system(size: 16))
+              .foregroundColor(.white)
+              .padding(16)
+              .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+              .overlay(
+                RoundedRectangle(cornerRadius: 12).stroke(themeManager.themeColor, lineWidth: 1)
+              )
+              .focused($isOtherFocused)
+              .submitLabel(.done)
+              .onSubmit { isOtherFocused = false }
+              .accessibilityIdentifier("onboarding.otherText")
+          }
         }
         .padding(.horizontal, 24)
         .padding(.top, 24)
+        .padding(.bottom, 8)
       }
+      .scrollDismissesKeyboard(.interactively)
       .opacity(showContent ? 1.0 : 0)
       .offset(y: showContent ? 0 : 15)
 
       Text(
         selectedIds.isEmpty
-          ? String(localized: "請選擇至少一項") : String(localized: "已選 \(selectedIds.count) 項")
+          ? String(localized: "請選擇至少一項")
+          : (!canContinue
+            ? String(localized: "請填寫其他答案") : String(localized: "已選 \(selectedIds.count) 項"))
       )
       .font(.system(size: 12))
       .foregroundColor(.white.opacity(0.6))
@@ -128,6 +156,7 @@ struct OnboardingMultiSelectPage: View {
 
       // "繼續" button
       Button {
+        isOtherFocused = false
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         let selected = options.filter { selectedIds.contains($0.id) }.map(\.id)
         onContinue(selected)
@@ -139,10 +168,10 @@ struct OnboardingMultiSelectPage: View {
           .frame(height: 58)
           .background(
             Capsule()
-              .fill(selectedIds.isEmpty ? Color.white.opacity(0.3) : Color.white)
+              .fill(canContinue ? Color.white : Color.white.opacity(0.3))
           )
       }
-      .disabled(selectedIds.isEmpty)
+      .disabled(!canContinue)
       .padding(.horizontal, 24)
       .padding(.bottom, 30)
       .padding(.top, 12)
@@ -173,6 +202,7 @@ struct OnboardingMultiSelectPage: View {
       currentStep: 2,
       totalSteps: 3,
       selectedIds: .constant([]),
+      otherText: .constant(""),
       onContinue: { _ in }
     )
   }

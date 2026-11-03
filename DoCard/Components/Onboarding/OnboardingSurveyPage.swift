@@ -46,11 +46,6 @@ struct OnboardingSurveyPage: View {
         .opacity(showContent ? 1.0 : 0)
         .offset(y: showContent ? 0 : 10)
 
-      Text(String(localized: "單選，依照你平常的使用情況估計。"))
-        .font(.system(size: 13))
-        .foregroundColor(.white.opacity(0.6))
-        .padding(.top, 10)
-
       // Keep the choices scrollable on smaller phones.
       ScrollView(showsIndicators: false) {
         VStack(spacing: 14) {
