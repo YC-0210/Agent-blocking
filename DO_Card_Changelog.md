@@ -1,3 +1,36 @@
+# 2026-11-03 — isolated onboarding UI prototype
+
+Branch: `codex/onboarding-ui-prototype`, based on `392fe9e`. Selected design A
+from the standalone prototype. This is UI review work, not a release or a PostHog
+integration. See `docs/prototypes/onboarding-ui.md` for rationale and launch steps.
+
+Changes: replace age with purposes; order purposes → habits → daily phone time;
+use the user-approved Chinese questions/options; allow multiple purpose/habit
+choices with checkboxes and count; preserve answers in parent-owned in-memory
+state when navigating back; keep daily-time choices but require explicit Continue;
+use stable purpose/habit IDs; wrap and scroll long options. Rejected for this
+review: adding persistent profiles/identity or sending questionnaire data to PostHog.
+
+Files changed: OnboardingView.swift, OnboardingMultiSelectPage.swift,
+OnboardingSurveyPage.swift, plus a DEBUG simulator-only launch hook in DoCardApp.swift,
+a prototype launcher, this changelog, and prototype documentation. The hook starts
+at welcome without changing completed-state defaults or the device/Release entry gate.
+
+Files not changed: analytics/upload clients, identity, retention code, models,
+schemas/migrations, RequestAuthorization, Emergency Unlock, NFC, session/locking
+logic, subscription implementation, and the other session's dirty worktree.
+
+Validation: Debug simulator build reported BUILD SUCCEEDED. An external temporary
+XCTest UI driver walked the real intro, purpose, habit, phone-time and summary
+screens: 1 walkthrough, 0 failures (43.468 s). It checked empty-answer gating,
+multiple selection, deselection, selection retention after back/forward, scrolling,
+and explicit Continue for phone time. Native screenshots were captured. Git diff
+whitespace check and launcher shell syntax passed. No test files were added to the
+product. No physical-device, Release, permission/NFC pairing or release qualification
+is claimed. This remains a throwaway branch for user review.
+
+---
+
 # DO Card — local change entry, 2026-11-02
 
 This file records the current local implementation. It is not a replacement for the

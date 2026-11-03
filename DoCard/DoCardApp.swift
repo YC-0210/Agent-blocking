@@ -94,10 +94,21 @@ struct DoCardApp: App {
     )
   }
 
+  // Throwaway UI review only: this flag cannot bypass access in device or Release builds.
+  private var isOnboardingUIPrototype: Bool {
+    #if DEBUG && targetEnvironment(simulator)
+      ProcessInfo.processInfo.arguments.contains("--onboarding-ui-prototype")
+    #else
+      false
+    #endif
+  }
+
   var body: some Scene {
     WindowGroup {
       Group {
-        if !subscriptionManager.permits(.otherFeature) {
+        if isOnboardingUIPrototype {
+          OnboardingView()
+        } else if !subscriptionManager.permits(.otherFeature) {
           SubscriptionRequiredView()
         } else if onboardingManager.shouldShowOnboarding {
           OnboardingView()
@@ -126,15 +137,18 @@ struct DoCardApp: App {
       .environmentObject(subscriptionManager)
       .environmentObject(whatsNewManager)
       .task {
+        guard !isOnboardingUIPrototype else { return }
         await subscriptionManager.checkCurrentEntitlements()
         reconcileSubscription()
       }
-      .onChange(of: subscriptionManager.accessRevision) { _, _ in reconcileSubscription() }
+      .onChange(of: subscriptionManager.accessRevision) { _, _ in
+        if !isOnboardingUIPrototype { reconcileSubscription() }
+      }
       .onChange(of: requestAuthorizer.isAuthorized) { _, authorized in
         if authorized { subscriptionManager.refreshLocalAccess() }
       }
       .onChange(of: scenePhase) { _, phase in
-        guard phase == .active else { return }
+        guard phase == .active, !isOnboardingUIPrototype else { return }
         subscriptionManager.refreshLocalAccess()
         reconcileSubscription()
         Task { await subscriptionManager.checkCurrentEntitlements() }

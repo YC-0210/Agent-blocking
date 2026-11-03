@@ -8,7 +8,9 @@ struct OnboardingView: View {
 
   @State private var currentPage: Int = 0
   @State private var screenTimeYears: Int = 16  // default fallback
-  @State private var userAge: Int = 22  // default fallback
+  @State private var selectedPurposes: Set<String> = []
+  @State private var selectedHabits: Set<String> = []
+  @State private var selectedPhoneTime: String?
   @State private var navigatingBack = false
 
   // Screen time option → projected years mapping
@@ -63,6 +65,56 @@ struct OnboardingView: View {
           )
           .transition(pageTransition)
         case 4:
+          OnboardingMultiSelectPage(
+            question: String(localized: "你想用 DO Card，\n為哪些事留出時間呢？"),
+            options: [
+              .init(id: "study", emoji: "📚", text: String(localized: "讀書")),
+              .init(id: "major_exam", emoji: "✍️", text: String(localized: "準備大考")),
+              .init(id: "work_tasks", emoji: "💻", text: String(localized: "工作與完成任務")),
+              .init(id: "bedtime_rest", emoji: "🌙", text: String(localized: "睡前休息")),
+              .init(id: "family_friends", emoji: "💬", text: String(localized: "陪伴家人與朋友")),
+              .init(id: "personal_projects", emoji: "🎯", text: String(localized: "興趣與個人計畫")),
+              .init(id: "other", emoji: "＋", text: String(localized: "其他")),
+            ],
+            currentStep: 1,
+            totalSteps: 3,
+            selectedIds: $selectedPurposes,
+            onContinue: { _ in nextPage() }
+          )
+          .id("purposes")
+          .transition(pageTransition)
+        case 5:
+          OnboardingMultiSelectPage(
+            question: String(localized: "哪個符合你滑手機的經驗呢"),
+            options: [
+              .init(
+                id: "automatic_checking", emoji: "📱",
+                text: String(localized: "沒特別要看什麼，也會習慣性打開手機")),
+              .init(
+                id: "boredom", emoji: "⏳",
+                text: String(localized: "一覺得無聊，或有空檔，就想滑手機")),
+              .init(
+                id: "task_avoidance", emoji: "📋",
+                text: String(localized: "不想面對手上的事，先滑手機再說")),
+              .init(
+                id: "emotional_relief", emoji: "☁️",
+                text: String(localized: "心情煩悶或有壓力時，想靠滑手機放鬆")),
+              .init(
+                id: "notification_cue", emoji: "🔔",
+                text: String(localized: "看到通知，就忍不住打開手機查看")),
+              .init(
+                id: "lost_time_awareness", emoji: "🌀",
+                text: String(localized: "原本只想看一下，回過神已經滑了很久")),
+              .init(id: "other", emoji: "＋", text: String(localized: "其他")),
+            ],
+            currentStep: 2,
+            totalSteps: 3,
+            selectedIds: $selectedHabits,
+            onContinue: { _ in nextPage() }
+          )
+          .id("habits")
+          .transition(pageTransition)
+        case 6:
           OnboardingSurveyPage(
             question: String(localized: "你每天花多少時間\n在手機上？"),
             options: [
@@ -72,38 +124,11 @@ struct OnboardingView: View {
               String(localized: "6 - 7 小時"),
               String(localized: "8 小時以上"),
             ],
-            currentStep: 1,
-            totalSteps: 5,
+            currentStep: 3,
+            totalSteps: 3,
+            selectedOption: $selectedPhoneTime,
             onOptionSelected: { option in
               screenTimeYears = screenTimeMapping[option] ?? 16
-              nextPage()
-            }
-          )
-          .transition(pageTransition)
-        case 5:
-          OnboardingMultiSelectPage(
-            question: String(localized: "你想改變哪些習慣？"),
-            options: [
-              .init(emoji: "😩", text: String(localized: "無意識滑手機")),
-              .init(emoji: "🛏️", text: String(localized: "睡前滑手機")),
-              .init(emoji: "🌅", text: String(localized: "早上起床就看手機")),
-              .init(emoji: "💻", text: String(localized: "工作時被手機分心")),
-              .init(emoji: "😰", text: String(localized: "想做的事一直被打斷")),
-              .init(emoji: "🍽️", text: String(localized: "吃飯時滑手機")),
-              .init(emoji: "🙄", text: String(localized: "忽略身邊的人")),
-              .init(emoji: "😟", text: String(localized: "害怕錯過（FOMO）")),
-            ],
-            currentStep: 2,
-            totalSteps: 5,
-            onContinue: { _ in nextPage() }
-          )
-          .transition(pageTransition)
-        case 6:
-          OnboardingAgePage(
-            currentStep: 3,
-            totalSteps: 5,
-            onContinue: { age in
-              userAge = age
               nextPage()
             }
           )
