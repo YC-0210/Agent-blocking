@@ -313,17 +313,14 @@ struct HomeView: View {
       Text(alertMessage)
     }
     .alert(
-      String(localized: "匿名使用統計"),
+      AnalyticsConsent.disclosureTitle,
       isPresented: $showAnalyticsDisclosure
     ) {
       Button(String(localized: "了解")) {
         AnalyticsConsent.markDisclosureShown()
       }
     } message: {
-      Text(String(localized: "為了改善 App，DO 會收集匿名的使用統計，不含任何個人資料。詳情請見隱私權政策。"))
-    }
-    .task {
-      await DailyUsageReporter.reportIfNeeded(context: context)
+      Text(AnalyticsConsent.disclosureMessage)
     }
   }
 

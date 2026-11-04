@@ -60,6 +60,7 @@ struct DoCardApp: App {
     private let preparedContainer: ModelContainer = container
   #endif
   @Environment(\.scenePhase) private var scenePhase
+  private let retentionPrepared: Void = RetentionCapture.prepare()
   @StateObject private var requestAuthorizer = RequestAuthorizer()
   @StateObject private var navigationManager = NavigationManager()
   @StateObject private var nfcWriter = NFCWriter()
@@ -74,6 +75,11 @@ struct DoCardApp: App {
   @StateObject private var whatsNewManager = WhatsNewManager.shared
 
   init() {
+    #if DEBUG
+      if ProcessInfo.processInfo.arguments.contains("--debug-premium-test") {
+        SharedData.debugForcedTier = .premium
+      }
+    #endif
     TimersUtil.registerBackgroundTasks()
 
     // Migrate legacy single-schedule data to multi-schedule array
@@ -94,10 +100,21 @@ struct DoCardApp: App {
     )
   }
 
+  // Throwaway UI review only: this flag cannot bypass access in device or Release builds.
+  private var isOnboardingUIPrototype: Bool {
+    #if DEBUG && targetEnvironment(simulator)
+      ProcessInfo.processInfo.arguments.contains("--onboarding-ui-prototype")
+    #else
+      false
+    #endif
+  }
+
   var body: some Scene {
     WindowGroup {
       Group {
-        if !subscriptionManager.permits(.otherFeature) {
+        if isOnboardingUIPrototype {
+          OnboardingView()
+        } else if !subscriptionManager.permits(.otherFeature) {
           SubscriptionRequiredView()
         } else if onboardingManager.shouldShowOnboarding {
           OnboardingView()
@@ -115,6 +132,7 @@ struct DoCardApp: App {
             }
         }
       }
+      .modifier(AppUpdateGate())
       .environmentObject(requestAuthorizer)
       .environmentObject(startegyManager)
       .environmentObject(navigationManager)
@@ -126,15 +144,24 @@ struct DoCardApp: App {
       .environmentObject(subscriptionManager)
       .environmentObject(whatsNewManager)
       .task {
+        OnboardingTracking.shared.start()
+        guard !isOnboardingUIPrototype else { return }
+        RetentionUploadService.setActive(scenePhase == .active)
         await subscriptionManager.checkCurrentEntitlements()
         reconcileSubscription()
       }
-      .onChange(of: subscriptionManager.accessRevision) { _, _ in reconcileSubscription() }
+      .onChange(of: subscriptionManager.accessRevision) { _, _ in
+        if !isOnboardingUIPrototype { reconcileSubscription() }
+      }
       .onChange(of: requestAuthorizer.isAuthorized) { _, authorized in
         if authorized { subscriptionManager.refreshLocalAccess() }
       }
+      .onReceive(NotificationCenter.default.publisher(for: RetentionUploadService.disclosureChanged)) { _ in
+        RetentionUploadService.setActive(scenePhase == .active && !isOnboardingUIPrototype)
+      }
       .onChange(of: scenePhase) { _, phase in
-        guard phase == .active else { return }
+        RetentionUploadService.setActive(phase == .active && !isOnboardingUIPrototype)
+        guard phase == .active, !isOnboardingUIPrototype else { return }
         subscriptionManager.refreshLocalAccess()
         reconcileSubscription()
         Task { await subscriptionManager.checkCurrentEntitlements() }

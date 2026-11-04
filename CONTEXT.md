@@ -109,6 +109,7 @@ _Avoid:_ phase (implies horizontal)
 | `Models/Shared.swift` | App Group keys, HMAC helpers, suppression flag writers (delegate storage to `SuppressionRegistry`) |
 | `Utils/SubscriptionManager.swift` | StoreKit 2 singleton (`@MainActor`) |
 | `Models/BlockedProfileSessions.swift` | SwiftData session model |
+| `Utils/Analytics/RetentionTimeCalculator.swift` | Pure completed-session time allocation into fixed 3-calendar-day periods; 120-minute total threshold. Local capture uses ADR-0011; PostHog batch upload uses ADR-0012. See ADR-0010 for arithmetic. |
 | `DoCardDeviceMonitor/DeviceActivityMonitorExtension.swift` | Extension — reads subscription tier before applying shields |
 | `Models/AppMigrationPlan.swift` | SwiftData migration plan — update on any schema change |
 
@@ -161,3 +162,15 @@ Read before touching the relevant area:
 | `references/localization-workflow.md` | Any user-visible string added or modified |
 | `references/app-store-submission-checklist.md` | Any App Store or TestFlight submission |
 | `docs/agents/issue-tracker.md` | Issue tracker config (GitHub Issues on `DO-IOS-Claude-`) |
+
+Retention capture (ADR-0011): `RetentionCapture` connects successful starts, recorded breaks
+and completions to the App Group `RetentionJournal`. The journal preserves cohort state,
+daily contribution revisions and retractions independently of the transient shared buffer.
+The deleted-project daily upload is no longer invoked. PostHog delivery is now wired through RetentionUploadService (ADR-0012).
+
+Retention upload: `RetentionEventBuilder` emits only cohort entry and daily time
+contributions. `PostHogRetentionUploader` uses the documented batch API and durable
+per-destination revision checkpoints; `RetentionUploadService` drains in the main app
+after disclosure. Config lives in ignored `Config/PostHog.local.xcconfig` or CI settings.
+Debug/Release journals are separate; production queries must filter environment and
+exclude synthetic records. Raw contribution events must be deduplicated before sums.

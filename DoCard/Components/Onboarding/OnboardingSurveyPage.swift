@@ -5,12 +5,12 @@ struct OnboardingSurveyPage: View {
 
   let question: String
   let options: [String]
-  let currentStep: Int      // 1-based (1, 2, 3, 4)
-  let totalSteps: Int       // e.g. 4
+  let currentStep: Int  // 1-based (1, 2, 3, 4)
+  let totalSteps: Int  // e.g. 4
+  @Binding var selectedOption: String?
   let onOptionSelected: (String) -> Void
 
   @State private var showContent = false
-  @State private var selectedOption: String? = nil
 
   var body: some View {
     VStack(spacing: 0) {
@@ -46,54 +46,67 @@ struct OnboardingSurveyPage: View {
         .opacity(showContent ? 1.0 : 0)
         .offset(y: showContent ? 0 : 10)
 
-      // Options
-      VStack(spacing: 14) {
-        ForEach(options, id: \.self) { option in
-          Button {
-            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-            withAnimation(.easeOut(duration: 0.15)) {
-              selectedOption = option
+      // Keep the choices scrollable on smaller phones.
+      ScrollView(showsIndicators: false) {
+        VStack(spacing: 14) {
+          ForEach(options, id: \.self) { option in
+            Button {
+              UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+              withAnimation(.easeOut(duration: 0.15)) {
+                selectedOption = option
+              }
+            } label: {
+              Text(option)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 58)
+                .background(
+                  RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(
+                      selectedOption == option
+                        ? themeManager.themeColor.opacity(0.3)
+                        : Color.white.opacity(0.08)
+                    )
+                )
+                .overlay(
+                  RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .stroke(
+                      selectedOption == option
+                        ? themeManager.themeColor.opacity(0.6)
+                        : Color.clear,
+                      lineWidth: 1.5
+                    )
+                )
             }
-            // Brief delay so user sees the selection highlight
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-              onOptionSelected(option)
-            }
-          } label: {
-            Text(option)
-              .font(.system(size: 17, weight: .medium))
-              .foregroundColor(.white)
-              .frame(maxWidth: .infinity)
-              .frame(height: 58)
-              .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                  .fill(
-                    selectedOption == option
-                      ? themeManager.themeColor.opacity(0.3)
-                      : Color.white.opacity(0.08)
-                  )
-              )
-              .overlay(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                  .stroke(
-                    selectedOption == option
-                      ? themeManager.themeColor.opacity(0.6)
-                      : Color.clear,
-                    lineWidth: 1.5
-                  )
-              )
           }
         }
+        .padding(.horizontal, 24)
+        .padding(.top, 24)
       }
-      .padding(.horizontal, 24)
-      .padding(.top, 30)
       .opacity(showContent ? 1.0 : 0)
       .offset(y: showContent ? 0 : 15)
 
-      Spacer()
+      AnalyticsPrivacyLink()
+        .padding(.horizontal, 24)
+
+      Button {
+        guard let selectedOption else { return }
+        onOptionSelected(selectedOption)
+      } label: {
+        Text(String(localized: "繼續"))
+          .font(.system(size: 18, weight: .semibold))
+          .foregroundColor(.black)
+          .frame(maxWidth: .infinity)
+          .frame(height: 58)
+          .background(Capsule().fill(selectedOption == nil ? Color.white.opacity(0.3) : .white))
+      }
+      .disabled(selectedOption == nil)
+      .padding(.horizontal, 24)
+      .padding(.bottom, 30)
+      .padding(.top, 20)
     }
     .onAppear {
-      // Reset selection for each new page appearance
-      selectedOption = nil
       withAnimation(.easeOut(duration: 0.6).delay(0.15)) {
         showContent = true
       }
@@ -117,7 +130,8 @@ struct OnboardingSurveyPage: View {
         "8 小時以上",
       ],
       currentStep: 1,
-      totalSteps: 4,
+      totalSteps: 3,
+      selectedOption: .constant(nil),
       onOptionSelected: { _ in }
     )
   }

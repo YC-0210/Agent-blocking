@@ -12,10 +12,11 @@ import unittest
 
 ROOT = Path(__file__).resolve().parent.parent
 SUITES = {"ScheduleTests": 36, "UnlockRecoveryTests": 28, "SessionHistoryTests": 8,
-          "SessionReportTests": 7, "SessionReportDurationTests": 1,
+          "SessionReportTests": 7, "SessionReportDurationTests": 1, "RetentionTimeCalculatorTests": 26, "RetentionJournalTests": 15, "RetentionCaptureTests": 13, "RetentionUploadTests": 16,
           "SubscriptionAccessTests": 12, "EntitlementsTests": 2, "SelectionRulesTests": 4,
           "SelectionEnforcementTests": 1, "SubscriptionLifecycleTests": 20,
-          "SubscriptionStoreTests": 4, "SubscriptionRefreshTests": 1, "SettingsLayoutTests": 15}
+          "SubscriptionStoreTests": 4, "SubscriptionRefreshTests": 1, "SettingsLayoutTests": 15,
+          "OnboardingTrackingTests": 20, "AppUpdateTests": 8, "AppUpdateNetworkTests": 9}
 
 
 def tree_for(suites):

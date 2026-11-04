@@ -1,4 +1,5 @@
 import DeviceActivity
+import FamilyControls
 import OSLog
 
 private let log: Logger = Logger(subsystem: "app.docard.monitor", category: ScheduleTimerActivity.id)
@@ -7,11 +8,16 @@ class ScheduleTimerActivity: TimerActivity {
   static var id: String = "ScheduleTimerActivity"
 
   private let appBlocker: AppBlockerUtil
+  private let authorizationApproved: () -> Bool
 
   init(
-    appBlocker: AppBlockerUtil = AppBlockerUtil()
+    appBlocker: AppBlockerUtil = AppBlockerUtil(),
+    authorizationApproved: @escaping () -> Bool = {
+      SharedData.retentionAuthorizationApproved
+    }
   ) {
     self.appBlocker = appBlocker
+    self.authorizationApproved = authorizationApproved
   }
 
   func getDeviceActivityName(from profileId: String) -> DeviceActivityName {
@@ -112,6 +118,7 @@ class ScheduleTimerActivity: TimerActivity {
           "Start schedule timer activity for \(profileId), existing session profile matches device activity profile, continuing active session"
         )
         appBlocker.activateRestrictions(for: profile)
+        captureStart(for: profile)
         return
       } else {
         log.info(
@@ -130,6 +137,17 @@ class ScheduleTimerActivity: TimerActivity {
     log.info("Activating restrictions for scheduled profile '\(profileId)' — appTokens: \(appCount), categoryTokens: \(catCount), tier: \(SharedData.effectiveSubscriptionTier.rawValue)")
     appBlocker.activateRestrictions(for: profile)
 
+    captureStart(for: profile)
+  }
+
+  private func captureStart(for profile: SharedData.ProfileSnapshot) {
+    guard let snapshot = SharedData.getActiveScheduleSharedSession() else { return }
+    let approved = authorizationApproved()
+    let paid = SharedData.effectiveSubscriptionTier == .premium
+    let shields = appBlocker.wouldShieldAnything(for: profile)
+    RetentionCapture.started(
+      snapshot, eligible: approved && paid && shields,
+      diagnosticContext: "scheduled shared_auth=\(approved) paid=\(paid) shields=\(shields)")
   }
 
   func stop(for profile: SharedData.ProfileSnapshot) {

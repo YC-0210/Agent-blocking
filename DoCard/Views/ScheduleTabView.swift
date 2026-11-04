@@ -455,11 +455,23 @@ struct ScheduleEditSheet: View {
                     }
                   }
                 } label: {
-                  endTimeMenuLabel
+                  Text(endType == .cardTap
+                    ? String(localized: "感應卡片") : String(localized: "指定時間"))
                 }
+                .accessibilityIdentifier("schedule.endMethod")
               }
 
               if endType == .specificTime {
+                Divider()
+                  .padding(.vertical, 8)
+
+                HStack {
+                  Text(String(localized: "指定時間"))
+                    .foregroundStyle(.secondary)
+                  Spacer()
+                  endTimePicker
+                }
+
                 Divider()
                   .padding(.vertical, 8)
 
@@ -672,24 +684,23 @@ struct ScheduleEditSheet: View {
   // MARK: - Computed
 
   @ViewBuilder
-  private var endTimeMenuLabel: some View {
-    if endType == .cardTap {
-      Text(String(localized: "感應卡片"))
-        .foregroundStyle(.primary)
-    } else {
-      HStack(spacing: 4) {
-        if isNextDay {
-          Text(String(localized: "+1天"))
-            .font(.caption2)
-            .fontWeight(.semibold)
-            .foregroundStyle(themeManager.themeColor)
-            .padding(.horizontal, 5)
-            .padding(.vertical, 2)
-            .background(Capsule().fill(themeManager.themeColor.opacity(0.15)))
-        }
-        DatePicker("", selection: $endTime, displayedComponents: .hourAndMinute)
-          .labelsHidden()
+  private var endTimePicker: some View {
+    HStack(spacing: 4) {
+      if isNextDay {
+        Text(String(localized: "+1天"))
+          .font(.caption2)
+          .fontWeight(.semibold)
+          .foregroundStyle(themeManager.themeColor)
+          .padding(.horizontal, 5)
+          .padding(.vertical, 2)
+          .background(Capsule().fill(themeManager.themeColor.opacity(0.15)))
       }
+      DatePicker(
+        String(localized: "指定時間"), selection: $endTime,
+        displayedComponents: .hourAndMinute
+      )
+      .labelsHidden()
+      .accessibilityIdentifier("schedule.endTime")
     }
   }
 

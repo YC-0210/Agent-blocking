@@ -1,4 +1,5 @@
 import DeviceActivity
+import FamilyControls
 import OSLog
 
 private let log: Logger = Logger(subsystem: "app.docard.monitor", category: StrategyTimerActivity.id)
@@ -65,6 +66,10 @@ class StrategyTimerActivity: TimerActivity {
       )
       SharedData.createSessionForSchedular(for: scheduledProfile.id)
       appBlocker.activateRestrictions(for: scheduledProfile)
+      if let snapshot = SharedData.getActiveScheduleSharedSession() {
+        RetentionCapture.started(snapshot, eligible: SharedData.retentionAuthorizationApproved
+          && SharedData.effectiveSubscriptionTier == .premium && appBlocker.wouldShieldAnything(for: scheduledProfile))
+      }
 
     }
   }

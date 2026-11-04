@@ -15,6 +15,7 @@ class RequestAuthorizer: ObservableObject {
   init() {
     // Set initial state from current authorization status
     isAuthorized = AuthorizationCenter.shared.authorizationStatus == .approved
+    SharedData.recordRetentionAuthorization(approved: isAuthorized)
 
     // Observe authorization changes (e.g. user revokes Screen Time access)
     startObservingAuthorizationChanges()
@@ -26,9 +27,13 @@ class RequestAuthorizer: ObservableObject {
         try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
         raLog.debug("Individual authorization successful")
         self.isAuthorized = true
+        SharedData.recordRetentionAuthorization(
+          approved: AuthorizationCenter.shared.authorizationStatus == .approved)
       } catch {
         raLog.error("Error requesting authorization: \(error)")
         self.isAuthorized = false
+        SharedData.recordRetentionAuthorization(
+          approved: AuthorizationCenter.shared.authorizationStatus == .approved)
       }
     }
   }
@@ -45,6 +50,7 @@ class RequestAuthorizer: ObservableObject {
       .sink { [weak self] status in
         let wasAuthorized = self?.isAuthorized ?? false
         self?.isAuthorized = (status == .approved)
+        SharedData.recordRetentionAuthorization(approved: status == .approved)
 
         if wasAuthorized && status != .approved {
           raLog.warning("⚠️ Family Controls authorization was revoked. Clearing restrictions.")

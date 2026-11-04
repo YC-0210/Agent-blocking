@@ -69,6 +69,7 @@ class BlockedProfileSession {
 
     SharedData.setBreakStartTime(date: breakStartTime)
     self.breakStartTime = breakStartTime
+    RetentionCapture.breakChanged(toSnapshot())
   }
 
   func endBreak() {
@@ -76,6 +77,7 @@ class BlockedProfileSession {
 
     SharedData.setBreakEndTime(date: breakEndTime)
     self.breakEndTime = breakEndTime
+    RetentionCapture.breakChanged(toSnapshot())
   }
 
   func endSession() {
@@ -127,6 +129,7 @@ class BlockedProfileSession {
 
     do {
       try context.save()
+      RetentionCapture.completed(toSnapshot())
     } catch {
       logger.error("Failed to save ended session '\(self.id, privacy: .private)': \(error.localizedDescription)")
       logger.info(
@@ -141,6 +144,7 @@ class BlockedProfileSession {
 
       do {
         try context.save()
+        RetentionCapture.completed(toSnapshot())
       } catch {
         logger.warning(
           "PHASE_B_RETRY: retry save also failed for session '\(self.id, privacy: .private)': \(error.localizedDescription)"

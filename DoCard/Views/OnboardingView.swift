@@ -7,23 +7,30 @@ struct OnboardingView: View {
   @Environment(\.modelContext) private var modelContext
 
   @State private var currentPage: Int = 0
-  @State private var screenTimeYears: Int = 16  // default fallback
-  @State private var userAge: Int = 22  // default fallback
+  @State private var selectedPurposes: Set<String> = []
+  @State private var selectedHabits: Set<String> = []
+  @State private var purposeOtherText = ""
+  @State private var habitOtherText = ""
+  @State private var selectedPhoneTime: String?
   @State private var navigatingBack = false
+  @State private var restoredAnswers = false
 
-  // Screen time option → projected years mapping
-  private var screenTimeMapping: [String: Int] {
+  private let totalPages = 12
+
+  private var phoneTimeOptions: [(id: String, label: String)] {
     [
-      String(localized: "1 小時以內"): 3,
-      String(localized: "2 - 3 小時"): 10,
-      String(localized: "4 - 5 小時"): 16,
-      String(localized: "6 - 7 小時"): 20,
-      String(localized: "8 小時以上"): 26,
+      ("under_1h", String(localized: "1 小時以內")), ("2_3h", String(localized: "2 - 3 小時")),
+      ("4_5h", String(localized: "4 - 5 小時")), ("6_7h", String(localized: "6 - 7 小時")),
+      ("8h_plus", String(localized: "8 小時以上")),
     ]
   }
 
-  // Total pages — will grow as more pages are added
-  private let totalPages = 16
+  private var draftAnswers: OnboardingAnswers {
+    OnboardingAnswers(
+      purposes: selectedPurposes, habits: selectedHabits,
+      purposeOtherText: purposeOtherText, habitOtherText: habitOtherText,
+      dailyPhoneTime: phoneTimeOptions.first { $0.label == selectedPhoneTime }?.id)
+  }
 
   /// Direction-aware transition: slides from left when going back, from right when going forward
   private var pageTransition: AnyTransition {
@@ -63,78 +70,71 @@ struct OnboardingView: View {
           )
           .transition(pageTransition)
         case 4:
-          OnboardingSurveyPage(
-            question: String(localized: "你每天花多少時間\n在手機上？"),
+          OnboardingMultiSelectPage(
+            question: String(localized: "你想用 DO Card，\n為哪些事留出時間呢？"),
             options: [
-              String(localized: "1 小時以內"),
-              String(localized: "2 - 3 小時"),
-              String(localized: "4 - 5 小時"),
-              String(localized: "6 - 7 小時"),
-              String(localized: "8 小時以上"),
+              .init(id: "study", emoji: "📚", text: String(localized: "讀書")),
+              .init(id: "major_exam", emoji: "✍️", text: String(localized: "準備大考")),
+              .init(id: "work_tasks", emoji: "💻", text: String(localized: "工作與完成任務")),
+              .init(id: "bedtime_rest", emoji: "🌙", text: String(localized: "睡前休息")),
+              .init(id: "family_friends", emoji: "💬", text: String(localized: "陪伴家人與朋友")),
+              .init(id: "personal_projects", emoji: "🎯", text: String(localized: "興趣與個人計畫")),
+              .init(id: "other", emoji: "＋", text: String(localized: "其他")),
             ],
             currentStep: 1,
-            totalSteps: 5,
-            onOptionSelected: { option in
-              screenTimeYears = screenTimeMapping[option] ?? 16
-              nextPage()
-            }
+            totalSteps: 3,
+            selectedIds: $selectedPurposes,
+            otherText: $purposeOtherText,
+            onContinue: { _ in confirmQuestion("purposes") }
           )
+          .id("purposes")
           .transition(pageTransition)
         case 5:
           OnboardingMultiSelectPage(
-            question: String(localized: "你想改變哪些習慣？"),
+            question: String(localized: "哪個符合你滑手機的經驗呢"),
             options: [
-              .init(emoji: "😩", text: String(localized: "無意識滑手機")),
-              .init(emoji: "🛏️", text: String(localized: "睡前滑手機")),
-              .init(emoji: "🌅", text: String(localized: "早上起床就看手機")),
-              .init(emoji: "💻", text: String(localized: "工作時被手機分心")),
-              .init(emoji: "😰", text: String(localized: "想做的事一直被打斷")),
-              .init(emoji: "🍽️", text: String(localized: "吃飯時滑手機")),
-              .init(emoji: "🙄", text: String(localized: "忽略身邊的人")),
-              .init(emoji: "😟", text: String(localized: "害怕錯過（FOMO）")),
+              .init(
+                id: "automatic_checking", emoji: "📱",
+                text: String(localized: "習慣性地打開手機")),
+              .init(
+                id: "boredom", emoji: "⏳",
+                text: String(localized: "無聊時就想滑手機")),
+              .init(
+                id: "task_avoidance", emoji: "📋",
+                text: String(localized: "不想做事時就滑手機")),
+              .init(
+                id: "emotional_relief", emoji: "☁️",
+                text: String(localized: "靠滑手機紓解壓力")),
+              .init(
+                id: "notification_cue", emoji: "🔔",
+                text: String(localized: "看到通知就想查看")),
+              .init(
+                id: "lost_time_awareness", emoji: "🌀",
+                text: String(localized: "不知不覺滑了很久")),
+              .init(id: "other", emoji: "＋", text: String(localized: "其他")),
             ],
             currentStep: 2,
-            totalSteps: 5,
-            onContinue: { _ in nextPage() }
+            totalSteps: 3,
+            selectedIds: $selectedHabits,
+            otherText: $habitOtherText,
+            onContinue: { _ in confirmQuestion("habits") }
           )
+          .id("habits")
           .transition(pageTransition)
         case 6:
-          OnboardingAgePage(
+          OnboardingSurveyPage(
+            question: String(localized: "你每天花多少時間\n在手機上？"),
+            options: phoneTimeOptions.map(\.label),
             currentStep: 3,
-            totalSteps: 5,
-            onContinue: { age in
-              userAge = age
-              nextPage()
-            }
+            totalSteps: 3,
+            selectedOption: $selectedPhoneTime,
+            onOptionSelected: { _ in confirmQuestion("daily_phone_time") }
           )
           .transition(pageTransition)
         case 7:
-          OnboardingCalculatingPage(
-            onComplete: { nextPage() }
-          )
-          .transition(pageTransition)
-        case 8:
-          OnboardingStatementPage(
-            text: String(localized: "有一個壞消息\n跟一個好消息"),
-            onContinue: { nextPage() }
-          )
-          .transition(pageTransition)
-        case 9:
-          OnboardingBadNewsPage(
-            targetYears: screenTimeYears,
-            onContinue: { nextPage() }
-          )
-          .transition(pageTransition)
-        case 10:
-          OnboardingGoodNewsPage(
-            targetYears: screenTimeYears,
-            onContinue: { nextPage() }
-          )
-          .transition(pageTransition)
-        case 11:
           OnboardingPermissionPage(onContinue: { nextPage() })
             .transition(pageTransition)
-        case 12:
+        case 8:
           OnboardingDistractionAppsPage(
             onContinue: { selection in
               handleDistractionSelection(selection)
@@ -142,20 +142,20 @@ struct OnboardingView: View {
             }
           )
           .transition(pageTransition)
-        case 13:
+        case 9:
           OnboardingDOCardPairingPage(
             onContinue: { nextPage() }
           )
           .transition(pageTransition)
-        case 14:
+        case 10:
           OnboardingPhotoGalleryPage(
             onContinue: { nextPage() }
           )
           .transition(pageTransition)
-        case 15:
+        case 11:
           OnboardingPromoPage(
             onComplete: {
-              onboardingManager.completeOnboarding()
+              finishOnboarding()
             }
           )
           .transition(pageTransition)
@@ -187,14 +187,42 @@ struct OnboardingView: View {
         .animation(.easeInOut(duration: 0.3), value: currentPage)
       }
     }
+    .onAppear {
+      guard !restoredAnswers else { return }
+      if let saved = OnboardingTracking.shared.restore() {
+        selectedPurposes = saved.purposes
+        selectedHabits = saved.habits
+        purposeOtherText = saved.purposeOtherText
+        habitOtherText = saved.habitOtherText
+        selectedPhoneTime = phoneTimeOptions.first { $0.id == saved.dailyPhoneTime }?.label
+      }
+      restoredAnswers = true
+    }
+    .onChange(of: draftAnswers) { _, answers in
+      if restoredAnswers { OnboardingTracking.shared.saveDraft(answers) }
+    }
+  }
+
+  private func confirmQuestion(_ question: String) {
+    OnboardingTracking.shared.confirm(question, answers: draftAnswers)
+    nextPage()
+  }
+
+  private func finishOnboarding() {
+    OnboardingTracking.shared.completeStep("offer")
+    OnboardingTracking.shared.complete()
+    onboardingManager.completeOnboarding()
   }
 
   private func nextPage() {
+    let setupSteps = [0: "welcome", 1: "intro_feeling", 2: "intro_context", 3: "card_introduction",
+                      7: "permissions", 8: "app_selection", 9: "card_pairing", 10: "gallery"]
+    if let step = setupSteps[currentPage] { OnboardingTracking.shared.completeStep(step) }
     navigatingBack = false
     if currentPage < totalPages - 1 {
       currentPage += 1
     } else {
-      onboardingManager.completeOnboarding()
+      finishOnboarding()
     }
   }
 

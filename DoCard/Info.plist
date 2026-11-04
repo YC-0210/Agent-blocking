@@ -2,6 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>DOCardPostHogToken</key>
+	<string>$(DO_CARD_POSTHOG_TOKEN)</string>
+	<key>DOCardPostHogHost</key>
+	<string>$(DO_CARD_POSTHOG_HOST)</string>
+	<key>DOCardPostHogEnvironment</key>
+	<string>$(DO_CARD_POSTHOG_ENVIRONMENT)</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSNFCReaderUsageDescription</key>

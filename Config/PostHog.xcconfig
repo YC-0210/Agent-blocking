@@ -1,0 +1,3 @@
+// Supply the project's public ingestion token and host locally or through CI build settings.
+// No token or host fallback: an unconfigured build performs no upload.
+#include? "PostHog.local.xcconfig"

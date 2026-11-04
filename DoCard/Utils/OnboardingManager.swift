@@ -23,9 +23,13 @@ class OnboardingManager: ObservableObject {
   @Published var showOnboarding: Bool = false
   @Published var tutorialStep: Int = 0
 
-  // MARK: - DO Card Pairing (supports up to 5 cards)
+  // MARK: - DO Card Pairing
 
-  static let maxPairedCards = 5
+  #if DEBUG
+    static let maxPairedCards = 100
+  #else
+    static let maxPairedCards = 5
+  #endif
 
   var pairedDOCardTagIds: [String] {
     get { Self.defaults.stringArray(forKey: "pairedDOCardTagIds") ?? [] }

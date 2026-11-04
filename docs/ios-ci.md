@@ -11,9 +11,9 @@ chosen Xcode or runtime is missing. Update these choices deliberately after veri
 1. Run `python3 ci/test-ios-ci.py` before Xcode in the workflow. These controlled-response
    checks verify stage ordering, result validation and failure handling.
 2. Build the app, tests and dependent extensions once in Debug with `build-for-testing`.
-3. Reuse that build for the 139 deterministic methods: schedule36, recovery28, history8,
-   reports7, duration1, access12, entitlements2, selection rules4, enforcement1, lifecycle20,
-   scripted store4, refresh1 and Settings15. Validate exact source method identities and
+3. Reuse that build for the 246 deterministic methods: schedule36, recovery28, history8,
+   reports7, duration1, retention70, access12, entitlements2, selection rules4, enforcement1, lifecycle20,
+   scripted store4, refresh1, Settings15, onboarding20 and app update17. Validate exact source method identities and
    every result before advancing.
 4. Run the four `StoreKitAccessTests` serially using the same build and local Apple StoreKit
    environment. These are separate from the deterministic batch and never make real purchases.
@@ -28,7 +28,7 @@ chosen Xcode or runtime is missing. Update these choices deliberately after veri
    Maestro journeys on a new simulator. It uploads JUnit, screenshots and logs on failure
    as well as success. No new compilation or Maestro Cloud account is required.
 
-There are **144 unique app methods / 145 executions** because upgrade runs in two processes.
+There are **251 unique app methods / 252 executions** because upgrade runs in two processes.
 The added manual-card method checks NFC start/stop, release requests and saved history.
 The additional history method directly tests closed/open break preservation during expiry import
 using an in-memory store. The existing foreground history-loader method now checks both paid
@@ -62,12 +62,12 @@ job runs after it succeeds. The core required-check name is unchanged.
 
 ## Triggers
 
-- A pull request targeting `main` is opened, reopened, or receives new commits.
 - A push reaches `main`, including a merged pull request.
 - A manual `workflow_dispatch` run. The Run workflow button becomes available
   after the workflow exists on the default branch.
 
-The initial pull request can exercise the workflow before merge. Branch protection
+Feature-branch pushes and pull-request updates do not run this workflow automatically.
+Manual runs remain available. Branch protection
 is a separate setting: this workflow reports failures but does not configure merge
 blocking. Required checks for this private repository depend on the GitHub plan.
 Nothing here uploads to TestFlight or submits an App Store release.
