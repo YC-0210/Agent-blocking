@@ -496,3 +496,25 @@ Add three controlled-command tests, including a real one-second timeout after a 
 JUnit report, proving that the command failure still prevents a success marker and that
 only the owned simulator is cleaned. Invalid or unbounded budgets are rejected before
 device commands. Full final execution remains the acceptance proof.
+
+## Remote minimum-version gate (2026-11-04)
+
+Add an in-memory HTTPS minimum-version client and root navigation modifier. The existing
+website policy remains unchanged. This allows future update requirements without shipping
+a new binary for every threshold. A bundled threshold cannot be changed remotely; an
+App Store latest-version lookup cannot express which older versions remain supported.
+Persistent fail-closed policy was rejected because it could strand offline users.
+
+Active manual/scheduled focus, onboarding and authorization finish through their existing
+UI before gating. Emergency Unlock remains available on the update screen. No session,
+NFC, analytics, authorization, subscription or SwiftData behavior is modified. New files
+contain the client, gate, translations and tests; the app entry point gains one modifier.
+CI selection and its result fixtures include the new suites. Operational instructions,
+rollback, protected-file audit and measured results are in
+`docs/releases/force-update.md` and `docs/releases/force-update-verification.md`.
+Physical-device testing has not been performed; no release submission is included.
+
+Verification: local core pipeline passed 156 deterministic methods, four StoreKit methods,
+both separate-process upgrade phases and arm64/x86_64 Release build. All four Maestro
+locking/recovery journeys passed. New suites add 17 exact-ID methods to CI. Source/format
+checks and a clean patch-application check against behavior-tracking PR #7 passed.

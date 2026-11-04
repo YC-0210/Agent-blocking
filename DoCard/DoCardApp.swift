@@ -132,6 +132,7 @@ struct DoCardApp: App {
             }
         }
       }
+      .modifier(AppUpdateGate())
       .environmentObject(requestAuthorizer)
       .environmentObject(startegyManager)
       .environmentObject(navigationManager)
