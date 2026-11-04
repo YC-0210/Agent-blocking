@@ -68,6 +68,7 @@ struct HomeView: View {
 
   // Tab selection
   @State private var selectedTab: Tab = .doMain
+  @State private var showFounderCall = false
 
   enum Tab: Hashable {
     case doMain
@@ -78,6 +79,22 @@ struct HomeView: View {
 
   var isBlocking: Bool {
     return strategyManager.activeSessionStatus.isBlocking
+  }
+
+  private var founderCallButton: some View {
+    Button {
+      showFounderCall = true
+    } label: {
+      Label(String(localized: "聊聊"), systemImage: "bubble.left")
+        .font(.system(size: 14, weight: .medium))
+        .foregroundStyle(.white.opacity(0.85))
+        .padding(.horizontal, 12)
+        .frame(minHeight: 44)
+        .contentShape(Rectangle())
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(String(localized: "直接打給創辦人"))
+    .accessibilityIdentifier("contact.founder")
   }
 
   var body: some View {
@@ -133,6 +150,22 @@ struct HomeView: View {
           .tag(Tab.settings)
       }
       .tint(ThemeManager.shared.themeColor)
+      .safeAreaInset(edge: .top, spacing: 0) {
+        if selectedTab == .doMain {
+          HStack {
+            Spacer()
+            founderCallButton
+          }
+          .padding(.trailing, 12)
+          .background(.black)
+        }
+      }
+      .overlay(alignment: .topTrailing) {
+        if selectedTab != .doMain {
+          founderCallButton
+            .padding(.trailing, 12)
+        }
+      }
 
       // Confetti overlay on session completion
       ConfettiView(
@@ -152,6 +185,9 @@ struct HomeView: View {
         .padding(.top, 8)
         .zIndex(1)
       }
+    }
+    .sheet(isPresented: $showFounderCall) {
+      FounderCallSheet()
     }
     .sheet(
       isPresented: $isProfileListPresent

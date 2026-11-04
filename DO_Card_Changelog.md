@@ -1,3 +1,24 @@
+# 2026-11-04 — direct founder call entry
+
+Design: a persistent top-right 「聊聊」 entry on the four main tabs opens a compact
+sheet. Copy is the user's approved 「直接打給創辦人」 invitation. Its sole primary
+action opens https://calendly.com/studykenny0210/do-card-1 in the system URL handler.
+The sheet supports swipe/close dismissal and scrolls at larger text sizes.
+
+Changed: HomeView.swift and new FounderCallSheet.swift. No in-app inbox, feedback
+forms, booking backend, or extra tab is introduced. No changes to authorization,
+NFC, emergency unlock, subscriptions, analytics, models, or migrations.
+
+User requested local implementation and manual review before the testing pipeline.
+Only a local Debug simulator build is used to install and launch this version;
+CI, automated tests, release checks, and physical-device tests are deferred.
+Local build result: BUILD SUCCEEDED. Installed on the dedicated iPhone 17 Pro
+simulator "DO Card Founder Call Review". Review launch arguments skip onboarding
+and the tutorial and use the existing Debug Premium override so the reviewer can
+reach Home without purchasing. No production onboarding or entitlement code changed.
+
+---
+
 # 2026-11-03 — isolated onboarding capture and PostHog delivery
 
 User authorized implementation while keeping the retention worktree untouched.
