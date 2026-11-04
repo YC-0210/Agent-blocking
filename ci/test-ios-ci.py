@@ -15,7 +15,8 @@ SUITES = {"ScheduleTests": 36, "UnlockRecoveryTests": 28, "SessionHistoryTests":
           "SessionReportTests": 7, "SessionReportDurationTests": 1,
           "SubscriptionAccessTests": 12, "EntitlementsTests": 2, "SelectionRulesTests": 4,
           "SelectionEnforcementTests": 1, "SubscriptionLifecycleTests": 20,
-          "SubscriptionStoreTests": 4, "SubscriptionRefreshTests": 1, "SettingsLayoutTests": 15}
+          "SubscriptionStoreTests": 4, "SubscriptionRefreshTests": 1, "SettingsLayoutTests": 15,
+          "AppUpdateTests": 8, "AppUpdateNetworkTests": 9}
 
 
 def tree_for(suites):

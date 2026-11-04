@@ -9,6 +9,7 @@ DETERMINISTIC = (
     "SessionReportDurationTests", "SubscriptionAccessTests", "EntitlementsTests",
     "SelectionRulesTests", "SelectionEnforcementTests", "SubscriptionLifecycleTests",
     "SubscriptionStoreTests", "SubscriptionRefreshTests", "SettingsLayoutTests",
+    "AppUpdateTests", "AppUpdateNetworkTests",
 )
 STOREKIT = ("StoreKitAccessTests",)
 GROUPS = {"deterministic": DETERMINISTIC, "storekit": STOREKIT}
