@@ -63,6 +63,7 @@ enum SharedData {
     case activeStrategySession
     case activeScheduleSession
     case completedScheduleSessions
+    case retentionAuthorizationApproved
     case subscriptionTier
     case subscriptionExpirationDate
     case subscriptionGrants
@@ -389,6 +390,24 @@ enum SharedData {
     profileSnapshots = all
   }
 
+  /// Analytics eligibility only. The app observes permission; extensions do not grant it.
+  /// Strict verification keeps missing or tampered observations ineligible.
+  static var retentionAuthorizationApproved: Bool {
+    guard let data = verifiedRead(
+      forKey: Key.retentionAuthorizationApproved.rawValue, requireSignature: true),
+      let approved = try? JSONDecoder().decode(Bool.self, from: data)
+    else { return false }
+    return approved
+  }
+
+  static func recordRetentionAuthorization(approved: Bool) {
+    // An extension's process-local AuthorizationCenter value must not overwrite
+    // the main app's observation (the physical monitor reports false while authorized).
+    guard Bundle.main.bundleURL.pathExtension != "appex",
+      let data = try? JSONEncoder().encode(approved) else { return }
+    signedWrite(data, forKey: Key.retentionAuthorizationApproved.rawValue)
+  }
+
   // MARK: – Persisted array of scheduled sessions
   static var completedSessionsInSchedular: [SessionSnapshot] {
     get {
@@ -472,16 +491,19 @@ enum SharedData {
 
     existingSession.endTime = currentDate
     existingSession.endReason = endReason
+    RetentionCapture.completed(existingSession)
     completedSessionsInSchedular.append(existingSession)
 
     activeStrategySharedSession = nil
   }
 
-  static func endActiveScheduleSharedSession(endReason: String = "timer_expired") {
+  static func endActiveScheduleSharedSession(endReason: String = "timer_expired", captureRetention: Bool = true) {
     guard var existingSession = activeScheduleSharedSession else { return }
 
     existingSession.endTime = currentDate
     existingSession.endReason = endReason
+    if captureRetention { RetentionCapture.completed(existingSession) }
+    else { RetentionCapture.excludeSession(id: existingSession.id) }
     completedSessionsInSchedular.append(existingSession)
 
     activeScheduleSharedSession = nil
@@ -507,12 +529,14 @@ enum SharedData {
     guard var activeSession = activeStrategySharedSession else { return }
     activeSession.breakStartTime = date
     activeStrategySharedSession = activeSession
+    RetentionCapture.breakChanged(activeSession)
   }
 
   static func setBreakEndTime(date: Date) {
     guard var activeSession = activeStrategySharedSession else { return }
     activeSession.breakEndTime = date
     activeStrategySharedSession = activeSession
+    RetentionCapture.breakChanged(activeSession)
   }
 
   static func setEndTime(date: Date) {

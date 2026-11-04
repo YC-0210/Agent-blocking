@@ -87,6 +87,9 @@ struct OnboardingSurveyPage: View {
       .opacity(showContent ? 1.0 : 0)
       .offset(y: showContent ? 0 : 15)
 
+      AnalyticsPrivacyLink()
+        .padding(.horizontal, 24)
+
       Button {
         guard let selectedOption else { return }
         onOptionSelected(selectedOption)

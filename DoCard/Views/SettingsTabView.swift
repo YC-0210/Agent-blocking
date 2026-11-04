@@ -198,6 +198,17 @@ struct SettingsTabView: View {
         }
       }
       .listRowBackground(Color(.systemGray6).opacity(0.08))
+
+      #if DEBUG
+        if category == .debug {
+          Section {
+            DebugLogPanel(diagnostics: retentionDiagnostics)
+          } header: {
+            Text(verbatim: "Recent Log")
+          }
+          .accessibilityIdentifier("settings.debug.recentLog")
+        }
+      #endif
     }
     .scrollContentBackground(.hidden)
     .navigationTitle(categoryTitle(category))
@@ -525,6 +536,47 @@ struct SettingsTabView: View {
   }
 
   #if DEBUG
+    private func retentionDiagnostics() -> String {
+      var lines = ["=== Retention diagnostics ===",
+        "Environment: \(RetentionCapture.environment)",
+        "Disclosure shown: \(AnalyticsConsent.disclosureShown)"]
+      do {
+        guard let journal = RetentionCapture.journal else {
+          return (lines + ["Journal unavailable", "=== Activity log ==="]).joined(separator: "\n") + "\n"
+        }
+        let state = try journal.read()
+        lines.append("Install: \(state.installID)")
+        lines.append("Sessions: \(state.sessions.count), contributions: \(state.contributions.count)")
+        for session in state.sessions.values.sorted(by: { $0.startedAt < $1.startedAt }).suffix(12) {
+          let end = session.endedAt.map { RetentionEventBuilder.timestamp($0) } ?? "unfinished"
+          let seconds = state.contributions.values.filter { $0.sessionID == session.id }
+            .reduce(0) { $0 + $1.lockedSeconds }
+          lines.append("Session \(session.id): \(session.trigger), start=\(RetentionEventBuilder.timestamp(session.startedAt)), end=\(end), excluded=\(session.isExcluded), seconds=\(seconds)")
+        }
+        if let token = Bundle.main.object(forInfoDictionaryKey: "DOCardPostHogToken") as? String,
+          let host = Bundle.main.object(forInfoDictionaryKey: "DOCardPostHogHost") as? String,
+          let config = PostHogRetentionConfiguration(
+            token: token, host: host, environment: RetentionCapture.environment)
+        {
+          let delivery = try journal.deliveryState(destination: config.destination)
+          let events = try RetentionEventBuilder.events(
+            state: state, environment: RetentionCapture.environment, appVersion: AppVersion.current)
+          let pending = events.filter { (delivery.acceptedRevisions[$0.key] ?? 0) < $0.revision }.count
+          lines.append("Pending events: \(pending)")
+          lines.append("Retry failures: \(delivery.failedAttempts)")
+          lines.append("Next attempt: \(delivery.nextAttemptAt.map { RetentionEventBuilder.timestamp($0) } ?? "ready")")
+        } else {
+          lines.append("Upload configuration unavailable")
+        }
+      } catch {
+        lines.append("Journal read error: \(String(describing: error))")
+      }
+      let attempts = UserDefaults(suiteName: "group.DO.version3")?
+        .stringArray(forKey: "retentionCaptureDiagnostics") ?? []
+      lines += ["=== Capture attempts (diagnostic only) ==="] + attempts
+      return (lines + ["=== Activity log ==="]).joined(separator: "\n") + "\n"
+    }
+
     /// Debug-only binding for the "force subscription tier" picker. Writes the
     /// override into the App Group (so the extensions honor it too) and nudges the
     /// subscription manager so the UI re-reads immediately. Compiled out of release.

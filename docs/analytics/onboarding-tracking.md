@@ -157,3 +157,11 @@ marked development data and writes no credential into its artifacts. It delibera
 requires explicit access to the retention source rather than taking ownership of it.
 
 Official contract: https://posthog.com/docs/api/capture
+
+### Custom answer limit
+
+Each Other answer is limited to 200 whole characters and 2,048 UTF-8 bytes. The field and saved drafts keep the longest prefix within both limits. Confirming a selected oversized answer is rejected. Uploads also bound legacy answers without rewriting saved events. Complex emoji may reach the byte limit before 200 characters.
+
+### Privacy notice layout
+
+The three survey pages show only a small 隱私說明 link above Continue. It opens the full notice, with 第三方網站 used for the analytics destination. Each custom-answer field asks users not to enter personal information. The home notice uses the same text. This changes presentation only; upload gating is unchanged. This UI revision has not been compiled or tested yet at the user’s request.

@@ -37,6 +37,57 @@ final class OnboardingTrackingTests: XCTestCase {
     )
   }
 
+  func testOtherAnswerLimitRejectsOversizedConfirmationWithoutAddingEvents() throws {
+    let (_, journal) = try fixture()
+    var draft = answers
+    draft.purposes = ["other"]
+    draft.purposeOtherText = String(repeating: "答", count: 200)
+    try journal.confirm("purposes", answers: draft, at: date, appVersion: "1")
+    let before = try journal.read().events
+    draft.purposeOtherText += "答"
+    XCTAssertFalse(draft.isValid(for: "purposes"))
+    XCTAssertThrowsError(try journal.confirm("purposes", answers: draft, at: date, appVersion: "1"))
+    XCTAssertEqual(try journal.read().events, before)
+  }
+
+  func testDraftBoundsPastedAnswersAndKeepsWholeEmojiAfterRestart() throws {
+    let (directory, journal) = try fixture()
+    var draft = answers
+    draft.purposes = ["other"]
+    draft.habits = ["other"]
+    draft.purposeOtherText = String(repeating: "答", count: 201)
+    draft.habitOtherText = String(repeating: "👨‍👩‍👧‍👦", count: 200)
+    try journal.saveDraft(draft)
+    let reopened = OnboardingJournal(directory: directory, installID: journal.installID,
+      environment: "development", isSynthetic: true)
+    let saved = try reopened.read().draft
+    XCTAssertEqual(saved.purposeOtherText, String(repeating: "答", count: 200))
+    XCTAssertEqual(saved.habitOtherText, String(repeating: "👨‍👩‍👧‍👦", count: 81))
+    XCTAssertTrue(saved.isComplete)
+    draft.habitOtherText = "a" + String(repeating: "\u{0301}", count: 2048)
+    XCTAssertFalse(draft.isValid(for: "habits"))
+    XCTAssertEqual(OnboardingAnswers.boundedOtherText(draft.habitOtherText), "")
+  }
+
+  func testLegacyOversizedOtherAnswerIsBoundedInUploadWithoutChangingSavedEvent() throws {
+    let (_, journal) = try fixture()
+    var legacy = answers
+    legacy.purposes = ["other"]
+    legacy.habits = ["other"]
+    legacy.purposeOtherText = String(repeating: "答", count: 100000)
+    legacy.habitOtherText = String(repeating: "👨‍👩‍👧‍👦", count: 200)
+    let event = OnboardingJournal.Event(id: UUID(), name: "onboarding_answers_submitted",
+      occurredAt: date, revision: 2, questionID: nil, answers: legacy, appVersion: "1")
+    let state = try journal.read()
+    let payload = OnboardingPostHogUploader.body(for: event, state: state)
+    let properties = payload["properties"] as! [String: Any]
+    XCTAssertEqual(properties["purpose_other_text"] as? String, String(repeating: "答", count: 200))
+    XCTAssertEqual(properties["habit_other_text"] as? String, String(repeating: "👨‍👩‍👧‍👦", count: 81))
+    XCTAssertEqual(event.answers, legacy)
+    let batch = try JSONSerialization.data(withJSONObject: ["batch": Array(repeating: payload, count: 50)])
+    XCTAssertLessThan(batch.count, 512 * 1024)
+  }
+
   func testDraftAndEventIdentitySurviveRestart() throws {
     let (directory, journal) = try fixture()
     var draft = answers

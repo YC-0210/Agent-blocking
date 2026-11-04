@@ -17,11 +17,36 @@ struct OnboardingAnswers: Codable, Equatable {
   ]
   static let phoneTimeIDs: Set<String> = ["under_1h", "2_3h", "4_5h", "6_7h", "8h_plus"]
 
+  static let otherTextCharacterLimit = 200
+  static let otherTextByteLimit = 2048
+
+  // Keep whole characters, including emoji, within both limits.
+  static func boundedOtherText(_ text: String) -> String {
+    var result = ""
+    var bytes = 0
+    for character in text.prefix(otherTextCharacterLimit) {
+      let size = String(character).utf8.count
+      guard bytes + size <= otherTextByteLimit else { break }
+      result.append(character)
+      bytes += size
+    }
+    return result
+  }
+
+  var boundedDraft: Self {
+    var result = self
+    result.purposeOtherText = Self.boundedOtherText(purposeOtherText)
+    result.habitOtherText = Self.boundedOtherText(habitOtherText)
+    return result
+  }
+
   func isValid(for question: String) -> Bool {
     func valid(_ selected: Set<String>, allowed: Set<String>, other: String) -> Bool {
       !selected.isEmpty && selected.isSubset(of: allowed)
         && (!selected.contains("other")
-          || !other.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+          || (!other.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && other.count <= Self.otherTextCharacterLimit
+            && other.utf8.count <= Self.otherTextByteLimit))
     }
     switch question {
     case "purposes": return valid(purposes, allowed: Self.purposeIDs, other: purposeOtherText)
@@ -138,8 +163,9 @@ final class OnboardingJournal {
 
   func saveDraft(_ answers: OnboardingAnswers) throws {
     var state = try read()
-    guard state.draft != answers else { return }
-    state.draft = answers
+    let bounded = answers.boundedDraft
+    guard state.draft != bounded else { return }
+    state.draft = bounded
     try save(state)
   }
 
@@ -149,7 +175,7 @@ final class OnboardingJournal {
     guard answers.isValid(for: question) else { throw JournalError.invalidAnswers }
     var state = try read()
     guard !state.events.isEmpty else { throw JournalError.invalidState }
-    state.draft = answers
+    state.draft = answers.boundedDraft
     let confirmed = answers.submitted
     // A repeated tap or revisiting an unchanged question is not a new confirmation.
     if state.events.last(where: { $0.questionID == question })?.answers

@@ -5,8 +5,8 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[1]
 DETERMINISTIC = (
-    "ScheduleTests", "UnlockRecoveryTests", "SessionHistoryTests", "SessionReportTests",
-    "SessionReportDurationTests", "SubscriptionAccessTests", "EntitlementsTests",
+    "OnboardingTrackingTests", "ScheduleTests", "UnlockRecoveryTests", "SessionHistoryTests", "SessionReportTests",
+    "SessionReportDurationTests", "RetentionTimeCalculatorTests", "RetentionJournalTests", "RetentionCaptureTests", "RetentionUploadTests", "SubscriptionAccessTests", "EntitlementsTests",
     "SelectionRulesTests", "SelectionEnforcementTests", "SubscriptionLifecycleTests",
     "SubscriptionStoreTests", "SubscriptionRefreshTests", "SettingsLayoutTests",
 )

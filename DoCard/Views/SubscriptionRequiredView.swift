@@ -12,7 +12,7 @@ struct SubscriptionRequiredView: View {
 
   var body: some View {
     VStack(spacing: 8) {
-      PaywallView()
+      PaywallView(showsCloseButton: false)
       HStack {
         Button(String(localized: "Stop blocking")) {
           if !subscriptionManager.isPremium { manager.reconcileSubscription(context: context) }

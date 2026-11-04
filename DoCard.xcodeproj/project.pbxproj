@@ -74,6 +74,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A011C0DEA011C0DEA011C0DE /* PostHog.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/PostHog.xcconfig; sourceTree = "<group>"; };
 		74C0179E2F782635001A0A58 /* StoreKitConfig.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = StoreKitConfig.storekit; sourceTree = "<group>"; };
 		8017130A2DE6C78C00B77FE1 /* DoCardDeviceMonitor.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = DoCardDeviceMonitor.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		801B20952CB363A10073E9E2 /* DoCard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = DoCard.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -116,6 +117,9 @@
 			membershipExceptions = (
 				Models/Schedule.swift,
 				Models/Shared.swift,
+				Utils/Analytics/RetentionCapture.swift,
+				Utils/Analytics/RetentionJournal.swift,
+				Utils/Analytics/RetentionTimeCalculator.swift,
 				Utils/AppBlockerUtil.swift,
 				Utils/Entitlements.swift,
 				Models/SubscriptionState.swift,
@@ -144,6 +148,9 @@
 				Models/Timers/TimerActivity.swift,
 				Models/Timers/TimerActivityUtil.swift,
 				Utils/Analytics/DistractionTrackingShared.swift,
+				Utils/Analytics/RetentionCapture.swift,
+				Utils/Analytics/RetentionJournal.swift,
+				Utils/Analytics/RetentionTimeCalculator.swift,
 				Utils/AppBlockerUtil.swift,
 				Utils/DebugLogStore.swift,
 				Utils/Entitlements.swift,
@@ -279,6 +286,7 @@
 		801B208C2CB363A10073E9E2 = {
 			isa = PBXGroup;
 			children = (
+				A011C0DEA011C0DEA011C0DE /* PostHog.xcconfig */,
 				74C0179E2F782635001A0A58 /* StoreKitConfig.storekit */,
 				801B20972CB363A10073E9E2 /* DoCard */,
 				80FF38902D80DB540032BC5E /* DoCardWidget */,
@@ -818,7 +826,9 @@
 		};
 		801B20BB2CB363A20073E9E2 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A011C0DEA011C0DEA011C0DE /* PostHog.xcconfig */;
 			buildSettings = {
+				DO_CARD_POSTHOG_ENVIRONMENT = development;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
@@ -868,7 +878,9 @@
 		};
 		801B20BC2CB363A20073E9E2 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A011C0DEA011C0DEA011C0DE /* PostHog.xcconfig */;
 			buildSettings = {
+				DO_CARD_POSTHOG_ENVIRONMENT = production;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;

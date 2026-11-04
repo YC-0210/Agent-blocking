@@ -1,3 +1,4 @@
+import FamilyControls
 import OSLog
 import SwiftData
 import SwiftUI
@@ -219,6 +220,7 @@ class StrategyManager: ObservableObject {
               "restoreOnLaunch: timer expired at \(plannedEndTime, privacy: .public) — closing stale session '\(session.id, privacy: .private)'"
             )
             session.endReason = "timer_expired"
+            RetentionCapture.excludeSession(id: session.id)
             session.endSession()
             try? context.save()
             self.systemEffect { evaluateShareEligibility(session: session) }
@@ -261,6 +263,7 @@ class StrategyManager: ObservableObject {
               "scheduleExpiryGuard: ending stale scheduled session id=\(session.id) profile=\(session.blockedProfile.name)"
             )
             session.endReason = "timer_expired"
+            RetentionCapture.excludeSession(id: session.id)
             session.endSession()
             try? context.save()
             self.systemEffect { evaluateShareEligibility(session: session) }
@@ -296,6 +299,15 @@ class StrategyManager: ObservableObject {
           appBlocker.activateRestrictions(
             for: BlockedProfiles.getSnapshot(for: session.blockedProfile)
           )
+          if session.triggerSource == "scheduled" {
+            let profile = BlockedProfiles.getSnapshot(for: session.blockedProfile)
+            RetentionCapture.started(
+              session.toSnapshot(),
+              eligible: AuthorizationCenter.shared.authorizationStatus == .approved
+                && SharedData.effectiveSubscriptionTier == .premium
+                && appBlocker.wouldShieldAnything(for: profile),
+              diagnosticContext: "foreground scheduled reapply")
+          }
         } else {
           smLogger.info("restoreOnLaunch: session in break — skipping restriction re-apply")
         }
@@ -943,6 +955,19 @@ class StrategyManager: ObservableObject {
         session.triggerSource = self.pendingTriggerSource
         self.pendingTriggerSource = "manual" // reset default
 
+        self.systemEffect {
+          do {
+            guard let context = session.modelContext else { return }
+            try context.save()
+            let eligible = AuthorizationCenter.shared.authorizationStatus == .approved
+              && SharedData.effectiveSubscriptionTier == .premium
+              && self.appBlocker.wouldShieldAnything(for: BlockedProfiles.getSnapshot(for: session.blockedProfile))
+            RetentionCapture.started(session.toSnapshot(), eligible: eligible)
+          } catch {
+            smLogger.error("Cannot capture retention start before saving session: \(error.localizedDescription)")
+          }
+        }
+
         // Update the snapshot of the profile in case some settings were changed
         BlockedProfiles.updateSnapshot(for: session.blockedProfile)
 
@@ -1141,6 +1166,18 @@ class StrategyManager: ObservableObject {
       )
     }
 
+    do {
+      try context.save()
+      // The saved model preserves Emergency Unlock and break corrections during import.
+      for snapshot in completedScheduleSessions {
+        if let saved = try BlockedProfileSession.findSession(byID: snapshot.id, in: context) {
+          RetentionCapture.completed(saved.toSnapshot())
+        }
+      }
+    } catch {
+      smLogger.error("Cannot reconcile retention completions: \(error.localizedDescription)")
+    }
+
     // Flush completed scheduled sessions
     SharedData.flushCompletedSessionsForSchedular()
   }
@@ -1312,7 +1349,7 @@ class StrategyManager: ObservableObject {
         smLogger.info(
           "restoreScheduledSessionIfNeeded: no active schedule window for '\(profile.name, privacy: .private)' — ending stale shared session"
         )
-        SharedData.endActiveScheduleSharedSession()
+        SharedData.endActiveScheduleSharedSession(captureRetention: false)
         return
       }
 
@@ -1342,6 +1379,10 @@ class StrategyManager: ObservableObject {
       "branch=newWindow reApply profile=\(profile.name)"
     )
     appBlocker.activateRestrictions(for: profile)
+    if let snapshot = SharedData.getActiveScheduleSharedSession() {
+      RetentionCapture.started(snapshot, eligible: AuthorizationCenter.shared.authorizationStatus == .approved
+        && SharedData.effectiveSubscriptionTier == .premium && appBlocker.wouldShieldAnything(for: profile))
+    }
   }
 
   private func suppressScheduledReblockIfNeeded(for session: BlockedProfileSession) {

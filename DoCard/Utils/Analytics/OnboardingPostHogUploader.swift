@@ -62,7 +62,9 @@ final class OnboardingPostHogUploader {
         properties["question_id"] = step
       }
     }
-    if let answers = event.answers {
+    if let savedAnswers = event.answers {
+      // Bound legacy records without rewriting immutable event history.
+      let answers = savedAnswers.boundedDraft.submitted
       properties["purposes"] = answers.purposes.sorted()
       properties["scrolling_habits"] = answers.habits.sorted()
       if let phoneTime = answers.dailyPhoneTime { properties["daily_phone_time"] = phoneTime }

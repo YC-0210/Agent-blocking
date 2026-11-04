@@ -11,8 +11,8 @@ chosen Xcode or runtime is missing. Update these choices deliberately after veri
 1. Run `python3 ci/test-ios-ci.py` before Xcode in the workflow. These controlled-response
    checks verify stage ordering, result validation and failure handling.
 2. Build the app, tests and dependent extensions once in Debug with `build-for-testing`.
-3. Reuse that build for the 139 deterministic methods: schedule36, recovery28, history8,
-   reports7, duration1, access12, entitlements2, selection rules4, enforcement1, lifecycle20,
+3. Reuse that build for the 209 deterministic methods: schedule36, recovery28, history8,
+   reports7, duration1, retention70, access12, entitlements2, selection rules4, enforcement1, lifecycle20,
    scripted store4, refresh1 and Settings15. Validate exact source method identities and
    every result before advancing.
 4. Run the four `StoreKitAccessTests` serially using the same build and local Apple StoreKit

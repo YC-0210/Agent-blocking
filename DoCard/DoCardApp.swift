@@ -60,6 +60,7 @@ struct DoCardApp: App {
     private let preparedContainer: ModelContainer = container
   #endif
   @Environment(\.scenePhase) private var scenePhase
+  private let retentionPrepared: Void = RetentionCapture.prepare()
   @StateObject private var requestAuthorizer = RequestAuthorizer()
   @StateObject private var navigationManager = NavigationManager()
   @StateObject private var nfcWriter = NFCWriter()
@@ -74,6 +75,11 @@ struct DoCardApp: App {
   @StateObject private var whatsNewManager = WhatsNewManager.shared
 
   init() {
+    #if DEBUG
+      if ProcessInfo.processInfo.arguments.contains("--debug-premium-test") {
+        SharedData.debugForcedTier = .premium
+      }
+    #endif
     TimersUtil.registerBackgroundTasks()
 
     // Migrate legacy single-schedule data to multi-schedule array
@@ -139,6 +145,7 @@ struct DoCardApp: App {
       .task {
         OnboardingTracking.shared.start()
         guard !isOnboardingUIPrototype else { return }
+        RetentionUploadService.setActive(scenePhase == .active)
         await subscriptionManager.checkCurrentEntitlements()
         reconcileSubscription()
       }
@@ -148,7 +155,11 @@ struct DoCardApp: App {
       .onChange(of: requestAuthorizer.isAuthorized) { _, authorized in
         if authorized { subscriptionManager.refreshLocalAccess() }
       }
+      .onReceive(NotificationCenter.default.publisher(for: RetentionUploadService.disclosureChanged)) { _ in
+        RetentionUploadService.setActive(scenePhase == .active && !isOnboardingUIPrototype)
+      }
       .onChange(of: scenePhase) { _, phase in
+        RetentionUploadService.setActive(phase == .active && !isOnboardingUIPrototype)
         guard phase == .active, !isOnboardingUIPrototype else { return }
         subscriptionManager.refreshLocalAccess()
         reconcileSubscription()

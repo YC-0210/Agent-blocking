@@ -1,0 +1,4 @@
+// Copy to PostHog.local.xcconfig and use the selected project's public ingestion configuration.
+DO_CARD_POSTHOG_TOKEN = <project-token>
+// xcconfig treats // as a comment. $() preserves the second slash in an HTTPS URL.
+DO_CARD_POSTHOG_HOST = https:/$()/<ingestion-host>

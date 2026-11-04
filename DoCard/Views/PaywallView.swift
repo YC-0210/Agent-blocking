@@ -2,6 +2,7 @@ import StoreKit
 import SwiftUI
 
 struct PaywallView: View {
+    var showsCloseButton = true
     @EnvironmentObject var subscriptionManager: SubscriptionManager
     @Environment(\.dismiss) private var dismiss
 
@@ -144,17 +145,19 @@ struct PaywallView: View {
             }
             .background(Color(.systemGroupedBackground).ignoresSafeArea())
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark")
-                            .font(.body)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.primary)
-                            .frame(width: 32, height: 32)
-                            .background(
-                                Circle()
-                                    .fill(Color(.systemGray5))
-                            )
+                if showsCloseButton {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(action: { dismiss() }) {
+                            Image(systemName: "xmark")
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.primary)
+                                .frame(width: 32, height: 32)
+                                .background(
+                                    Circle()
+                                        .fill(Color(.systemGray5))
+                                )
+                        }
                     }
                 }
             }

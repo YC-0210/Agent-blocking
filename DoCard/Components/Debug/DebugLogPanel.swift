@@ -3,9 +3,10 @@ import SwiftUI
 import UIKit
 
 struct DebugLogPanel: View {
+  var diagnostics: () -> String = { "" }
+
   @State private var logText: String = ""
   @State private var sizeBytes: Int = 0
-  @State private var refreshTick: Int = 0
 
   private var formattedSize: String {
     let kb = Double(sizeBytes) / 1024.0
@@ -34,6 +35,7 @@ struct DebugLogPanel: View {
         .font(.caption)
         .foregroundColor(.red)
       }
+      .buttonStyle(.borderless)
 
       ScrollView {
         Text(logText.isEmpty ? "(empty)" : logText)
@@ -47,13 +49,11 @@ struct DebugLogPanel: View {
       .clipShape(RoundedRectangle(cornerRadius: 8))
     }
     .onAppear { load() }
-    .id(refreshTick)
   }
 
   private func load() {
-    logText = DebugLogStore.readAll()
+    logText = diagnostics() + DebugLogStore.readAll()
     sizeBytes = DebugLogStore.sizeBytes()
-    refreshTick &+= 1
   }
 }
 

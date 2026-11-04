@@ -22,7 +22,9 @@ struct OnboardingMultiSelectPage: View {
   private var canContinue: Bool {
     !selectedIds.isEmpty
       && (!selectedIds.contains("other")
-        || !otherText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        || (!otherText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+          && otherText.count <= OnboardingAnswers.otherTextCharacterLimit
+          && otherText.utf8.count <= OnboardingAnswers.otherTextByteLimit))
   }
 
   var body: some View {
@@ -122,7 +124,9 @@ struct OnboardingMultiSelectPage: View {
             .accessibilityAddTraits(isSelected ? [.isSelected] : [])
           }
           if selectedIds.contains("other") {
-            TextField(String(localized: "請輸入你的答案"), text: $otherText)
+            TextField(String(localized: "請輸入你的答案"), text: Binding(
+              get: { otherText },
+              set: { otherText = OnboardingAnswers.boundedOtherText($0) }))
               .font(.system(size: 16))
               .foregroundColor(.white)
               .padding(16)
@@ -134,6 +138,13 @@ struct OnboardingMultiSelectPage: View {
               .submitLabel(.done)
               .onSubmit { isOtherFocused = false }
               .accessibilityIdentifier("onboarding.otherText")
+            Text(String(localized: "請勿填寫姓名、電子郵件或其他個人資料。"))
+              .font(.caption)
+              .foregroundColor(.white.opacity(0.65))
+              .frame(maxWidth: .infinity, alignment: .leading)
+            Text(String(localized: "最多 200 字（複雜表情符號可能較少）"))
+              .font(.system(size: 12))
+              .foregroundColor(.white.opacity(0.6))
           }
         }
         .padding(.horizontal, 24)
@@ -153,6 +164,9 @@ struct OnboardingMultiSelectPage: View {
       .font(.system(size: 12))
       .foregroundColor(.white.opacity(0.6))
       .padding(.top, 12)
+
+      AnalyticsPrivacyLink()
+        .padding(.horizontal, 24)
 
       // "繼續" button
       Button {
