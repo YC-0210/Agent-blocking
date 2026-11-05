@@ -84,18 +84,24 @@ enum AgentFocusDevice {
     let sessionID: String?
     let endAt: Double?
     let activityName: String?
+    let nextStartAt: Double?
+    let nextEndAt: Double?
   }
 
   private static func recordExpiryEvent(
-    _ event: String, session: AgentFocusSession? = nil, activity: DeviceActivityName? = nil
+    _ event: String, session: AgentFocusSession? = nil, activity: DeviceActivityName? = nil,
+    schedule: DeviceActivitySchedule? = nil
   ) {
     guard
       let directory = FileManager.default.containerURL(
         forSecurityApplicationGroupIdentifier: "group.DO.version3")
     else { return }
+    let next = schedule?.nextInterval
     let entry = ExpiryEvent(
       event: event, at: Date().timeIntervalSince1970 * 1000,
-      sessionID: session?.id, endAt: session?.endAt, activityName: activity?.rawValue)
+      sessionID: session?.id, endAt: session?.endAt, activityName: activity?.rawValue,
+      nextStartAt: next.map { $0.start.timeIntervalSince1970 * 1000 },
+      nextEndAt: next.map { $0.end.timeIntervalSince1970 * 1000 })
     // Fixed diagnostic filenames, no app tokens, credentials or legacy model initialization.
     try? JSONEncoder().encode(entry).write(
       to: directory.appendingPathComponent("agent-expiry-" + event + ".json"),
@@ -178,37 +184,23 @@ enum AgentFocusDevice {
       !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
         || !selection.webDomainTokens.isEmpty
     else { throw Failure.emptySelection }
-    let now = Date()
-    let end = Date(timeIntervalSince1970: session.monitoringEndAt / 1000)
-    // APNs delivery and restoration can leave less than Apple's 15-minute minimum.
-    // Backdate only the monitoring window, never the approved end or shield duration.
-    // One extra second preserves the minimum after DateComponents truncation.
-    let monitoringStart = min(now, end.addingTimeInterval(-901))
-    func components(_ date: Date) -> DateComponents {
-      var value = Calendar.current.dateComponents(
-        [.year, .month, .day, .hour, .minute, .second], from: date)
-      value.calendar = .current
-      value.timeZone = .current
-      return value
-    }
+    let schedules = session.expirySchedules()
     let center = DeviceActivityCenter()
-    // Two stable monitors are replaced on the next start: the normal end callback,
-    // plus a future-start recovery window if reboot loses that end callback.
-    // Neither callback queries or changes monitoring while holding the phone lock.
+    // Recurring time-of-day windows survive beyond a one-shot calendar interval.
+    // Every callback still checks the absolute persisted deadline and can only release.
     let name = DeviceActivityName(activityPrefix + "current")
-    try center.startMonitoring(
-      name,
-      during: DeviceActivitySchedule(
-        intervalStart: components(monitoringStart), intervalEnd: components(end), repeats: false))
-    let recovery = session.expiryRecoveryWindow
+    let primary = DeviceActivitySchedule(
+      intervalStart: schedules.primary.intervalStart,
+      intervalEnd: schedules.primary.intervalEnd, repeats: schedules.primary.repeats)
     let recoveryName = DeviceActivityName(activityPrefix + "recovery")
-    try center.startMonitoring(
-      recoveryName,
-      during: DeviceActivitySchedule(
-        intervalStart: components(recovery.start), intervalEnd: components(recovery.end),
-        repeats: false))
-    recordExpiryEvent("registered", session: session, activity: name)
-    recordExpiryEvent("recovery_registered", session: session, activity: recoveryName)
+    let recovery = DeviceActivitySchedule(
+      intervalStart: schedules.recovery.intervalStart,
+      intervalEnd: schedules.recovery.intervalEnd, repeats: schedules.recovery.repeats)
+    try center.startMonitoring(name, during: primary)
+    try center.startMonitoring(recoveryName, during: recovery)
+    recordExpiryEvent("registered", session: session, activity: name, schedule: primary)
+    recordExpiryEvent(
+      "recovery_registered", session: session, activity: recoveryName, schedule: recovery)
     let store = ManagedSettingsStore(named: storeName)
     store.shield.applications =
       selection.applicationTokens.isEmpty ? nil : selection.applicationTokens

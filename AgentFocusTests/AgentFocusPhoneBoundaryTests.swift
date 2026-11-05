@@ -155,16 +155,14 @@ final class AgentFocusPhoneBoundaryTests: XCTestCase {
     XCTAssertFalse(fixture.shielded)
   }
 
-  func testRecoveryIntervalBeginsAfterApprovedDeadlineWithoutExtendingSession() throws {
+  func testRecoveryWakeAfterOriginalEndCallbackWasMissedDoesNotExtendSession() throws {
     let fixture = try PhoneBoundaryFixture()
     defer { fixture.cleanup() }
     fixture.clock += 900
     _ = try fixture.receive(fixture.start(2))
     let session = try XCTUnwrap(fixture.phone.status()?.session)
-    let recovery = session.expiryRecoveryWindow
     XCTAssertEqual(session.endAt, 1_793_836_920_900)
-    XCTAssertEqual(recovery.start.timeIntervalSince1970, 1_793_836_921)
-    XCTAssertEqual(recovery.end.timeIntervalSince1970, 1_793_923_321)
+    XCTAssertEqual(session.monitoringEndAt, 1_793_836_921_000)
     // No original end callback is simulated; only the independent recovery wake-up.
     fixture.clock = 1_793_836_921_000
     fixture.failLedgerRead = true
@@ -172,6 +170,78 @@ final class AgentFocusPhoneBoundaryTests: XCTestCase {
     XCTAssertFalse(fixture.shielded)
     fixture.failLedgerRead = false
     XCTAssertNil(try fixture.phone.status()?.session)
+  }
+
+  func testNativeExpiryUsesRecurringClockComponentsInsteadOfOneShotCalendarDates() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    fixture.clock += 900
+    _ = try fixture.receive(fixture.start(2))
+    let session = try XCTUnwrap(fixture.phone.status()?.session)
+    let schedules = session.expirySchedules()
+    for schedule in [schedules.primary, schedules.recovery] {
+      XCTAssertTrue(schedule.repeats)
+      for value in [schedule.intervalStart, schedule.intervalEnd] {
+        XCTAssertNil(value.year)
+        XCTAssertNil(value.month)
+        XCTAssertNil(value.day)
+        XCTAssertEqual(value.calendar?.identifier, .gregorian)
+        XCTAssertEqual(value.timeZone?.secondsFromGMT(), 0)
+      }
+    }
+    XCTAssertEqual(schedules.primary.intervalStart.hour, 23)
+    XCTAssertEqual(schedules.primary.intervalStart.minute, 47)
+    XCTAssertEqual(schedules.primary.intervalStart.second, 0)
+    XCTAssertEqual(schedules.primary.intervalEnd.hour, 0)
+    XCTAssertEqual(schedules.primary.intervalEnd.minute, 2)
+    XCTAssertEqual(schedules.primary.intervalEnd.second, 1)
+    XCTAssertEqual(schedules.recovery.intervalStart.second, 1)
+    XCTAssertEqual(schedules.recovery.intervalEnd.hour, 0)
+    XCTAssertEqual(schedules.recovery.intervalEnd.minute, 2)
+    XCTAssertEqual(schedules.recovery.intervalEnd.second, 0)
+    XCTAssertEqual(session.endAt, 1_793_836_920_900)
+  }
+
+  func testRecurringExpiryClockWindowUsesUTCAtLocalMidnightWithoutExtendingOwnership() throws {
+    let fixture = try PhoneBoundaryFixture(instant: "2026-11-05T15:58:00Z")
+    defer { fixture.cleanup() }
+    _ = try fixture.receive(fixture.start(2))
+    let session = try XCTUnwrap(fixture.phone.status()?.session)
+    let schedules = session.expirySchedules()
+    XCTAssertEqual(schedules.primary.intervalStart.hour, 15)
+    XCTAssertEqual(schedules.primary.intervalStart.minute, 44)
+    XCTAssertEqual(schedules.primary.intervalStart.second, 59)
+    XCTAssertEqual(schedules.primary.intervalEnd.hour, 16)
+    XCTAssertEqual(schedules.recovery.intervalStart.hour, 16)
+    XCTAssertEqual(schedules.recovery.intervalEnd.hour, 15)
+    XCTAssertEqual(schedules.recovery.intervalEnd.minute, 59)
+    XCTAssertEqual(schedules.recovery.intervalEnd.second, 59)
+    XCTAssertEqual(session.endAt, 1_793_894_400_000)
+    fixture.clock = 1_793_894_400_000
+    XCTAssertTrue(try fixture.recreate().expire())
+    fixture.clock += 86_400_000
+    XCTAssertFalse(try fixture.recreate().expire())
+    XCTAssertNil(try fixture.phone.status()?.session)
+    XCTAssertFalse(fixture.shielded)
+  }
+
+  func testExpiryWakeUsesUTCThroughARepeatedLocalHour() throws {
+    let fixture = try PhoneBoundaryFixture(
+      zone: "America/New_York", instant: "2026-11-01T05:59:00Z")
+    defer { fixture.cleanup() }
+    _ = try fixture.receive(fixture.start(2))
+    let session = try XCTUnwrap(fixture.phone.status()?.session)
+    let schedules = session.expirySchedules()
+    XCTAssertEqual(schedules.primary.intervalStart.hour, 5)
+    XCTAssertEqual(schedules.primary.intervalStart.minute, 45)
+    XCTAssertEqual(schedules.primary.intervalStart.second, 59)
+    XCTAssertEqual(schedules.primary.intervalEnd.hour, 6)
+    XCTAssertEqual(schedules.primary.intervalEnd.minute, 1)
+    XCTAssertEqual(schedules.recovery.intervalStart.hour, 6)
+    XCTAssertEqual(schedules.recovery.intervalEnd.hour, 6)
+    XCTAssertEqual(schedules.recovery.intervalEnd.minute, 0)
+    XCTAssertEqual(schedules.recovery.intervalEnd.second, 59)
+    XCTAssertEqual(try fixture.phone.status()?.policy.timeZone, "America/New_York")
   }
 
   // Each test below exercises the persisted phone API and observable native effects.

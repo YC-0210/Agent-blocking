@@ -34,11 +34,36 @@ struct AgentFocusSession: Codable, Equatable, Sendable {
   // DeviceActivity DateComponents has whole-second resolution.
   var monitoringEndAt: Double { ceil(endAt / 1000) * 1000 }
 
-  // A future-start monitor provides another on-device expiry opportunity after reboot.
-  // This is a recovery window, never an extension of the approved session deadline.
-  var expiryRecoveryWindow: DateInterval {
-    DateInterval(start: Date(timeIntervalSince1970: monitoringEndAt / 1000), duration: 86400)
+  func expirySchedules() -> AgentFocusExpirySchedules {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = .gmt
+    func components(_ date: Date) -> DateComponents {
+      var value = calendar.dateComponents([.hour, .minute, .second], from: date)
+      value.calendar = calendar
+      value.timeZone = .gmt
+      return value
+    }
+    let end = Date(timeIntervalSince1970: monitoringEndAt / 1000)
+    return AgentFocusExpirySchedules(
+      primary: .init(
+        intervalStart: components(end.addingTimeInterval(-901)),
+        intervalEnd: components(end), repeats: true),
+      recovery: .init(
+        intervalStart: components(end),
+        intervalEnd: components(end.addingTimeInterval(-1)), repeats: true))
   }
+
+}
+
+struct AgentFocusMonitorSchedule {
+  let intervalStart: DateComponents
+  let intervalEnd: DateComponents
+  let repeats: Bool
+}
+
+struct AgentFocusExpirySchedules {
+  let primary: AgentFocusMonitorSchedule
+  let recovery: AgentFocusMonitorSchedule
 }
 
 struct AgentFocusState: Codable, Equatable, Sendable {

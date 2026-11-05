@@ -283,3 +283,50 @@ callback intentionally cannot wait on a synchronous startMonitoring caller. Phys
 retest is required; if still blocked, preserve callback evidence before opening DO Card.
 https://developer.apple.com/documentation/deviceactivity/deviceactivityschedule/nextinterval
 https://developer.apple.com/documentation/deviceactivity/deviceactivityname
+
+## Online research and recurring clock-schedule candidate
+
+The dated future-start recovery candidate also failed the reboot test. Captured before
+launching DO Card: both registration files were present; primary start/end callbacks
+recorded failure during registration/replacement while ownership was busy; no later
+recovery-start callback was recorded after reboot/expiry. That candidate is not a pass.
+
+The user explicitly requested online research. Relevant primary/firsthand evidence:
+
+- Apple documents that interval callbacks depend on device use, not a guaranteed alarm:
+  https://developer.apple.com/documentation/deviceactivity/deviceactivityschedule/nextinterval
+- Apple says non-repeating monitoring stops callbacks after its first interval ends:
+  https://developer.apple.com/documentation/deviceactivity/deviceactivityschedule/init(intervalstart:intervalend:repeats:warningtime:)
+- A shipping app author's firsthand observations describe full year/month/day schedule
+  components silently failing to fire, despite successful registration. This is an
+  observed workaround report, not an Apple guarantee or proof of this device's cause:
+  https://honorfitapp.com/blog/ios-screen-time-api-guide/
+- An Apple developer forum report describes absent non-repeating timed-unlock callbacks;
+  the reply recommends Feedback with sysdiagnose and a minimal reproduction, not a fix:
+  https://developer.apple.com/forums/thread/820956
+
+The next candidate removes year/month/day from both schedules and uses recurring
+hour/minute/second components with an explicit Gregorian UTC calendar and time zone. The
+primary interval spans the15m1s before the rounded deadline; the complementary recovery
+interval starts at that clock time and ends one second before it on the next daily cycle.
+Names remain bounded to two. Callbacks can only release expired ownership under the OS
+lock. The stored absolute deadline is unchanged and a callback the next day cannot start,
+renew or reapply a block. Monitoring registration still precedes applying shields.
+This schedules recovery opportunities for restrictions, not arbitrary network polling.
+
+Tests first reproduced full-date/one-shot schedule output against clock-only recurring
+requirements (18 failed assertions), then passed with the new schedule plan. Added cases
+cover fractional deadline rounding, midnight wrapping, and later-day duplicate cleanup.
+Initial clock-only suite:70 passed; the final UTC/DST-fold regression raises this to71 passing tests. Signed Debug build passed. Native callback
+reliability after reboot still needs physical verification; registration or passing
+Foundation tests must not be described as fixing that OS behavior conclusively.
+Logs: `/tmp/docard-clock-schedule-red.log`, `/tmp/docard-clock-final-swift.log`,
+`/tmp/docard-clock-device-build.log`. The old fixed24h recovery-window helper was removed
+because it is no longer the schedule the native adapter uses.
+
+Review found a fall-back-hour ambiguity in local time-only components. The schedule
+clock is now always UTC, while phone-approved hours retain their original timezone.
+New York2026-11-01 01:59EDT→01:01EST has an unambiguous05:45:59→06:01UTC primary
+interval. This regression failed before UTC conversion, then passed. Native registration
+diagnostics now include DeviceActivitySchedule.nextInterval start/end so the on-device
+interpretation can be inspected rather than inferred from Foundation tests.
