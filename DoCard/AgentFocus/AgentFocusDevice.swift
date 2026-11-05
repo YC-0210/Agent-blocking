@@ -11,7 +11,7 @@ enum AgentFocusDevice {
   typealias Phone = AgentFocusPhone<FamilyActivitySelection>
 
   enum Failure: Error {
-    case unavailable, unauthorized, subscriptionRequired, emptySelection, activeSession
+    case unavailable, unauthorized, emptySelection, activeSession
   }
 
   static func approve(
@@ -19,9 +19,6 @@ enum AgentFocusDevice {
   ) throws {
     guard AuthorizationCenter.shared.authorizationStatus == .approved else {
       throw Failure.unauthorized
-    }
-    guard SharedData.effectiveSubscriptionTier == .premium else {
-      throw Failure.subscriptionRequired
     }
     guard
       !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
@@ -60,8 +57,7 @@ enum AgentFocusDevice {
 
   static func reconcile() throws {
     try phone().reconcile(
-      authorized: AuthorizationCenter.shared.authorizationStatus == .approved
-        && SharedData.effectiveSubscriptionTier == .premium)
+      authorized: AuthorizationCenter.shared.authorizationStatus == .approved)
   }
   static func intervalEnded(_ activity: DeviceActivityName) {
     guard activity.rawValue.hasPrefix(activityPrefix) else { return }
@@ -126,9 +122,6 @@ enum AgentFocusDevice {
   {
     guard AuthorizationCenter.shared.authorizationStatus == .approved else {
       throw Failure.unauthorized
-    }
-    guard SharedData.effectiveSubscriptionTier == .premium else {
-      throw Failure.subscriptionRequired
     }
     guard
       !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty

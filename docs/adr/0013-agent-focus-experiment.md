@@ -37,9 +37,10 @@ MCP client and include real stdio discovery. Apple hardware and APNs are system 
 - Register independent local expiry before applying shields. Restore current shields
   only while expiry can be retained/registered; otherwise end the session and require
   approval to continue. No exact-second background-delivery guarantee is claimed.
-- Agent sessions require the repository's current verified subscription access at both
-  setup and execution. Emergency release has no subscription, network, card or quota
-  check. Existing authorization code and NFC behavior are not changed.
+- Per user instruction on 2026-11-05, this experiment exempts agent focus from
+  subscription checks at setup, execution and restoration. This is a scoped exception
+  to ADR-0007; existing card/scheduled modes keep their paid-access rules. Screen Time
+  authorization, phone-approved scope/hours/duration, and Emergency Unlock remain enforced.
 - Device credentials live in the iPhone Keychain with AfterFirstUnlockThisDeviceOnly
   access. They are separate from the Mac agent credential. Pairing codes are random,
   single-use and expire in ten minutes. The phone accepts HTTPS relay addresses only.

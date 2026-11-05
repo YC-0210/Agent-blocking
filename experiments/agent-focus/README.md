@@ -80,10 +80,10 @@ Confirmation flags represent what the user said in chat. The MCP server cannot i
 
 ## 5. Pair and approve on the phone
 
-1. Install this branch's Debug build on a physical iPhone via Xcode. Use an authorized development subscription/trial or the existing Debug-only test access mechanism; agent mode does not bypass subscription enforcement.
+1. Install this branch's Debug build on a physical iPhone via Xcode. Agent mode in this experiment does not require a subscription. Screen Time authorization and phone-approved limits are still required.
 2. End existing card/manual sessions and disable schedules first. Prefer a dedicated test phone. This experiment never clears a legacy shield store.
 3. Ask Codex to call `pair_phone`. Open its `docard-agent://setup?...` link on the iPhone. If the client cannot render the custom link, enter it into Safari or use a QR code. The invitation also returns the plain relay URL and code.
-4. On the phone, use Subscription options if access is not active, then approve Screen Time, choose apps/websites with Apple's picker, and approve hours and maximum session length. The agent can help you choose a plan in chat; the native picker is the actual app-selection authority. The prototype defaults to 45 minutes and full-day hours until you approve different values. Hours currently describe one daily, same-day interval.
+4. On the phone, approve Screen Time, choose apps/websites with Apple's picker, and approve hours and maximum session length. The agent can help you choose a plan in chat; the native picker is the actual app-selection authority. The prototype defaults to 45 minutes and full-day hours until you approve different values. Hours currently describe one daily, same-day interval.
 5. Tap **Approve and connect** and allow notifications. The normal screen becomes agent instructions plus **Emergency Unlock**.
 6. Ask Codex for `focus_status`, which provides the phone-approved `modeID`. Then use the Linear focus prompt or say: “Help me tackle this Linear issue. Block distractions until we finish.”
 7. Starts remain pending until the phone applies them. If a silent push does not execute, a generic alert is attempted after 15 seconds; tap it to let DO Card fetch and validate the pending command. Commands expire after two minutes, so a much later tap cannot unexpectedly block you.

@@ -15,6 +15,10 @@ Physical NFC card + iOS app that uses Apple's Screen Time API (Family Controls) 
 > local extra-day extension. Expiry ends blocking as soon as iOS permits and preserves
 > history/settings. See `docs/testing/selection-access.md` for local checks and device limits.
 
+> **Agent experiment exception (2026-11-05):** Per user request, ADR-0013 exempts
+> opt-in agent focus from subscription checks in setup, execution and restoration.
+> Screen Time authorization and phone-approved limits remain required.
+
 ## Next-version scope (2026-11-02)
 
 Co-Focus and device synchronization are removed from the app: no shared-focus tab,

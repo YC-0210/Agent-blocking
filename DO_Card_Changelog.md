@@ -568,3 +568,12 @@ Verification: local core pipeline passed 156 deterministic methods, four StoreKi
 both separate-process upgrade phases and arm64/x86_64 Release build. All four Maestro
 locking/recovery journeys passed. New suites add 17 exact-ID methods to CI. Source/format
 checks and a clean patch-application check against behavior-tracking PR #7 passed.
+
+
+## Agent experiment subscription exemption (2026-11-05)
+
+Per user request, remove the subscription wall and billing controls from Agent Focus
+setup, and remove subscription checks from native approval, shield installation and
+restoration. Screen Time authorization, selected apps, approved hours/max duration,
+local expiry and Emergency Unlock remain enforced. Existing card/scheduled paid access
+and StoreKit verification are unchanged. ADR-0013 documents this experiment exception.
