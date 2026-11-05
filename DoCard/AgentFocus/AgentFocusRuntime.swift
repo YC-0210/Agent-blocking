@@ -56,7 +56,9 @@ final class AgentFocusRuntime: ObservableObject {
   }
 
   init() {
-    configured = (try? loadPairing()) != nil
+    if let pairing = try? loadPairing() {
+      configured = (try? AgentFocusDevice.status(pairingID: pairing.deviceId)) != nil
+    }
   }
 
   func openSetup(_ url: URL) -> Bool {
@@ -72,7 +74,7 @@ final class AgentFocusRuntime: ObservableObject {
     }
     let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
     if configured {
-      if (try? AgentFocusDevice.withRecord({ $0.state.session != nil })) == true {
+      if (try? AgentFocusDevice.status()?.session) != nil {
         message = "End the current session before changing agent setup."
         return true
       }
@@ -100,10 +102,11 @@ final class AgentFocusRuntime: ObservableObject {
       let policy = AgentFocusPolicy(
         modeID: UUID().uuidString, maximumMinutes: maximumMinutes,
         startMinute: startMinute, endMinute: endMinute, timeZone: TimeZone.current.identifier)
-      try AgentFocusDevice.approve(policy: policy, selection: selection)
       let redeemedData = try await request(
         relay: url, path: "v1/pairings/redeem", body: Code(code: code))
       let redeemed = try JSONDecoder().decode(Redeemed.self, from: redeemedData)
+      try AgentFocusDevice.approve(
+        policy: policy, selection: selection, pairingID: redeemed.deviceId)
       try savePairing(
         Pairing(relay: url, deviceId: redeemed.deviceId, deviceToken: redeemed.deviceToken))
       configured = true
@@ -149,7 +152,9 @@ final class AgentFocusRuntime: ObservableObject {
       try await uploadReceipts(pairing)
       let data = try await request(pairing, path: "v1/device/commands")
       let commands = try JSONDecoder().decode(Commands.self, from: data).commands
-      for command in commands { _ = try AgentFocusDevice.receive(command) }
+      for command in commands {
+        _ = try AgentFocusDevice.receive(command, pairingID: pairing.deviceId)
+      }
       try await uploadReceipts(pairing)
       try await publishSnapshot(pairing)
     } catch {
@@ -159,23 +164,22 @@ final class AgentFocusRuntime: ObservableObject {
   }
 
   private func publishSnapshot(_ pairing: Pairing) async throws {
-    let snapshot: Snapshot? = try AgentFocusDevice.withRecord { record in
-      guard let policy = record.policy else { return nil }
-      return Snapshot(
-        modeID: policy.modeID, sessionID: record.state.session?.id,
-        endAt: record.state.session?.endAt,
-        requiresRenewalApproval: record.state.requiresRenewalApproval,
-        maximumMinutes: policy.maximumMinutes, startMinute: policy.startMinute,
-        endMinute: policy.endMinute, timeZone: policy.timeZone)
+    let status = try AgentFocusDevice.status(pairingID: pairing.deviceId)
+    let snapshot = status.map { status in
+      Snapshot(
+        modeID: status.policy.modeID, sessionID: status.session?.id,
+        endAt: status.session?.endAt, requiresRenewalApproval: status.requiresRenewalApproval,
+        maximumMinutes: status.policy.maximumMinutes, startMinute: status.policy.startMinute,
+        endMinute: status.policy.endMinute, timeZone: status.policy.timeZone)
     }
     if let snapshot { _ = try await request(pairing, path: "v1/device/snapshot", body: snapshot) }
   }
 
   private func uploadReceipts(_ pairing: Pairing) async throws {
-    let receipts = try AgentFocusDevice.withRecord { $0.receipts }
+    let receipts = try AgentFocusDevice.pendingReceipts(pairingID: pairing.deviceId)
     for receipt in receipts {
       _ = try await request(pairing, path: "v1/device/receipts", body: receipt)
-      try AgentFocusDevice.withRecord { $0.receipts.removeAll { $0.id == receipt.id } }
+      try AgentFocusDevice.acknowledge(receipt.id, pairingID: pairing.deviceId)
     }
   }
 

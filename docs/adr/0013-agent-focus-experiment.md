@@ -23,8 +23,10 @@ MCP client and include real stdio discovery. Apple hardware and APNs are system 
 - The iPhone owns approved app tokens, hours/timezone and a maximum duration. A fresh
   approval creates a new mode ID, invalidating commands for earlier selections.
 - One protected, atomically replaced App Group record stores local policy, session,
-  consumed sequence, emergency cutoff and acknowledgement outbox. An OS file lock
-  serializes the app and monitor. No SwiftData models or schema versions change.
+  consumed sequence, emergency cutoff, pending effect and acknowledgement outbox. An OS file lock
+  serializes the app and monitor, including platform release. Pairing identity scopes
+  sequence/outbox state; a replacement pairing resets both. Before shield effects, a
+  recoverable pending command and expiry owner are persisted. No SwiftData models or schema versions change.
 - A separate named ManagedSettings store and DeviceActivity namespace isolate agent
   shields. Agent stop/expiry never clears a card or schedule store. Activation refuses
   existing sessions or enabled legacy schedules; test on a dedicated phone if possible.
@@ -38,7 +40,7 @@ MCP client and include real stdio discovery. Apple hardware and APNs are system 
   access. They are separate from the Mac agent credential. Pairing codes are random,
   single-use and expire in ten minutes. The phone accepts HTTPS relay addresses only.
 - A local stdio MCP process and Node/SQLite relay use sequence numbers, stable request
-  IDs, two-minute command TTLs and phone receipts. Push acceptance never means applied.
+  IDs, transactional sequence allocation, two-minute command TTLs and phone receipts. Push acceptance never means applied.
   Emergency release invalidates earlier queued starts while allowing a genuinely new
   command afterward, as expressly selected by the user.
 - Send an authenticated APNs background notification first. Attempt one generic alert

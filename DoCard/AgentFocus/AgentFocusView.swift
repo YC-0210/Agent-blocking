@@ -3,6 +3,7 @@ import SwiftUI
 
 struct AgentFocusView: View {
   @ObservedObject var runtime: AgentFocusRuntime
+  @EnvironmentObject private var subscriptionManager: SubscriptionManager
   @EnvironmentObject private var authorizer: RequestAuthorizer
   @State private var selection = FamilyActivitySelection()
   @State private var showPicker = false
@@ -12,6 +13,7 @@ struct AgentFocusView: View {
   @State private var relay = ""
   @State private var code = ""
   @State private var approving = false
+  @State private var showBilling = false
 
   var body: some View {
     NavigationStack {
@@ -75,11 +77,12 @@ struct AgentFocusView: View {
                 }
               }.disabled(
                 approving || !authorizer.isAuthorized || startMinute >= endMinute
-                  || SharedData.effectiveSubscriptionTier != .premium)
-              if SharedData.effectiveSubscriptionTier != .premium {
+                  || !subscriptionManager.isPremium)
+              if !subscriptionManager.isPremium {
                 Text(
                   "An active DO Card subscription is required to start agent focus. Emergency Unlock is always available."
                 )
+                Button("Subscription options") { showBilling = true }
               }
             }
             if !runtime.message.isEmpty { Text(runtime.message).foregroundStyle(.secondary) }
@@ -89,6 +92,7 @@ struct AgentFocusView: View {
         }
       }
       .navigationTitle("Agent Focus")
+      .sheet(isPresented: $showBilling) { PaywallView() }
       .onAppear {
         relay = runtime.setupRelay
         code = runtime.setupCode

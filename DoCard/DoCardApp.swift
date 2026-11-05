@@ -30,8 +30,7 @@ private let container: ModelContainer = {
     // Back up the store and its WAL sidecars using the real `.store` filenames.
     let sidecarSuffixes = ["", "-shm", "-wal"]
     for suffix in sidecarSuffixes {
-      let src =
-        suffix.isEmpty
+      let src = suffix.isEmpty
         ? storeURL
         : storeURL.deletingLastPathComponent().appendingPathComponent(
           "\(storeURL.lastPathComponent)\(suffix)"
@@ -177,9 +176,7 @@ struct DoCardApp: App {
       .onChange(of: requestAuthorizer.isAuthorized) { _, authorized in
         if authorized { subscriptionManager.refreshLocalAccess() }
       }
-      .onReceive(
-        NotificationCenter.default.publisher(for: RetentionUploadService.disclosureChanged)
-      ) { _ in
+      .onReceive(NotificationCenter.default.publisher(for: RetentionUploadService.disclosureChanged)) { _ in
         RetentionUploadService.setActive(scenePhase == .active && !isOnboardingUIPrototype)
       }
       .onChange(of: scenePhase) { _, phase in
@@ -208,9 +205,7 @@ struct DoCardApp: App {
     let context = container.mainContext
     if subscriptionManager.isPremium {
       startegyManager.loadActiveSession(context: context)
-    } else {
-      startegyManager.reconcileSubscription(context: context)
-    }
+    } else { startegyManager.reconcileSubscription(context: context) }
   }
 
   private func handleUniversalLink(_ url: URL) {

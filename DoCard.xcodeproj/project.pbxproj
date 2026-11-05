@@ -141,6 +141,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				AgentFocus/Core/AgentFocusController.swift,
+				AgentFocus/Core/AgentFocusPhone.swift,
 				AgentFocus/AgentFocusDevice.swift,
 				Models/Schedule.swift,
 				Models/Shared.swift,

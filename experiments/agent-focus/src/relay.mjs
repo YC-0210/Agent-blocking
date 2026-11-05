@@ -130,16 +130,25 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
           const parsed = commandSchema.safeParse(await readBody(req));
           if (!parsed.success) fail(400, 'invalid_command');
           const request = parsed.data;
-          const existing = db.prepare('SELECT * FROM commands WHERE deviceId = ? AND id = ?').get(target.id, request.id);
-          if (existing) {
-            if (existing.request !== JSON.stringify(request)) fail(409, 'command_id_conflict');
-            return send(existing.status === 'pending' ? 202 : 200,
-              { command: JSON.parse(existing.command), status: existing.status, reason: existing.reason });
+          let command;
+          db.exec('BEGIN IMMEDIATE');
+          try {
+            const existing = db.prepare('SELECT * FROM commands WHERE deviceId = ? AND id = ?').get(target.id, request.id);
+            if (existing) {
+              if (existing.request !== JSON.stringify(request)) fail(409, 'command_id_conflict');
+              db.exec('COMMIT');
+              return send(existing.status === 'pending' ? 202 : 200,
+                { command: JSON.parse(existing.command), status: existing.status, reason: existing.reason });
+            }
+            const allocated = db.prepare('UPDATE devices SET sequence = sequence + 1 WHERE id = ? RETURNING sequence').get(target.id);
+            command = { ...request, sequence: allocated.sequence, issuedAt: now(), expiresAt: now() + 120000 };
+            db.prepare('INSERT INTO commands (deviceId, id, command, request, status, reason) VALUES (?, ?, ?, ?, ?, ?)')
+              .run(target.id, request.id, JSON.stringify(command), JSON.stringify(request), 'pending', null);
+            db.exec('COMMIT');
+          } catch (error) {
+            if (db.isTransaction) db.exec('ROLLBACK');
+            throw error;
           }
-          const command = { ...request, sequence: target.sequence + 1, issuedAt: now(), expiresAt: now() + 120000 };
-          db.prepare('INSERT INTO commands (deviceId, id, command, request, status, reason) VALUES (?, ?, ?, ?, ?, ?)')
-            .run(target.id, request.id, JSON.stringify(command), JSON.stringify(request), 'pending', null);
-          db.prepare('UPDATE devices SET sequence = ? WHERE id = ?').run(command.sequence, target.id);
           const delivery = await notify(target, command, 'background');
           return send(202, { command, status: 'pending', delivery });
         }

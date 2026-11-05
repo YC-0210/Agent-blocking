@@ -33,7 +33,30 @@ swift test
 npm --prefix experiments/agent-focus test
 ```
 
-Current local results and any review corrections are recorded below before publication.
+Local results:
+
+- 16 Swift phone tests passed, including the persisted phone interface and concurrency.
+- 18 Node relay/MCP tests passed (11 relay, 7 MCP).
+- 65 existing native iOS regression methods passed across UnlockRecoveryTests,
+  SubscriptionLifecycleTests, ActiveSessionStatusTests, SelectionRulesTests and AppUpdateTests.
+- Debug and Release simulator builds reported BUILD SUCCEEDED. Signing was disabled;
+  these are compilation checks, not physical provisioning or APNs entitlement approval.
+- npm audit reports zero vulnerabilities in the pinned dependency graph.
+
+The first two-axis review identified four distinct defects: emergency release racing
+restoration, non-durable shield ownership, old pairing replay/outbox state, and duplicate
+relay sequences under overlapping request bodies. Each received a failing public-interface
+regression before correction. Emergency release is serialized; pending ownership is saved
+before effects; pairing identity scopes state; sequence allocation and insertion use a
+SQLite transaction. The overlapping-request test uses HTTP 100-continue to reproduce the
+race without depending on timing. A file-permission failure verifies that persistence
+failure cannot install unowned shields. Retry checks verify no extra physical installation.
+
+Simulator smoke: the revised app installs/launches on a dedicated iPhone 17 Pro simulator;
+the custom setup URL is registered and produces the system's Open confirmation. Real
+Screen Time permission/app selection and completed setup require a physical phone.
+
+See `agent-focus-review.md` for the initial review findings and their resolution.
 
 ## Physical-device prerequisites and limits
 

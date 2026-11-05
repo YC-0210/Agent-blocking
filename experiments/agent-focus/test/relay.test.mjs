@@ -149,3 +149,29 @@ test('phone snapshots accept absent optional values emitted by Swift Codable', a
   assert.equal(observed.snapshot.sessionID, null);
   assert.equal(observed.snapshot.endAt, null);
 });
+
+test('overlapping submissions allocate distinct ordered sequences after reading their bodies', async t => {
+  const { request: httpRequest } = await import('node:http');
+  const { base, request } = await fixture(t);
+  const phone = await pair(request);
+  const path = `/v1/devices/${phone.deviceId}/commands`;
+  let delayed;
+  const firstResult = new Promise((resolve, reject) => {
+    delayed = httpRequest(base + path, { method: 'POST', headers: {
+      authorization: `Bearer ${agentToken}`, 'content-type': 'application/json', expect: '100-continue',
+    } }, response => {
+      let body = ''; response.on('data', chunk => { body += chunk; });
+      response.on('end', () => resolve(JSON.parse(body)));
+    });
+    delayed.on('error', reject);
+  });
+  const receivingHeaders = new Promise(resolve => delayed.once('continue', resolve));
+  delayed.flushHeaders();
+  await receivingHeaders;
+  const fast = await request(path, { ...start, id: 'fast-stop', action: 'stop' });
+  delayed.end(JSON.stringify(start));
+  const slow = await firstResult;
+  assert.notEqual(slow.command.sequence, fast.body.command.sequence);
+  const queued = (await request('/v1/device/commands', undefined, phone.deviceToken)).body.commands;
+  assert.deepEqual(queued.map(command => command.sequence), [1, 2]);
+});
