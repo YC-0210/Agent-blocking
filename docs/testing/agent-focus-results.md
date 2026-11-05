@@ -87,3 +87,20 @@ enforcing access. Signed Debug device and simulator builds succeeded. Installed 
 launched on the user-approved iPhone 13 through devicectl. Simulator launch screenshot
 `/tmp/docard-agent-direct-entry.png` visually confirms Agent Focus setup without a
 subscription or legacy onboarding screen. Actual pairing/shields remain to be tested.
+
+
+## Physical phone first start (2026-11-05)
+
+The paired iPhone rejected a 15-minute start with execution_failed. A temporary
+console probe isolated Apple DeviceActivity intervalTooShort. The session deadline
+is measured from relay issue time, so delivery leaves less than the 15-minute system
+minimum. Backdate only the native monitoring start to at least 901 seconds before
+the unchanged approved end (one second allows DateComponents truncation). No approved
+end, hours, duration or command TTL is extended. This also covers late restoration.
+
+Public MCP/phone regression loop on the physical iPhone: two 15-minute commands were
+rejected before the fix; a fresh 15-minute command was applied after the signed build
+and installation. The debug probe was removed before the successful build. The real
+DeviceActivity error is not reproducible in the Foundation-only package; this is a
+physical-device boundary check, not a new unit test. Visual shield appearance, offline
+expiry and cellular delivery remain separate user/device checks.

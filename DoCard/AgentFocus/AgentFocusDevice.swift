@@ -129,8 +129,12 @@ enum AgentFocusDevice {
     else { throw Failure.emptySelection }
     let now = Date()
     let end = Date(timeIntervalSince1970: session.endAt / 1000)
+    // APNs delivery and restoration can leave less than Apple's 15-minute minimum.
+    // Backdate only the monitoring window, never the approved end or shield duration.
+    // One extra second preserves the minimum after DateComponents truncation.
+    let monitoringStart = min(now, end.addingTimeInterval(-901))
     var start = Calendar.current.dateComponents(
-      [.year, .month, .day, .hour, .minute, .second], from: now)
+      [.year, .month, .day, .hour, .minute, .second], from: monitoringStart)
     var finish = Calendar.current.dateComponents(
       [.year, .month, .day, .hour, .minute, .second], from: end)
     start.timeZone = .current

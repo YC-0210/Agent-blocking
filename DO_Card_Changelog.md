@@ -587,3 +587,12 @@ subscription reconciliation from app startup/foreground, and ignore subscription
 monitor callbacks in this experiment. The agent runtime is always enabled on this branch;
 setup links only populate pairing details. Legacy UI source and model data remain stored.
 Screen Time consent, approved policy limits, expiry and Emergency Unlock remain active.
+
+
+## Minimum-duration agent delivery fix (2026-11-05)
+
+Real-phone first-start test exposed DeviceActivity intervalTooShort: transport delay
+reduced a requested 15-minute monitor to less than Apple's minimum. Backdate the monitor
+start while preserving the exact approved end; retain a one-second truncation margin.
+Signed device build/install passed and a fresh 15-minute command received an applied
+phone acknowledgement. Removed temporary diagnostic logging before the successful run.
