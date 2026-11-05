@@ -369,3 +369,24 @@ and Quick Tunnel addresses can expire. The next hardware test must keep the rela
 phone connected after restart, DO Card closed, and distinguish the automatic deadline
 push from a manual recovery push or app launch. No new session has been started merely
 by installing/activating this backup.
+
+## Online reboot expiry: physical pass (2026-11-06, Taipei)
+
+Request `focus-aa0ee477-4d49-4817-8ca6-b653dcf1edc3` was acknowledged applied
+for two minutes, with original deadline `1793901853935` (02:04:13.935). The
+matching durable expiry job existed before reboot. The user was instructed to
+restart, enter the passcode, retain Wi-Fi and keep DO Card closed; they reported
+the selected app was unblocked after the deadline. No manual recovery push or
+app launch was issued during this run. The automatic job is `sent`, attempts=1,
+and a fresh phone snapshot at `1793901861976` (02:04:21.976) reports no session.
+This passes the online reboot recovery scenario with the relay awake. Transport
+acceptance alone is not the pass signal; the fresh phone report and physical
+user confirmation establish release. It does not establish offline reboot expiry
+or identify whether a native monitor also contributed.
+
+The preceding request `focus-1ec0e624-0e7f-466e-85da-16ababbb93f6` stalled in
+local application: the phone journal contained its pending start but the relay
+received no applied receipt, so no expiry job was created. It expired. A diagnostic
+build added fixed registration-entered/returned traces for the two native monitor
+calls. Both calls returned during the successful retry above. The intermittent
+start stall is not resolved or causally explained by that retry.

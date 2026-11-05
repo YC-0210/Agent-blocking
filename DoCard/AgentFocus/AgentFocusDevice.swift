@@ -196,8 +196,12 @@ enum AgentFocusDevice {
     let recovery = DeviceActivitySchedule(
       intervalStart: schedules.recovery.intervalStart,
       intervalEnd: schedules.recovery.intervalEnd, repeats: schedules.recovery.repeats)
+    recordExpiryEvent("primary_registration_entered", session: session, activity: name)
     try center.startMonitoring(name, during: primary)
+    recordExpiryEvent("primary_registration_returned", session: session, activity: name)
+    recordExpiryEvent("recovery_registration_entered", session: session, activity: recoveryName)
     try center.startMonitoring(recoveryName, during: recovery)
+    recordExpiryEvent("recovery_registration_returned", session: session, activity: recoveryName)
     recordExpiryEvent("registered", session: session, activity: name, schedule: primary)
     recordExpiryEvent(
       "recovery_registered", session: session, activity: recoveryName, schedule: recovery)
