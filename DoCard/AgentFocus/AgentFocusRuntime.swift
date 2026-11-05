@@ -140,6 +140,8 @@ final class AgentFocusRuntime: ObservableObject {
     do {
       try AgentFocusDevice.reconcile()
       let pairing = try AgentFocusPairingStore.load()
+      // Show reconciled local state before the relay's network wait.
+      refreshFocusStatus(pairingID: pairing.deviceId)
       defer { refreshFocusStatus(pairingID: pairing.deviceId) }
       let worker = AgentFocusDelivery(phone: try AgentFocusDevice.phone(), pairing: pairing)
       let result = await worker.run(pushToken: pushToken)

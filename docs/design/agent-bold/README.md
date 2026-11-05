@@ -54,3 +54,45 @@ shield presentation and the complete physical pairing flow remain phone checks.
 No installation, live relay/MCP restart, physical-phone state or parent test was changed.
 Merge this branch with the latest integration changes before a physical installation;
 ongoing expiry work may have advanced beyond the base commit.
+
+## Integration review (2026-11-06)
+
+Merged commit `6775080` into `codex/agent-focus-integration` after preserving the
+online reboot recovery pass and native registration diagnostics in `372334d`.
+No merge conflicts. The notification worker, relay expiry jobs, monitoring
+schedules, phone approval record schema, subscription exception and separate
+session/maximum confirmation paths retain their existing behavior.
+
+### Standards
+
+Independent read-only review found no substantive documented standards violations.
+The owner-approved Bold palette supersedes the older brand-color guidance here.
+
+### Spec
+
+Independent review found one presentation defect: `refreshFocusStatus` ran only
+after the network worker, so a cached session could remain visible for up to18s
+after local reconciliation. Integration refreshes local status before networking
+and again afterward to reflect commands received during delivery. No additional
+high-confidence lifecycle or Emergency Unlock regression was identified.
+
+Review totals: standards0, spec1 (corrected). The pre-existing synchronous native
+reconciliation and intermittent pending-start stall remain separate known risks.
+
+### Integrated verification
+
+- Swift package:76 tests pass.
+- Node/MCP/relay/APNs suite and bundled UI build:79 tests pass.
+- Signed Debug iPhone app and extensions: `BUILD SUCCEEDED`.
+- Release iOS app and extensions, signing disabled for compile validation:
+  `BUILD SUCCEEDED` (`/tmp/docard-bold-integration-release.log`).
+- Overlay installation on the paired iPhone13 succeeded, preserving app data.
+- Launched the installed app; a fresh phone snapshot retained its pairing/mode,
+  45-minute maximum and approved hours, with no active session.
+- No live focus session was started by this integration.
+
+Logs: `/tmp/docard-bold-integration-swift.log`,
+`/tmp/docard-bold-integration-node.log`, `/tmp/docard-bold-integration-device.log`.
+The earlier simulator captures are branch evidence, not a new physical UI/shield
+verification. The new design's physical Emergency Unlock and shield appearance
+still need a user walkthrough.
