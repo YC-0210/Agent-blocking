@@ -1,0 +1,35 @@
+name: AgentUICapture
+options:
+  deploymentTarget:
+    iOS: '26.2'
+targets:
+  Preview:
+    type: application
+    platform: iOS
+    sources: [App]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: online.do.agent.ui.capture
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+  CaptureTests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: Preview
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: online.do.agent.ui.capture.tests
+        GENERATE_INFOPLIST_FILE: YES
+        CODE_SIGNING_ALLOWED: NO
+        TEST_TARGET_NAME: Preview
+schemes:
+  Capture:
+    build:
+      targets:
+        Preview: all
+        CaptureTests: all
+    test:
+      targets: [CaptureTests]

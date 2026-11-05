@@ -84,7 +84,7 @@ struct DoCardApp: App {
           guard phase == .active else { return }
           Task { await agentFocus.sync() }
         }
-        .preferredColorScheme(.dark)
+        .preferredColorScheme(.light)
     }
     .modelContainer(container)
   }
