@@ -98,21 +98,23 @@ test('phone publishes minimal observed status and push registration without Scre
   assert.equal((await request('/v1/device/push', { token: 'a'.repeat(64) }, phone.deviceToken)).status, 200);
 });
 
-test('relay tries a silent push then offers a generic alert while execution remains pending', async t => {
+test('relay immediately sends one visible extension push while execution remains pending', async t => {
   const pushes = [];
-  const { request } = await fixture(t, { fallbackAfterMs: 10, push: async message => { pushes.push(message); return { status: 'accepted_by_apns' }; } });
+  let clock = 1793836800000;
+  const { request } = await fixture(t, { now: () => clock, push: async message => { pushes.push(message); return { status: 'accepted_by_apns' }; } });
   const phone = await pair(request);
   await request('/v1/device/push', { token: 'a'.repeat(64) }, phone.deviceToken);
   const path = `/v1/devices/${phone.deviceId}/commands`;
   const result = await request(path, start);
   assert.equal(result.body.status, 'pending');
-  assert.equal(pushes[0].kind, 'background');
+  assert.equal(pushes[0].kind, 'alert');
+  clock += 20000;
   await new Promise(resolve => setTimeout(resolve, 1100));
-  assert.equal(pushes[1].kind, 'alert');
+  assert.equal(pushes.length, 1, 'Do not send a second fallback alert for an extension request');
   assert.equal((await request(`${path}/request-1`)).body.status, 'pending');
 });
 
-test('relay sends an authenticated APNs background notification and keeps the command pending', async t => {
+test('relay sends an authenticated mutable alert for the extension without leaking command details', async t => {
   const { createServer } = await import('node:http2');
   const { generateKeyPairSync, verify } = await import('node:crypto');
   const { createApnsPush } = await import('../src/apns.mjs');
@@ -133,9 +135,15 @@ test('relay sends an authenticated APNs background notification and keeps the co
   await request('/v1/device/push', { token: 'b'.repeat(64) }, phone.deviceToken);
   const result = await request(`/v1/devices/${phone.deviceId}/commands`, start);
   assert.equal(result.body.status, 'pending');
-  assert.equal(received.headers['apns-push-type'], 'background');
+  assert.equal(received.headers['apns-push-type'], 'alert');
+  assert.equal(received.headers['apns-priority'], '10');
   assert.equal(received.headers['apns-topic'], 'online.do.card.app');
-  assert.deepEqual(received.body.aps, { 'content-available': 1 });
+  assert.equal(received.body.aps['mutable-content'], 1);
+  assert.equal(received.body.aps.alert.body, 'A focus request is waiting. Open DO Card if it does not apply.');
+  assert.equal(received.body.commandId, 'request-1');
+  assert.equal(received.body.docardAgent, true);
+  assert.equal(received.body.sessionID, undefined);
+  assert.equal(received.body.modeID, undefined);
   const jwt = received.headers.authorization.replace('bearer ', '').split('.');
   assert.equal(verify('sha256', Buffer.from(`${jwt[0]}.${jwt[1]}`), { key: publicKey, dsaEncoding: 'ieee-p1363' }, Buffer.from(jwt[2], 'base64url')), true);
 });
@@ -174,4 +182,18 @@ test('overlapping submissions allocate distinct ordered sequences after reading 
   assert.notEqual(slow.command.sequence, fast.body.command.sequence);
   const queued = (await request('/v1/device/commands', undefined, phone.deviceToken)).body.commands;
   assert.deepEqual(queued.map(command => command.sequence), [1, 2]);
+});
+
+test('a device can inspect its command result without using the agent credential', async t => {
+  const { request } = await fixture(t);
+  const phone = await pair(request), other = await pair(request);
+  await request(`/v1/devices/${phone.deviceId}/commands`, start);
+  const path = '/v1/device/commands/request-1';
+  assert.equal((await request(path, undefined, other.deviceToken)).status, 404);
+  assert.equal((await request(path, undefined, agentToken)).status, 401);
+  await request('/v1/device/receipts', { id: 'request-1', status: 'applied' }, phone.deviceToken);
+  const result = await request(path, undefined, phone.deviceToken);
+  assert.equal(result.status, 200);
+  assert.equal(result.body.status, 'applied');
+  assert.equal(result.body.command.id, 'request-1');
 });

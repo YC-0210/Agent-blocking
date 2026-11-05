@@ -4,6 +4,78 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusPhoneTests: XCTestCase {
+  func testOverlappingAppAndExtensionDeliveryKeepsOriginalReceiptAfterNewerCommand() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let emergency = TestEmergencyStorage()
+    var shielded = false
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage, now: { 1_793_836_800_000 },
+      apply: { _, _ in shielded = true }, release: { shielded = false })
+    try phone.approve(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45,
+        startMinute: 0, endMinute: 1440, timeZone: "Asia/Taipei"),
+      selection: "opaque", pairingID: "phone")
+    let start = FocusCommand(
+      id: "start", sequence: 1, action: .start, modeID: "work",
+      durationMinutes: 15, sessionID: "s", issuedAt: 1_793_836_800_000,
+      expiresAt: 1_793_836_920_000)
+    let stop = FocusCommand(
+      id: "stop", sequence: 2, action: .stop, modeID: "work",
+      durationMinutes: nil, sessionID: "s", issuedAt: 1_793_836_800_000,
+      expiresAt: 1_793_836_920_000)
+    XCTAssertEqual(try phone.receive(start, pairingID: "phone").status, "applied")
+    try phone.acknowledge("start", pairingID: "phone")
+    XCTAssertEqual(try phone.receive(stop, pairingID: "phone").status, "applied")
+    try phone.acknowledge("stop", pairingID: "phone")
+    // Another process fetched the same queue before those acknowledgements.
+    XCTAssertEqual(try phone.receive(start, pairingID: "phone").status, "applied")
+    XCTAssertFalse(shielded, "A retry returns its result without re-applying the old start")
+    XCTAssertFalse(
+      try phone.pendingReceipts(pairingID: "phone").contains { $0.status == "rejected" })
+  }
+
+  func testExtensionCanDeclineABusyPhoneWithoutChangingItsOwner() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let entered = DispatchSemaphore(value: 0)
+    let proceed = DispatchSemaphore(value: 0)
+    let finished = DispatchSemaphore(value: 0)
+    let emergency = TestEmergencyStorage()
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage,
+      now: { 1_793_836_800_000 },
+      apply: { _, _ in
+        entered.signal()
+        _ = proceed.wait(timeout: .now() + 3)
+      }, release: {})
+    try phone.approve(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45,
+        startMinute: 0, endMinute: 1440, timeZone: "Asia/Taipei"), selection: "opaque",
+      pairingID: "phone")
+    let command = FocusCommand(
+      id: "start", sequence: 1, action: .start, modeID: "work",
+      durationMinutes: 15, sessionID: "session", issuedAt: 1_793_836_800_000,
+      expiresAt: 1_793_836_920_000)
+    DispatchQueue.global().async {
+      _ = try? phone.receive(command, pairingID: "phone")
+      finished.signal()
+    }
+    XCTAssertEqual(entered.wait(timeout: .now() + 2), .success)
+    let extensionPhone = AgentFocusPhone<String>(
+      directory: directory,
+      emergency: emergency.storage, now: { 1_793_836_800_000 },
+      apply: { _, _ in XCTFail("A busy extension must not change shields") },
+      release: { XCTFail("A busy extension must not clear another process's shields") },
+      lockTimeout: 0.02)
+    XCTAssertThrowsError(try extensionPhone.status(pairingID: "phone"))
+    proceed.signal()
+    XCTAssertEqual(finished.wait(timeout: .now() + 2), .success)
+    XCTAssertEqual(try phone.status(pairingID: "phone")?.session?.id, "session")
+  }
+
   func testReplacingPairingResetsSequenceAndReceiptOutbox() throws {
     let emergency = TestEmergencyStorage()
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

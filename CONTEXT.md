@@ -191,3 +191,14 @@ local expiry and replay state preserve existing card behavior and emergency acce
 Codex connects to Linear separately; no usage histories or selection tokens are exported.
 See ADR-0013, `docs/experiments/agent-focus-design.md`, and
 `experiments/agent-focus/README.md` for setup and known unverified device behavior.
+
+
+## Notification extension experiment (2026-11-05)
+
+Branch `codex/agent-notification-extension` in its own worktree implements immediate
+visible mutable pushes and a Notification Service Extension. It shares the phone
+command journal, credentials, validation, named shields and delivery worker with the
+main app. No subscription wall is introduced. ADR-0014 and
+`docs/testing/notification-extension-focus.md` describe limits, separate relay setup,
+provisioning and outstanding real-phone validation. The existing live relay/phone app
+and other worktrees are not modified by building this experiment.

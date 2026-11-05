@@ -606,3 +606,19 @@ intervals without extending the session deadline. Phone maximum/hours/renewal ru
 unchanged. New phone expiry and real MCP-to-relay queue tests failed before the change and
 passed after it; 21 Swift and 19 Node tests pass. Signed build installed on the paired
 iPhone; a two-minute start was acknowledged applied. Actual automatic expiry result pending.
+
+
+## Notification extension delivery experiment (2026-11-05)
+
+Separate branch/worktree based on `31f70b3`: replace silent-first/15-second fallback
+with an immediate visible mutable push and an embedded Notification Service Extension.
+Both native entry points use a bounded Foundation delivery worker and explicitly shared
+Keychain credentials. The notification carries only a request ID; authority is fetched
+from the authenticated relay and constrained by phone approval. Persist recent receipts
+for overlapping deliveries; old receipt-upload failures cannot prevent a new unlock.
+The extension has bounded lock acquisition and exactly-once content completion.
+
+No SwiftData schema, subscription, legacy NFC strategy or agent confirmation policy
+changes. No credentials copied, live relay restart, global MCP edit or phone installation.
+Native Screen Time access from this extension remains a physical-device feasibility
+question; local compilation and system-boundary fixtures do not answer it. See ADR-0014.

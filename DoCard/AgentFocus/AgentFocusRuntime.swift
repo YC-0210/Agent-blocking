@@ -26,37 +26,20 @@ final class AgentFocusRuntime: ObservableObject {
   private let redirectPolicy = AgentFocusRedirectPolicy()
   private lazy var transport = URLSession(
     configuration: .ephemeral, delegate: redirectPolicy, delegateQueue: nil)
-  private let credentialAccount = "docard-agent-pairing-v1"
 
-  struct Pairing: Codable {
-    let relay: URL
-    let deviceId: String
-    let deviceToken: String
-  }
+  typealias Pairing = AgentFocusPairing
   private struct Redeemed: Decodable {
     let deviceId: String
     let deviceToken: String
   }
-  private struct Commands: Decodable { let commands: [FocusCommand] }
   private struct Code: Encodable { let code: String }
-  private struct Push: Encodable { let token: String }
-  private struct Snapshot: Encodable {
-    let modeID: String
-    let sessionID: String?
-    let endAt: Double?
-    let requiresRenewalApproval: Bool
-    let maximumMinutes: Int
-    let startMinute: Int
-    let endMinute: Int
-    let timeZone: String
-  }
   enum Failure: Error {
     case invalidRelay, requestFailed, missingPairing
     case keychain(OSStatus)
   }
 
   init() {
-    if let pairing = try? loadPairing() {
+    if let pairing = try? AgentFocusPairingStore.load() {
       configured = (try? AgentFocusDevice.status(pairingID: pairing.deviceId)) != nil
     }
   }
@@ -105,7 +88,7 @@ final class AgentFocusRuntime: ObservableObject {
       let redeemed = try JSONDecoder().decode(Redeemed.self, from: redeemedData)
       try AgentFocusDevice.approve(
         policy: policy, selection: selection, pairingID: redeemed.deviceId)
-      try savePairing(
+      try AgentFocusPairingStore.save(
         Pairing(relay: url, deviceId: redeemed.deviceId, deviceToken: redeemed.deviceToken))
       configured = true
       message = "Connected. Return to Codex to manage focus."
@@ -141,55 +124,21 @@ final class AgentFocusRuntime: ObservableObject {
     defer { syncing = false }
     do {
       try AgentFocusDevice.reconcile()
-      let pairing = try loadPairing()
-      if let token = pushToken {
-        _ = try await request(pairing, path: "v1/device/push", body: Push(token: token))
+      let pairing = try AgentFocusPairingStore.load()
+      let worker = AgentFocusDelivery(phone: try AgentFocusDevice.phone(), pairing: pairing)
+      let result = await worker.run(pushToken: pushToken)
+      if result == .synced {
         pushToken = nil
+      } else {
+        message =
+          "Connection pending. Current focus still ends at its approved time. Emergency Unlock works here."
       }
-      // Retry persisted receipts before fetching more work. A lost acknowledgement cannot restart a session.
-      try await uploadReceipts(pairing)
-      let data = try await request(pairing, path: "v1/device/commands")
-      let commands = try JSONDecoder().decode(Commands.self, from: data).commands
-      for command in commands {
-        _ = try AgentFocusDevice.receive(command, pairingID: pairing.deviceId)
-      }
-      try await uploadReceipts(pairing)
-      try await publishSnapshot(pairing)
     } catch {
       message =
         "Connection pending. Current focus still ends at its approved time. Emergency Unlock works here."
     }
   }
 
-  private func publishSnapshot(_ pairing: Pairing) async throws {
-    let status = try AgentFocusDevice.status(pairingID: pairing.deviceId)
-    let snapshot = status.map { status in
-      Snapshot(
-        modeID: status.policy.modeID, sessionID: status.session?.id,
-        endAt: status.session?.endAt, requiresRenewalApproval: status.requiresRenewalApproval,
-        maximumMinutes: status.policy.maximumMinutes, startMinute: status.policy.startMinute,
-        endMinute: status.policy.endMinute, timeZone: status.policy.timeZone)
-    }
-    if let snapshot { _ = try await request(pairing, path: "v1/device/snapshot", body: snapshot) }
-  }
-
-  private func uploadReceipts(_ pairing: Pairing) async throws {
-    let receipts = try AgentFocusDevice.pendingReceipts(pairingID: pairing.deviceId)
-    for receipt in receipts {
-      _ = try await request(pairing, path: "v1/device/receipts", body: receipt)
-      try AgentFocusDevice.acknowledge(receipt.id, pairingID: pairing.deviceId)
-    }
-  }
-
-  private func request(_ pairing: Pairing, path: String) async throws -> Data {
-    try await request(relay: pairing.relay, path: path, token: pairing.deviceToken, data: nil)
-  }
-  private func request<T: Encodable>(_ pairing: Pairing, path: String, body: T) async throws -> Data
-  {
-    try await request(
-      relay: pairing.relay, path: path, token: pairing.deviceToken, data: JSONEncoder().encode(body)
-    )
-  }
   private func request<T: Encodable>(relay: URL, path: String, body: T) async throws -> Data {
     try await request(relay: relay, path: path, token: nil, data: JSONEncoder().encode(body))
   }
@@ -208,38 +157,6 @@ final class AgentFocusRuntime: ObservableObject {
     return body
   }
 
-  private func loadPairing() throws -> Pairing {
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: "online.do.card.agent",
-      kSecAttrAccount as String: credentialAccount,
-      kSecReturnData as String: true,
-    ]
-    var result: CFTypeRef?
-    guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-      let data = result as? Data
-    else { throw Failure.missingPairing }
-    return try JSONDecoder().decode(Pairing.self, from: data)
-  }
-  private func savePairing(_ pairing: Pairing) throws {
-    let query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword,
-      kSecAttrService as String: "online.do.card.agent",
-      kSecAttrAccount as String: credentialAccount,
-    ]
-    let data = try JSONEncoder().encode(pairing)
-    let status = SecItemUpdate(
-      query as CFDictionary, [kSecValueData as String: data] as CFDictionary)
-    if status == errSecItemNotFound {
-      var item = query
-      item[kSecValueData as String] = data
-      item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-      let added = SecItemAdd(item as CFDictionary, nil)
-      guard added == errSecSuccess else { throw Failure.keychain(added) }
-    } else if status != errSecSuccess {
-      throw Failure.keychain(status)
-    }
-  }
 }
 
 final class AgentFocusAppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate

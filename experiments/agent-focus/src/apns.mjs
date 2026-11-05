@@ -10,7 +10,7 @@ export function createApnsPush({ privateKey, teamId, keyId, topic, sandbox = tru
     const signingInput = `${header}.${payload}`;
     const signature = sign('sha256', Buffer.from(signingInput), { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64url');
     const aps = kind === 'background' ? { 'content-available': 1 } : {
-      'content-available': 1, alert: { title: 'DO Card', body: 'A focus request is waiting. Tap to apply it.' }, sound: 'default',
+      'mutable-content': 1, alert: { title: 'DO Card', body: 'A focus request is waiting. Open DO Card if it does not apply.' }, sound: 'default',
     };
     return new Promise((resolve, reject) => {
       const connection = connect(origin);
@@ -31,7 +31,7 @@ export function createApnsPush({ privateKey, teamId, keyId, topic, sandbox = tru
       request.on('data', () => {});
       request.on('error', error => finish(error));
       request.on('end', () => status === 200 ? finish(null, { status: 'accepted_by_apns' }) : finish(new Error(`apns_status_${status}`)));
-      request.end(JSON.stringify({ aps, docardAgent: true }));
+      request.end(JSON.stringify({ aps, docardAgent: true, commandId }));
     });
   };
 }
