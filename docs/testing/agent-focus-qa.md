@@ -181,3 +181,56 @@ not fresh proof of release. Automatic release is the user's physical observation
 Maximum in that snapshot remains170. This establishes a live short-session/automatic
 expiry pass on the QA phone build; it does not complete the broader offline, cellular,
 reboot, manual-clock or DST hardware checklist.
+
+## Reboot expiry failure and candidate repair
+
+Live follow-up established: maximum changes170→160→170 retained the five-minute
+session's exact original deadline, followed by user-confirmed automatic unlock;
+offline expiry passed; expired queued start sequence20 was `delivery_expired` and
+left no active session after reconnection; offline Emergency Unlock synced a rotated
+approval and no session; force-quit expiry was reported passed by the user.
+
+Reboot test failed: selected apps stayed blocked after restarting, but expiry did not
+release them until DO Card opened. This is a failed hardware case, not superseded by
+unit-test success. The fetched app watchdog report (`/tmp/docard-reboot-crash.ips`,
+not committed) shows the main thread synchronously waiting in DeviceActivity/UsageTracking
+from AgentFocusDevice.clearShields. No monitor-extension crash was found in the available
+crash-file listing; that does not prove its callback ran or did not run.
+
+Candidate repair:
+
+- Shield release only clears the named ManagedSettings store; no DeviceActivity query
+  or stop call can stall expiry or Emergency Unlock's release path.
+- One stable agent monitor name replaces its schedule on the next start. This bounds
+  registrations without monitoring cleanup inside a callback. Apple documents same-name
+  overwrite: https://developer.apple.com/documentation/deviceactivity/deviceactivityname
+- New persisted-phone `expire` path only releases due ownership. It never reads
+  authorization/Keychain or restores shields. State writes still use the shared OS lock;
+  a delayed callback cannot clear a newer unexpired session. Expired pending journals
+  complete as rejected without reinstalling shields.
+- End callbacks retry busy locks for a bounded5-second budget (up to one extra0.2-second
+  acquisition). They never clear outside a contended lock. Start callbacks opportunistically
+  check expiry with zero lock wait, avoiding a startMonitoring/callback lock cycle.
+- Native monitor end rounds upward to whole-second precision; the persisted approved
+  deadline is unchanged. This prevents an early truncated one-shot callback from being
+  ignored permanently. Wake-up rounding adds less than one second, separate from OS
+  callback scheduling latency.
+- Fixed, small App Group diagnostic files record monitor registration and start/end
+  callback entry/result. No credentials or app-selection tokens are written.
+
+TDD: cold expiry under unavailable emergency storage failed before the dedicated path;
+whole-second rounding failed before ceil. Eight added regressions cover those plus
+no early release, newer-session protection, save-failure recovery, lock-contention retry,
+and expired pending journal; error-triggered release is also verified to remain inside
+the ownership lock. Final Swift run:67 passed,0 failures. The final signed build is
+blocked by macOS Keychain dark wake (`errSecInternalComponent`; `security` reports
+"In dark wake, no UI possible"). The owner must wake/unlock the Mac before signing
+and installation can finish. Node sources are unchanged by this repair; their prior
+66-test pass is retained.
+Logs: `/tmp/docard-reboot-expiry-red.log`, `/tmp/docard-reboot-rounding-red.log`,
+`/tmp/docard-reboot-final-swift.log`, `/tmp/docard-reboot-device-build.log`.
+
+A fresh physical reboot test is still required. The change removes identified application
+hazards; it cannot guarantee the OS will invoke a monitor after every reboot, nor can it
+resolve an indefinitely held lock or arbitrary storage/daemon failure. Callback diagnostics
+are intended to distinguish these remaining conditions on the next run.

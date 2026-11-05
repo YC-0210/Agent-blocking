@@ -39,7 +39,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     var pendingCommand: FocusCommand?
     var completedCommands: [CompletedCommand]?
   }
-  enum Failure: Error { case unavailable, pairingMismatch, activeSession }
+  enum Failure: Error { case unavailable, pairingMismatch, activeSession, busy }
   private let emergency: AgentEmergencyStorage
   private let directory: URL
   private let now: () -> Double
@@ -235,6 +235,46 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     }
   }
 
+  /// Expiry can only release ownership. It never reads authorization/Keychain or restores shields.
+  @discardableResult
+  func expire(retryFor: TimeInterval = 0) throws -> Bool {
+    let deadline = ContinuousClock.now.advanced(by: .seconds(max(0, retryFor)))
+    while true {
+      do {
+        return try locked {
+          do {
+            var record = try loadRaw()
+            guard let session = record.state.session else {
+              release()
+              return false
+            }
+            // A delayed callback for an older monitor cannot release a newer live owner.
+            guard now() >= session.endAt else { return false }
+            if record.pendingCommand != nil {
+              try finishPending(&record)
+            } else {
+              record.state.session = nil
+              record.state.requiresRenewalApproval = true
+              release()
+              try save(record)
+            }
+            return true
+          } catch {
+            // Even error recovery must finish before another process can own shields.
+            release()
+            throw error
+          }
+        }
+      } catch {
+        // Only retry contention, never clear a possibly newer owner outside its lock.
+        guard let failure = error as? Failure, case .busy = failure,
+          ContinuousClock.now < deadline
+        else { throw error }
+        Thread.sleep(forTimeInterval: 0.01)
+      }
+    }
+  }
+
   func reconcile(authorized: Bool?) throws {
     try locked {
       do {
@@ -301,9 +341,8 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     if let lockTimeout {
       let deadline = ContinuousClock.now.advanced(by: .seconds(lockTimeout))
       while flock(fd, LOCK_EX | LOCK_NB) != 0 {
-        guard errno == EWOULDBLOCK || errno == EAGAIN, ContinuousClock.now < deadline else {
-          throw Failure.unavailable
-        }
+        guard errno == EWOULDBLOCK || errno == EAGAIN else { throw Failure.unavailable }
+        guard ContinuousClock.now < deadline else { throw Failure.busy }
         Thread.sleep(forTimeInterval: 0.01)
       }
     } else {

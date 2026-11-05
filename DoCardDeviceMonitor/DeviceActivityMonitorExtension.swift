@@ -26,7 +26,10 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
-    if activity.rawValue.hasPrefix(AgentFocusDevice.activityPrefix) { return }
+    if activity.rawValue.hasPrefix(AgentFocusDevice.activityPrefix) {
+      AgentFocusDevice.intervalStarted(activity)
+      return
+    }
     // Subscription expiry has no effect in this standalone agent experiment.
     if activity == SubscriptionExpiry.activityName { return }
 

@@ -30,6 +30,9 @@ struct FocusCommand: Codable, Equatable, Sendable {
 struct AgentFocusSession: Codable, Equatable, Sendable {
   let id: String
   let endAt: Double
+
+  // DeviceActivity DateComponents has whole-second resolution.
+  var monitoringEndAt: Double { ceil(endAt / 1000) * 1000 }
 }
 
 struct AgentFocusState: Codable, Equatable, Sendable {

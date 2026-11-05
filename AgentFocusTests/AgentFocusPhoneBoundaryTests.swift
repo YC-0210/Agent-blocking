@@ -4,6 +4,157 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusPhoneBoundaryTests: XCTestCase {
+  func testColdExpiryClearsAndPersistsWithoutReadingEmergencyAuthorizationStorage() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.receive(fixture.start(2))
+    fixture.clock += 120_000
+    fixture.failLedgerRead = true
+    XCTAssertNoThrow(try fixture.recreate().expire())
+    XCTAssertFalse(fixture.shielded)
+    fixture.failLedgerRead = false
+    let status = try XCTUnwrap(fixture.recreate().status())
+    XCTAssertNil(status.session)
+    XCTAssertTrue(status.requiresRenewalApproval)
+    XCTAssertEqual(fixture.installedSelections, ["private-app-selection"])
+  }
+
+  func testExpiryCallbackCannotClearBeforeDeadlineAndNeverReappliesShields() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.receive(fixture.start(2))
+    fixture.clock += 119_999
+    XCTAssertFalse(try fixture.recreate().expire())
+    XCTAssertTrue(fixture.shielded)
+    XCTAssertNotNil(try fixture.phone.status()?.session)
+    fixture.clock += 1
+    XCTAssertTrue(try fixture.recreate().expire())
+    XCTAssertFalse(fixture.shielded)
+    XCTAssertNil(try fixture.phone.status()?.session)
+    XCTAssertEqual(fixture.installedSelections, ["private-app-selection"])
+  }
+
+  func testDelayedOldExpiryCallbackCannotClearANewerLiveSession() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.receive(fixture.start(2))
+    fixture.clock += 10_000
+    try fixture.phone.emergencyUnlock()
+    _ = try fixture.receive(fixture.start(5))
+    let newer = try XCTUnwrap(fixture.phone.status()?.session)
+    fixture.clock += 110_000
+    XCTAssertFalse(try fixture.recreate().expire())
+    XCTAssertTrue(fixture.shielded)
+    XCTAssertEqual(try fixture.phone.status()?.session, newer)
+    XCTAssertEqual(newer.endAt, 1_793_837_110_000)
+  }
+
+  func testExpiryReleasesEvenIfSavingTheEndedRecordFailsAndCanRecoverLater() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.receive(fixture.start(2))
+    fixture.clock += 120_000
+    try FileManager.default.setAttributes(
+      [.posixPermissions: 0o500], ofItemAtPath: fixture.directory.path)
+    XCTAssertThrowsError(try fixture.recreate().expire())
+    XCTAssertFalse(fixture.shielded)
+    try FileManager.default.setAttributes(
+      [.posixPermissions: 0o700], ofItemAtPath: fixture.directory.path)
+    XCTAssertTrue(try fixture.recreate().expire())
+    XCTAssertNil(try fixture.phone.status()?.session)
+  }
+
+  func testSingleWholeSecondExpiryWakeCannotPrecedeFractionalSessionDeadline() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    fixture.clock += 900
+    _ = try fixture.receive(fixture.start(2))
+    let session = try XCTUnwrap(fixture.phone.status()?.session)
+    XCTAssertEqual(session.endAt, 1_793_836_920_900)
+    XCTAssertEqual(session.monitoringEndAt, 1_793_836_921_000)
+    fixture.clock = session.monitoringEndAt
+    XCTAssertTrue(try fixture.recreate().expire())
+    XCTAssertFalse(fixture.shielded)
+  }
+
+  func testExpiryRetriesABusyOwnerWithoutClearingOutsideItsLock() throws {
+    let fixture = try PhoneBoundaryFixture()
+    let applying = DispatchSemaphore(value: 0)
+    let unblock = DispatchSemaphore(value: 0)
+    let finished = DispatchSemaphore(value: 0)
+    defer {
+      unblock.signal()
+      _ = finished.wait(timeout: .now() + 2)
+      fixture.cleanup()
+    }
+    let command = try fixture.start(2)
+    fixture.afterNativeApply = {
+      applying.signal()
+      unblock.wait()
+    }
+    DispatchQueue.global().async {
+      defer { finished.signal() }
+      do { _ = try fixture.receive(command) } catch {
+        XCTFail("Start failed while holding the native-effect boundary: \(error)")
+      }
+    }
+    XCTAssertEqual(applying.wait(timeout: .now() + 2), .success)
+    fixture.clock += 120_000
+    let expiry = fixture.recreate(lockTimeout: 0.02)
+    XCTAssertThrowsError(try expiry.expire())
+    XCTAssertTrue(fixture.shielded)
+    DispatchQueue.global().asyncAfter(deadline: .now() + 0.1) { unblock.signal() }
+    XCTAssertTrue(try expiry.expire(retryFor: 1))
+    XCTAssertEqual(finished.wait(timeout: .now() + 2), .success)
+    finished.signal()
+    XCTAssertFalse(fixture.shielded)
+    XCTAssertNil(try fixture.phone.status()?.session)
+  }
+
+  func testExpiryCompletesAnExpiredPendingStartWithoutNativeReapplication() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    let command = try fixture.start(2)
+    fixture.afterNativeApply = {
+      try FileManager.default.setAttributes(
+        [.posixPermissions: 0o500], ofItemAtPath: fixture.directory.path)
+    }
+    XCTAssertThrowsError(try fixture.receive(command))
+    fixture.afterNativeApply = nil
+    try FileManager.default.setAttributes(
+      [.posixPermissions: 0o700], ofItemAtPath: fixture.directory.path)
+    fixture.clock += 120_000
+    XCTAssertTrue(try fixture.recreate().expire())
+    XCTAssertFalse(fixture.shielded)
+    XCTAssertNil(try fixture.phone.status()?.session)
+    XCTAssertEqual(fixture.installedSelections, ["private-app-selection"])
+    XCTAssertEqual(
+      try fixture.phone.pendingReceipts(pairingID: "paired-phone").first?.reason,
+      "expired_before_application")
+  }
+
+  func testExpiryFailureNeverReleasesShieldsAfterDroppingItsOwnershipLock() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.receive(fixture.start(2))
+    fixture.clock += 120_000
+    let competing = fixture.recreate(lockTimeout: 0)
+    fixture.onRelease = {
+      do {
+        _ = try competing.status()
+        XCTFail("Expiry released after unlocking; a newer owner could already be active")
+      } catch {
+        guard let failure = error as? AgentFocusPhone<String>.Failure,
+          case .busy = failure
+        else { return XCTFail("Expected ownership lock contention") }
+      }
+    }
+    try FileManager.default.setAttributes(
+      [.posixPermissions: 0o500], ofItemAtPath: fixture.directory.path)
+    XCTAssertThrowsError(try fixture.recreate().expire())
+    XCTAssertFalse(fixture.shielded)
+  }
+
   // Each test below exercises the persisted phone API and observable native effects.
   func testDSTFullDayHoursEndAtNextLocalMidnight() throws {
 
@@ -88,7 +239,8 @@ final class AgentFocusPhoneBoundaryTests: XCTestCase {
     let recreated = fixture.recreate()
     try recreated.reconcile(authorized: true)
     XCTAssertEqual(try recreated.status()?.session?.endAt, 1_793_836_920_000)
-    XCTAssertEqual(try recreated.pendingReceipts(pairingID: "paired-phone").first?.status, "applied")
+    XCTAssertEqual(
+      try recreated.pendingReceipts(pairingID: "paired-phone").first?.status, "applied")
     XCTAssertEqual(try recreated.receive(command, pairingID: "paired-phone").status, "applied")
   }
 
@@ -327,13 +479,14 @@ final class AgentFocusPhoneBoundaryTests: XCTestCase {
 
 }
 
-private final class PhoneBoundaryFixture {
+private final class PhoneBoundaryFixture: @unchecked Sendable {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
   var clock: Double
   var shielded = false
   var installedSelections: [String] = []
   var failApplication = false
   var afterNativeApply: (() throws -> Void)?
+  var onRelease: (() -> Void)?
   var failLedgerRead = false
   var cancellation: AgentEmergencyCancellation?
   private var sequence = 0
@@ -355,7 +508,7 @@ private final class PhoneBoundaryFixture {
     ISO8601DateFormatter().date(from: iso)!.timeIntervalSince1970 * 1000
   }
 
-  func recreate() -> AgentFocusPhone<String> {
+  func recreate(lockTimeout: TimeInterval? = nil) -> AgentFocusPhone<String> {
     AgentFocusPhone(
       directory: directory,
       emergency: .init(
@@ -369,7 +522,11 @@ private final class PhoneBoundaryFixture {
         self.installedSelections.append(selection)
         self.shielded = true
         try self.afterNativeApply?()
-      }, release: { self.shielded = false })
+      },
+      release: {
+        self.shielded = false
+        self.onRelease?()
+      }, lockTimeout: lockTimeout)
   }
 
   func start(_ minutes: Int, mode: String? = nil, renewal: Bool? = nil) throws -> FocusCommand {
