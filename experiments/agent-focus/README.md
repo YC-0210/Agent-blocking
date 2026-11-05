@@ -71,7 +71,7 @@ Tools:
 
 - `pair_phone`: one-use invitation, expires in 10 minutes; includes the relay address, pairing code and phone setup link. Treat the code as private.
 - `focus_status`: last phone-observed policy/session, with `observedAt`; it may be stale.
-- `start_focus`: use the approved `modeID`, duration, fresh session ID, and stable request ID. Reuse the same request ID on retries.
+- `start_focus`: use the approved `modeID`, duration, fresh session ID, and stable request ID. Refresh focus_status before each start; Emergency Unlock rotates the handle. Reuse the same request ID on retries.
 - `stop_focus`: targets one session; `completed` requires `completionConfirmed: true`, and `break` requires `userInsisted: true`.
 - `command_status`: pending/applied/rejected/expired command result. Only the phone can acknowledge application.
 - Prompt `focus_on_linear_issue`: guides Codex through Linear requirements, focus, breaks and completion approval.
@@ -95,7 +95,7 @@ Confirmation flags represent what the user said in chat. The MCP server cannot i
 - Present evidence and ask the user to confirm completion before completion-based unlocking. Ask separately before marking Done, unless the user explicitly approves both together.
 - The agent may negotiate breaks but must unlock when the user insists. Resuming requires the user's request.
 - At the session end, the phone unlocks without needing internet. Ask before starting another period; set `renewalConfirmed` only after approval. The phone rejects an unconfirmed renewal after expiry.
-- Emergency Unlock ends this session and rejects earlier queued commands, but does not disconnect the agent. A genuinely new command can start another session immediately, as chosen in the design interview.
+- Emergency Unlock ends this session and rejects earlier queued commands, but does not disconnect the agent. Emergency Unlock rotates the opaque modeID to invalidate all earlier queued starts, even if the relay clock differs. Read focus_status again; a genuinely new command using that current handle can start another session without reconnecting or reapproving limits.
 - Codex does not continuously monitor Linear while it or the Mac is inactive. No autonomous background agent scheduler is installed.
 
 ## Verification

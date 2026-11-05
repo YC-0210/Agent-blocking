@@ -2,6 +2,7 @@ import DeviceActivity
 import FamilyControls
 import Foundation
 import ManagedSettings
+import Security
 
 /// Native adapter at the persisted phone interface. Agent shields never clear a legacy store.
 enum AgentFocusDevice {
@@ -73,8 +74,45 @@ enum AgentFocusDevice {
         forSecurityApplicationGroupIdentifier: "group.DO.version3")
     else { throw Failure.unavailable }
     return Phone(
-      directory: directory, now: { Date().timeIntervalSince1970 * 1000 },
-      apply: install, release: clearShields)
+      directory: directory,
+      emergency: AgentEmergencyStorage(read: readEmergency, write: writeEmergency),
+      now: { Date().timeIntervalSince1970 * 1000 }, apply: install, release: clearShields)
+  }
+
+  private static var emergencyQuery: [String: Any] {
+    [
+      kSecClass as String: kSecClassGenericPassword,
+      kSecAttrService as String: "online.do.card.agent.emergency",
+      kSecAttrAccount as String: "cancellation-v1",
+      kSecAttrAccessGroup as String: KeychainHelper.sharedAccessGroup,
+    ]
+  }
+
+  private static func readEmergency() throws -> AgentEmergencyCancellation? {
+    var query = emergencyQuery
+    query[kSecReturnData as String] = true
+    var result: CFTypeRef?
+    let status = SecItemCopyMatching(query as CFDictionary, &result)
+    if status == errSecItemNotFound { return nil }
+    guard status == errSecSuccess, let data = result as? Data else { throw Failure.unavailable }
+    return try JSONDecoder().decode(AgentEmergencyCancellation.self, from: data)
+  }
+
+  private static func writeEmergency(_ cancellation: AgentEmergencyCancellation) throws {
+    let data = try JSONEncoder().encode(cancellation)
+    let status = SecItemUpdate(
+      emergencyQuery as CFDictionary,
+      [kSecValueData as String: data] as CFDictionary)
+    if status == errSecItemNotFound {
+      var item = emergencyQuery
+      item[kSecValueData as String] = data
+      item[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
+      guard SecItemAdd(item as CFDictionary, nil) == errSecSuccess else {
+        throw Failure.unavailable
+      }
+    } else if status != errSecSuccess {
+      throw Failure.unavailable
+    }
   }
 
   private static func clearShields() {

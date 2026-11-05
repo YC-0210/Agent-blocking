@@ -26,7 +26,11 @@ MCP client and include real stdio discovery. Apple hardware and APNs are system 
   consumed sequence, emergency cutoff, pending effect and acknowledgement outbox. An OS file lock
   serializes the app and monitor, including platform release. Pairing identity scopes
   sequence/outbox state; a replacement pairing resets both. Before shield effects, a
-  recoverable pending command and expiry owner are persisted. No SwiftData models or schema versions change.
+  recoverable pending command and expiry owner are persisted. An independent shared Keychain
+  cancellation ledger, ordered by a shared revision, prevents a failed session-file write from resurrecting a stopped
+  owner. Emergency Unlock rotates the opaque mode handle; no prior queued command can
+  start with it, independent of relay/phone clock ordering. Pairing and authority remain
+  intact; Codex reads the fresh handle before a genuinely new start. No SwiftData models or schema versions change.
 - A separate named ManagedSettings store and DeviceActivity namespace isolate agent
   shields. Agent stop/expiry never clears a card or schedule store. Activation refuses
   existing sessions or enabled legacy schedules; test on a dedicated phone if possible.

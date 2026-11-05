@@ -194,4 +194,16 @@ final class AgentFocusTests: XCTestCase {
     XCTAssertTrue(phone.state.requiresRenewalApproval)
   }
 
+  func testSmallClockSkewCannotExtendTheApprovedDuration() {
+    let phone = AgentFocusController(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45,
+        startMinute: 0, endMinute: 1440, timeZone: "Asia/Taipei"))
+    let command = FocusCommand(
+      id: "skew", sequence: 1, action: .start, modeID: "work",
+      durationMinutes: 45, sessionID: "s", issuedAt: 1_793_836_802_000, expiresAt: 1_793_836_862_000
+    )
+    XCTAssertEqual(phone.receive(command, now: 1_793_836_800_000).status, "applied")
+    XCTAssertEqual(phone.state.session?.endAt, 1_793_839_500_000)
+  }
 }

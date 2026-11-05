@@ -35,7 +35,7 @@ npm --prefix experiments/agent-focus test
 
 Local results:
 
-- 16 Swift phone tests passed, including the persisted phone interface and concurrency.
+- 20 Swift phone tests passed, including the persisted phone interface and concurrency.
 - 18 Node relay/MCP tests passed (11 relay, 7 MCP).
 - 65 existing native iOS regression methods passed across UnlockRecoveryTests,
   SubscriptionLifecycleTests, ActiveSessionStatusTests, SelectionRulesTests and AppUpdateTests.
@@ -43,14 +43,18 @@ Local results:
   these are compilation checks, not physical provisioning or APNs entitlement approval.
 - npm audit reports zero vulnerabilities in the pinned dependency graph.
 
-The first two-axis review identified four distinct defects: emergency release racing
-restoration, non-durable shield ownership, old pairing replay/outbox state, and duplicate
-relay sequences under overlapping request bodies. Each received a failing public-interface
+The first two-axis reviews identified seven distinct defects: emergency release racing
+restoration, non-durable shield ownership, old pairing replay/outbox state, duplicate
+relay sequences under overlapping request bodies, cancellation resurrection after a
+failed emergency record write, reliance on cross-device timestamp ordering, and an older cancellation ledger overriding a newer primary cancellation. Each received a failing public-interface
 regression before correction. Emergency release is serialized; pending ownership is saved
 before effects; pairing identity scopes state; sequence allocation and insertion use a
 SQLite transaction. The overlapping-request test uses HTTP 100-continue to reproduce the
 race without depending on timing. A file-permission failure verifies that persistence
-failure cannot install unowned shields. Retry checks verify no extra physical installation.
+failure cannot install unowned shields. Retry checks verify no extra physical installation. A separate Keychain-seam cancellation
+fixture prevents restore after failed emergency file writes. Ahead/behind clock cases
+verify that rotating the opaque mode handle rejects all earlier queued starts while
+retaining immediate control through a newly observed handle. Shared cancellation revisions prevent an older ledger from undoing a newer durable primary cancellation.
 
 Simulator smoke: the revised app installs/launches on a dedicated iPhone 17 Pro simulator;
 the custom setup URL is registered and produces the system's Open confirmation. Real

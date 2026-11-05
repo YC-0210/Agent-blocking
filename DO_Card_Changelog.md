@@ -15,6 +15,11 @@ emergency screen; Node relay/MCP/APNs runner and integration tests; setup/eviden
 Not changed: existing NFC strategies, RequestAuthorizer, subscription policy/verification,
 AppBlockerUtil's card store, SwiftData models, migration plan, reports, analytics and CI.
 All changes are confined to the experiment branch. Credentials/state stay untracked.
+Review corrections: persist pending ownership before shields, scope replay/outbox to
+pairing identity, serialize Emergency Unlock, allocate relay sequences transactionally,
+and preserve emergency cancellation through an independently stored shared Keychain
+ledger. Cancellation revisions and rotating opaque mode IDs invalidate old queued starts
+without relying on cross-device clocks or revoking the agent's connection.
 
 Real-device scenarios passed: none claimed. No connected phone or APNs key was supplied.
 Build/test results and outstanding cellular/shield/expiry checks are in

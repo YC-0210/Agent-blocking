@@ -5,11 +5,12 @@ import XCTest
 
 final class AgentFocusPhoneTests: XCTestCase {
   func testReplacingPairingResetsSequenceAndReceiptOutbox() throws {
+    let emergency = TestEmergencyStorage()
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
     var clock = 1793836800000.0
     let phone = AgentFocusPhone<String>(
-      directory: directory, now: { clock },
+      directory: directory, emergency: emergency.storage, now: { clock },
       apply: { _, _ in }, release: {})
     let policy = AgentFocusPolicy(
       modeID: "work", maximumMinutes: 45,
@@ -33,6 +34,7 @@ final class AgentFocusPhoneTests: XCTestCase {
   }
 
   func testPersistenceFailureCannotApplyUnownedShields() throws {
+    let emergency = TestEmergencyStorage()
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer {
       try? FileManager.default.setAttributes(
@@ -41,7 +43,7 @@ final class AgentFocusPhoneTests: XCTestCase {
     }
     var shielded = false
     let phone = AgentFocusPhone<String>(
-      directory: directory, now: { 1_793_836_800_000 },
+      directory: directory, emergency: emergency.storage, now: { 1_793_836_800_000 },
       apply: { _, _ in shielded = true }, release: { shielded = false })
     try phone.approve(
       policy: .init(
@@ -59,6 +61,7 @@ final class AgentFocusPhoneTests: XCTestCase {
   }
 
   func testEmergencyReleaseWinsOverAConcurrentShieldRestore() throws {
+    let emergency = TestEmergencyStorage()
     final class Hardware: @unchecked Sendable {
       let lock = NSLock()
       let applying = DispatchSemaphore(value: 0)
@@ -83,7 +86,7 @@ final class AgentFocusPhoneTests: XCTestCase {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
     let phone = AgentFocusPhone<String>(
-      directory: directory, now: { 1_793_836_800_000 },
+      directory: directory, emergency: emergency.storage, now: { 1_793_836_800_000 },
       apply: { _, _ in hardware.install() }, release: { hardware.clear() })
     try phone.approve(
       policy: .init(
@@ -114,12 +117,13 @@ final class AgentFocusPhoneTests: XCTestCase {
   }
 
   func testRecreatedPhoneExpiresLocallyAndScopesAcknowledgementsToPairing() throws {
+    let emergency = TestEmergencyStorage()
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
     var clock = 1793836800000.0
     var shielded = false
     let phone = AgentFocusPhone<String>(
-      directory: directory, now: { clock },
+      directory: directory, emergency: emergency.storage, now: { clock },
       apply: { _, _ in shielded = true }, release: { shielded = false })
     try phone.approve(
       policy: .init(
@@ -132,7 +136,7 @@ final class AgentFocusPhoneTests: XCTestCase {
         durationMinutes: 30, sessionID: "s", issuedAt: clock, expiresAt: clock + 60000),
       pairingID: "phone")
     let restored = AgentFocusPhone<String>(
-      directory: directory, now: { clock },
+      directory: directory, emergency: emergency.storage, now: { clock },
       apply: { _, _ in shielded = true }, release: { shielded = false })
     clock = 1_793_838_600_000
     try restored.reconcile(authorized: true)
@@ -145,11 +149,12 @@ final class AgentFocusPhoneTests: XCTestCase {
   }
 
   func testRetryDoesNotReinstallPhysicalShields() throws {
+    let emergency = TestEmergencyStorage()
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
     var installations = 0
     let phone = AgentFocusPhone<String>(
-      directory: directory, now: { 1_793_836_800_000 },
+      directory: directory, emergency: emergency.storage, now: { 1_793_836_800_000 },
       apply: { _, _ in installations += 1 }, release: {})
     try phone.approve(
       policy: .init(
@@ -163,5 +168,128 @@ final class AgentFocusPhoneTests: XCTestCase {
     _ = try phone.receive(command, pairingID: "phone")
     _ = try phone.receive(command, pairingID: "phone")
     XCTAssertEqual(installations, 1)
+  }
+
+  func testFailedEmergencyRecordWriteCannotResurrectSessionAfterRecreation() throws {
+    let emergency = TestEmergencyStorage()
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer {
+      try? FileManager.default.setAttributes(
+        [.posixPermissions: 0o700], ofItemAtPath: directory.path)
+      try? FileManager.default.removeItem(at: directory)
+    }
+    var clock = 1793836800000.0
+    var shielded = false
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage, now: { clock },
+      apply: { _, _ in shielded = true }, release: { shielded = false })
+    try phone.approve(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45,
+        startMinute: 0, endMinute: 1440, timeZone: "Asia/Taipei"), selection: "opaque",
+      pairingID: "phone")
+    _ = try phone.receive(
+      FocusCommand(
+        id: "first", sequence: 1, action: .start, modeID: "work",
+        durationMinutes: 30, sessionID: "s", issuedAt: clock, expiresAt: clock + 60000),
+      pairingID: "phone")
+    clock += 1000
+    try FileManager.default.setAttributes([.posixPermissions: 0o500], ofItemAtPath: directory.path)
+    XCTAssertThrowsError(try phone.emergencyUnlock())
+    XCTAssertFalse(shielded)
+    try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: directory.path)
+    let restored = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage, now: { clock },
+      apply: { _, _ in shielded = true }, release: { shielded = false })
+    try restored.reconcile(authorized: true)
+    XCTAssertFalse(
+      shielded, "The canceled session must not return when the record becomes writable")
+    XCTAssertNil(try restored.status(pairingID: "phone")?.session)
+  }
+  func testEmergencyInvalidatesUnseenCommandsWithoutDependingOnClockOrdering() throws {
+    for relayOffset in [-4000.0, 4000.0] {
+      let emergency = TestEmergencyStorage()
+      let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+        UUID().uuidString)
+      defer { try? FileManager.default.removeItem(at: directory) }
+      var clock = 1793836800000.0
+      let phone = AgentFocusPhone<String>(
+        directory: directory, emergency: emergency.storage,
+        now: { clock }, apply: { _, _ in }, release: {})
+      try phone.approve(
+        policy: .init(
+          modeID: "work", maximumMinutes: 45,
+          startMinute: 0, endMinute: 1440, timeZone: "Asia/Taipei"), selection: "opaque",
+        pairingID: "phone")
+      let queued = FocusCommand(
+        id: "queued", sequence: 1, action: .start, modeID: "work",
+        durationMinutes: 30, sessionID: "old", issuedAt: clock + relayOffset,
+        expiresAt: clock + 60000)
+      clock += 1000
+      try phone.emergencyUnlock()
+      clock += 1000
+      XCTAssertEqual(try phone.receive(queued, pairingID: "phone").reason, "mode_not_approved")
+      let mode = try XCTUnwrap(phone.status(pairingID: "phone")?.policy.modeID)
+      XCTAssertNotEqual(mode, "work")
+      let fresh = FocusCommand(
+        id: "fresh", sequence: 2, action: .start, modeID: mode,
+        durationMinutes: 30, sessionID: "new", issuedAt: clock + relayOffset,
+        expiresAt: clock + 60000)
+      XCTAssertEqual(try phone.receive(fresh, pairingID: "phone").status, "applied")
+    }
+  }
+
+  func testOlderKeychainCancellationCannotUndoANewerPrimaryCancellation() throws {
+    let emergency = TestEmergencyStorage()
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    var clock = 1793836800000.0
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage,
+      now: { clock }, apply: { _, _ in }, release: {})
+    try phone.approve(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45,
+        startMinute: 0, endMinute: 1440, timeZone: "Asia/Taipei"), selection: "opaque",
+      pairingID: "phone")
+    clock += 1000
+    try phone.emergencyUnlock()
+    let firstMode = try XCTUnwrap(phone.status(pairingID: "phone")?.policy.modeID)
+    clock += 1000
+    _ = try phone.receive(
+      FocusCommand(
+        id: "first", sequence: 1, action: .start, modeID: firstMode,
+        durationMinutes: 30, sessionID: "s", issuedAt: clock, expiresAt: clock + 60000),
+      pairingID: "phone")
+    let queued = FocusCommand(
+      id: "queued", sequence: 2, action: .start, modeID: firstMode,
+      durationMinutes: 30, sessionID: "old", issuedAt: clock, expiresAt: clock + 60000)
+    clock += 1000
+    emergency.failsWrites = true
+    try phone.emergencyUnlock()
+    clock += 1000
+    XCTAssertEqual(try phone.receive(queued, pairingID: "phone").reason, "mode_not_approved")
+    XCTAssertNotEqual(try phone.status(pairingID: "phone")?.policy.modeID, firstMode)
+  }
+
+}
+
+private final class TestEmergencyStorage: @unchecked Sendable {
+  private let lock = NSLock()
+  var failsWrites = false
+  private var value: AgentEmergencyCancellation?
+  var storage: AgentEmergencyStorage {
+    AgentEmergencyStorage(
+      read: {
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        return self.value
+      },
+      write: { value in
+        self.lock.lock()
+        defer { self.lock.unlock() }
+        if self.failsWrites { throw CocoaError(.fileWriteNoPermission) }
+        self.value = value
+      })
   }
 }

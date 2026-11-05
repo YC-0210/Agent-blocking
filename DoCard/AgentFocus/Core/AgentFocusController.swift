@@ -104,7 +104,7 @@ final class AgentFocusController {
     }
     state.lastSequence = command.sequence
     guard command.issuedAt.isFinite, command.expiresAt.isFinite, now.isFinite,
-      command.issuedAt <= now, command.expiresAt > now,
+      command.issuedAt <= now + 5000, command.expiresAt > now,
       command.expiresAt > command.issuedAt, command.expiresAt - command.issuedAt <= 120000
     else {
       return FocusReceipt(id: command.id, status: "rejected", reason: "expired_or_future_command")
@@ -152,7 +152,7 @@ final class AgentFocusController {
     let dayStart = calendar.startOfDay(for: date)
     let windowStart = calendar.date(byAdding: .minute, value: policy.startMinute, to: dayStart)!
     let windowEnd = calendar.date(byAdding: .minute, value: policy.endMinute, to: dayStart)!
-    let endAt = command.issuedAt + Double(command.durationMinutes ?? 0) * 60000
+    let endAt = min(command.issuedAt, now) + Double(command.durationMinutes ?? 0) * 60000
     guard date >= windowStart, endAt <= windowEnd.timeIntervalSince1970 * 1000 else {
       return FocusReceipt(id: command.id, status: "rejected", reason: "outside_approved_hours")
     }
