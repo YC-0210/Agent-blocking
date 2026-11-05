@@ -22,6 +22,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     let policy: AgentFocusPolicy
     let session: AgentFocusSession?
     let requiresRenewalApproval: Bool
+    var applicationPending = false
   }
   private struct CompletedCommand: Codable {
     let receipt: FocusReceipt
@@ -222,7 +223,8 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       guard let policy = record.policy else { return nil }
       return Status(
         policy: policy, session: record.state.session,
-        requiresRenewalApproval: record.state.requiresRenewalApproval)
+        requiresRenewalApproval: record.state.requiresRenewalApproval,
+        applicationPending: record.pendingCommand != nil)
     }
   }
 

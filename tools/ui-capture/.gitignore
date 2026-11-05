@@ -1,0 +1,3 @@
+*.xcodeproj/
+node_modules/
+App/AgentFocusView.swift

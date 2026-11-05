@@ -21,6 +21,8 @@ final class AgentFocusRuntime: ObservableObject {
   @Published var message = ""
   @Published var setupRelay = ""
   @Published var setupCode = ""
+  @Published private(set) var focusStatus: AgentFocusDevice.Phone.Status?
+  @Published private(set) var connectionPending = false
   private var syncing = false
   private var pushToken: String?
   private let redirectPolicy = AgentFocusRedirectPolicy()
@@ -40,8 +42,20 @@ final class AgentFocusRuntime: ObservableObject {
 
   init() {
     if let pairing = try? AgentFocusPairingStore.load() {
-      configured = (try? AgentFocusDevice.status(pairingID: pairing.deviceId)) != nil
+      do {
+        focusStatus = try AgentFocusDevice.phone(lockTimeout: 0.2).status(
+          pairingID: pairing.deviceId)
+        configured = focusStatus != nil
+      } catch {
+        // A saved pairing with temporarily unreadable state is not a fresh setup.
+        configured = true
+      }
     }
+  }
+
+  private func refreshFocusStatus(pairingID: String? = nil) {
+    // A busy notification extension must not stall the UI or look like a finished session.
+    focusStatus = try? AgentFocusDevice.phone(lockTimeout: 0.2).status(pairingID: pairingID)
   }
 
   func openSetup(_ url: URL) -> Bool {
@@ -91,7 +105,7 @@ final class AgentFocusRuntime: ObservableObject {
       try AgentFocusPairingStore.save(
         Pairing(relay: url, deviceId: redeemed.deviceId, deviceToken: redeemed.deviceToken))
       configured = true
-      message = "Connected. Return to Codex to manage focus."
+      message = "Connected. Return to your agent to manage focus."
       _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [
         .alert, .sound,
       ])
@@ -110,6 +124,7 @@ final class AgentFocusRuntime: ObservableObject {
     } catch {
       message = "Agent shields cleared. Could not save the session ending; reopen DO Card to retry."
     }
+    refreshFocusStatus()
     Task { await sync() }
   }
 
@@ -125,17 +140,23 @@ final class AgentFocusRuntime: ObservableObject {
     do {
       try AgentFocusDevice.reconcile()
       let pairing = try AgentFocusPairingStore.load()
+      defer { refreshFocusStatus(pairingID: pairing.deviceId) }
       let worker = AgentFocusDelivery(phone: try AgentFocusDevice.phone(), pairing: pairing)
       let result = await worker.run(pushToken: pushToken)
       if result == .synced {
+        if connectionPending { message = "" }
+        connectionPending = false
         pushToken = nil
       } else {
+        connectionPending = true
         message =
-          "Connection pending. Current focus still ends at its approved time. Emergency Unlock works here."
+          "Waiting to sync with your agent. Emergency Unlock works here."
       }
     } catch {
+      connectionPending = true
+      refreshFocusStatus()
       message =
-        "Connection pending. Current focus still ends at its approved time. Emergency Unlock works here."
+        "Waiting to sync with your agent. Emergency Unlock works here."
     }
   }
 
