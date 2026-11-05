@@ -9,16 +9,22 @@ struct AgentFocusPolicy: Codable, Equatable, Sendable {
 }
 
 struct FocusCommand: Codable, Equatable, Sendable {
-  enum Action: String, Codable, Sendable { case start, stop }
+  enum Action: String, Codable, Sendable {
+    case start, stop
+    case setMaximum = "set_maximum"
+  }
   let id: String
   let sequence: Int
   let action: Action
   let modeID: String
   let durationMinutes: Int?
-  let sessionID: String
+  let sessionID: String?
   let issuedAt: Double
   let expiresAt: Double
   var renewalConfirmed: Bool? = nil
+  var maximumMinutes: Int? = nil
+  var expectedMaximumMinutes: Int? = nil
+  var userConfirmed: Bool? = nil
 }
 
 struct AgentFocusSession: Codable, Equatable, Sendable {
@@ -41,7 +47,7 @@ struct FocusReceipt: Codable, Equatable, Sendable {
 }
 
 final class AgentFocusController {
-  let policy: AgentFocusPolicy
+  private(set) var policy: AgentFocusPolicy
   private(set) var state = AgentFocusState()
 
   private let start: (AgentFocusSession) throws -> Void
@@ -115,8 +121,33 @@ final class AgentFocusController {
     guard command.modeID == policy.modeID else {
       return FocusReceipt(id: command.id, status: "rejected", reason: "mode_not_approved")
     }
+    if command.action != .setMaximum,
+      command.maximumMinutes != nil || command.expectedMaximumMinutes != nil
+        || command.userConfirmed != nil
+    {
+      return FocusReceipt(id: command.id, status: "rejected", reason: "mixed_command")
+    }
+    if command.action == .setMaximum {
+      guard command.userConfirmed == true else {
+        return FocusReceipt(
+          id: command.id, status: "rejected", reason: "maximum_confirmation_required")
+      }
+      guard let maximum = command.maximumMinutes, (15...1440).contains(maximum),
+        command.durationMinutes == nil, command.sessionID == nil,
+        command.renewalConfirmed == nil
+      else {
+        return FocusReceipt(id: command.id, status: "rejected", reason: "invalid_maximum_change")
+      }
+      guard command.expectedMaximumMinutes == policy.maximumMinutes else {
+        return FocusReceipt(id: command.id, status: "rejected", reason: "policy_changed")
+      }
+      policy = AgentFocusPolicy(
+        modeID: UUID().uuidString, maximumMinutes: maximum, startMinute: policy.startMinute,
+        endMinute: policy.endMinute, timeZone: policy.timeZone)
+      return FocusReceipt(id: command.id, status: "applied", reason: nil)
+    }
     if command.action == .stop {
-      guard state.session?.id == command.sessionID else {
+      guard let sessionID = command.sessionID, state.session?.id == sessionID else {
         return FocusReceipt(id: command.id, status: "rejected", reason: "session_mismatch")
       }
       do { try stop() } catch {
@@ -156,7 +187,10 @@ final class AgentFocusController {
     guard date >= windowStart, endAt <= windowEnd.timeIntervalSince1970 * 1000 else {
       return FocusReceipt(id: command.id, status: "rejected", reason: "outside_approved_hours")
     }
-    let session = AgentFocusSession(id: command.sessionID, endAt: endAt)
+    guard let sessionID = command.sessionID, !sessionID.isEmpty else {
+      return FocusReceipt(id: command.id, status: "rejected", reason: "session_required")
+    }
+    let session = AgentFocusSession(id: sessionID, endAt: endAt)
     do { try start(session) } catch {
       return FocusReceipt(id: command.id, status: "rejected", reason: "execution_failed")
     }

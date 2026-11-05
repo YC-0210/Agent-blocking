@@ -120,3 +120,22 @@ Tests use the real phone command controller, a real SQLite relay over HTTP, a re
 Passing these tests does not prove actual Apple shields, APNs delivery, cellular access or exact-second background expiry. DeviceActivity callback timing is controlled by iOS. The phone also reconciles on foreground/push and fails open if recovery cannot register local expiry; it never claims an infinite session is safe.
 
 Before claiming the experiment works, run the physical-device scenarios in `docs/experiments/agent-focus-design.md` and record outcomes. No App Store or TestFlight submission is part of this implementation.
+
+## Shared timelines and separate maximum tool
+
+The agent now opens `select_focus_session` for session duration, or
+`select_focus_maximum` ONLY when you ask to change the saved maximum. Both use the
+same draggable timeline in MCP Apps-compatible clients. Ask “make it 20 minutes” to
+revise an open session picker, or “change my maximum to 60 minutes” to open the separate
+maximum picker. Review and click Start/Save; opening or dragging sends no phone command.
+Maximum changes affect future sessions only, with a phone acknowledgement before saved.
+
+After merging this branch with the delivery work, install the updated phone build,
+run `npm ci` in the final experiment directory, and reload its MCP server. The UI is
+bundled during install; `npm run build:ui` rebuilds it. Keep agent credentials outside
+the UI and use the final checkout's existing private configuration. The live phone and
+MCP configuration are not changed by the isolated UI development host.
+
+For the test host, run `npm run dev:ui` and open http://127.0.0.1:8792 . It has a clearly
+labelled in-memory test phone and no access to the real phone. Full protocol/trust and
+merge instructions: `docs/experiments/agent-timeline-tools.md`.

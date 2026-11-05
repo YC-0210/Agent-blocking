@@ -87,6 +87,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       var validationState = record.state
       // The persisted phone uses mode generation as a causal boundary, independent of relay clocks.
       validationState.lastEmergencyAt = nil
+      let previousSession = record.state.session
       let controller = AgentFocusController(policy: policy, state: validationState)
       let receipt = controller.receive(command, now: now())
       record.state = controller.state
@@ -96,6 +97,14 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
         }
         try save(record)
         if record.state.session == nil { release() }
+        return receipt
+      }
+      if command.action == .setMaximum {
+        // One atomic record update; changing a maximum has no platform shield effects.
+        record.policy = controller.policy
+        record.receipts.append(receipt)
+        try save(record)
+        if previousSession != nil && record.state.session == nil { release() }
         return receipt
       }
       // Journal recoverable ownership before crossing the platform-effect seam.

@@ -9,10 +9,18 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "relay": "node src/relay-main.mjs",
-    "mcp": "node src/mcp-main.mjs"
+    "mcp": "node src/mcp-main.mjs",
+    "build:ui": "node scripts/build-ui.mjs",
+    "pretest": "npm run build:ui",
+    "prepare": "npm run build:ui",
+    "dev:ui": "npm run build:ui && node scripts/dev-picker-host.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "1.1.2",
     "@modelcontextprotocol/sdk": "1.32.2",
     "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

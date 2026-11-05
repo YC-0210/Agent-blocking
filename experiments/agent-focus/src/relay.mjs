@@ -2,12 +2,8 @@ import { createServer } from 'node:http';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
 import { DatabaseSync } from 'node:sqlite';
+import { commandSchema } from './focus-command-schema.mjs';
 
-const commandSchema = z.object({
-  id: z.string().min(1).max(80), action: z.enum(['start', 'stop']),
-  modeID: z.string().min(1).max(80), sessionID: z.string().min(1).max(80),
-  durationMinutes: z.number().int().min(2).max(1440).optional(), renewalConfirmed: z.boolean().optional(),
-}).strict();
 const receiptSchema = z.object({ id: z.string().min(1).max(80),
   status: z.enum(['applied', 'rejected']), reason: z.string().max(100).optional().nullable() }).strict();
 const snapshotSchema = z.object({ modeID: z.string().min(1).max(80),

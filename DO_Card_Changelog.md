@@ -606,3 +606,13 @@ intervals without extending the session deadline. Phone maximum/hours/renewal ru
 unchanged. New phone expiry and real MCP-to-relay queue tests failed before the change and
 passed after it; 21 Swift and 19 Node tests pass. Signed build installed on the paired
 iPhone; a two-minute start was acknowledged applied. Actual automatic expiry result pending.
+
+## Separate shared-timeline tools (2026-11-05)
+
+Add distinct session and maximum-selection MCP tools using one draggable MCP Apps
+resource. Chat revisions edit scoped proposals; explicit UI confirmation submits one
+stable command. Maximum changes are atomic phone policy updates that leave active
+sessions, selections and hours unchanged. Native enforcement rejects mixed commands,
+stale policy handles and unconfirmed maximum changes. Delivery/receipt states stay
+pending until phone acknowledgement. Implementation, approval trust assumptions and
+handoff to the concurrent delivery work are in `docs/experiments/agent-timeline-tools.md`.

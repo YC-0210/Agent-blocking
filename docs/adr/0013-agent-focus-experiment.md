@@ -80,3 +80,13 @@ See `docs/testing/agent-focus-results.md` for test/build evidence and outstandin
 checks. Actual APNs, Family Controls provisioning, shields, offline/reboot behavior and
 cellular delivery require a signed physical iPhone. Do not submit this experiment to the
 App Store or TestFlight based solely on local test results.
+
+## Chat-selected durations and maxima (2026-11-05 follow-up)
+
+Per explicit user instruction, the agent offers two separate tools using one shared
+MCP Apps timeline: session selection and maximum-only policy selection. A chat-confirmed
+maximum update is an additive paired-agent authority, replacing phone-only maximum
+adjustment for this experiment. It preserves app tokens, hours and any existing unexpired
+session. Pending changes require a phone acknowledgement before success is shown.
+See `docs/experiments/agent-timeline-tools.md` for exact behavior, trust assumptions,
+validation, and the merge boundary with the parallel push-delivery worktree.

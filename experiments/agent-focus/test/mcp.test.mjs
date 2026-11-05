@@ -98,7 +98,7 @@ test('Codex can discover tools through the real stdio process', async t => {
   t.after(() => client.close());
   await client.connect(transport);
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map(tool => tool.name).sort(), ['command_status', 'focus_status', 'pair_phone', 'start_focus', 'stop_focus']);
+  assert.deepEqual(tools.map(tool => tool.name).sort(), ['command_status', 'confirm_focus_selection', 'focus_selection_status', 'focus_status', 'pair_phone', 'revise_focus_selection', 'select_focus_maximum', 'select_focus_session', 'start_focus', 'stop_focus']);
 });
 
 
@@ -111,4 +111,86 @@ test('two-minute expiry test reaches the phone queue through MCP and the relay',
   assert.equal(value(response).status, 'pending');
   const queued = await request('/v1/device/commands', undefined, phone.deviceToken);
   assert.equal(queued.commands[0].durationMinutes, 2);
+});
+
+test('maximum picker returns the shared UI without queuing a session, then confirms only a maximum change', async t => {
+  const { client, phone, request } = await fixture(t);
+  await request('/v1/device/snapshot', { modeID: 'work', sessionID: null, endAt: null,
+    requiresRenewalApproval: false, maximumMinutes: 45, startMinute: 0, endMinute: 1440,
+    timeZone: 'Asia/Taipei' }, phone.deviceToken);
+  const tools = (await client.listTools()).tools;
+  const maximumTool = tools.find(tool => tool.name === 'select_focus_maximum');
+  const sessionTool = tools.find(tool => tool.name === 'select_focus_session');
+  assert.ok(maximumTool, 'The agent can open a separate maximum picker');
+  assert.equal(maximumTool._meta.ui.resourceUri, sessionTool._meta.ui.resourceUri);
+  const opened = await client.callTool({ name: 'select_focus_maximum', arguments: {
+    deviceId: phone.deviceId, suggestedMinutes: 60,
+  } });
+  const draft = opened.structuredContent.selection;
+  assert.equal(draft.kind, 'maximum');
+  assert.equal(draft.currentMaximumMinutes, 45);
+  assert.equal((await request('/v1/device/commands', undefined, phone.deviceToken)).commands.length, 0);
+  const edited = (await client.callTool({ name: 'revise_focus_selection', arguments: {
+    selectionId: draft.id, minutes: 90,
+  } })).structuredContent.selection;
+  const confirmed = await client.callTool({ name: 'confirm_focus_selection', arguments: {
+    selectionId: edited.id, revision: edited.revision, userConfirmed: true,
+  } });
+  assert.equal(confirmed.structuredContent.selection.phase, 'pending');
+  const queued = (await request('/v1/device/commands', undefined, phone.deviceToken)).commands;
+  assert.equal(queued[0].action, 'set_maximum');
+  assert.equal(queued[0].maximumMinutes, 90);
+  assert.equal('sessionID' in queued[0], false);
+  assert.equal('durationMinutes' in queued[0], false);
+  assert.equal((await request(`/v1/devices/${phone.deviceId}`)).snapshot.maximumMinutes, 45);
+  const resource = await client.readResource({ uri: maximumTool._meta.ui.resourceUri });
+  assert.equal(resource.contents[0].mimeType, 'text/html;profile=mcp-app');
+  assert.match(resource.contents[0].text, /Maximum lock time/);
+});
+
+test('session picker changes only session duration and retries one stable command after user confirmation', async t => {
+  const { client, phone, request } = await fixture(t);
+  await request('/v1/device/snapshot', { modeID: 'work', maximumMinutes: 45,
+    requiresRenewalApproval: true, startMinute: 0, endMinute: 1440, timeZone: 'Asia/Taipei' }, phone.deviceToken);
+  const draft = (await client.callTool({ name: 'select_focus_session', arguments: {
+    deviceId: phone.deviceId, suggestedMinutes: 30, issue: 'YAN-103',
+  } })).structuredContent.selection;
+  const oversized = await client.callTool({ name: 'revise_focus_selection', arguments: { selectionId: draft.id, minutes: 60 } });
+  assert.equal(oversized.isError, true);
+  const revised = (await client.callTool({ name: 'revise_focus_selection', arguments: {
+    selectionId: draft.id, minutes: 20,
+  } })).structuredContent.selection;
+  const stale = await client.callTool({ name: 'confirm_focus_selection', arguments: { selectionId: draft.id, revision: draft.revision, userConfirmed: true } });
+  assert.equal(stale.isError, true);
+  const noApproval = await client.callTool({ name: 'confirm_focus_selection', arguments: { selectionId: revised.id, revision: revised.revision, userConfirmed: false } });
+  assert.equal(noApproval.isError, true);
+  assert.equal((await request('/v1/device/commands', undefined, phone.deviceToken)).commands.length, 0);
+  const args = { selectionId: revised.id, revision: revised.revision, userConfirmed: true };
+  await Promise.all([client.callTool({ name: 'confirm_focus_selection', arguments: args }), client.callTool({ name: 'confirm_focus_selection', arguments: args })]);
+  const queued = (await request('/v1/device/commands', undefined, phone.deviceToken)).commands;
+  assert.equal(queued.length, 1);
+  assert.equal(queued[0].action, 'start');
+  assert.equal(queued[0].durationMinutes, 20);
+  assert.equal(queued[0].renewalConfirmed, true);
+  assert.equal('maximumMinutes' in queued[0], false);
+  assert.equal((await request(`/v1/devices/${phone.deviceId}`)).snapshot.maximumMinutes, 45);
+  const changedAfterSubmit = await client.callTool({ name: 'revise_focus_selection', arguments: { selectionId: revised.id, minutes: 25 } });
+  assert.equal(changedAfterSubmit.isError, true);
+  await request('/v1/device/receipts', { id: queued[0].id, status: 'applied' }, phone.deviceToken);
+  const receipt = (await client.callTool({ name: 'focus_selection_status', arguments: { selectionId: revised.id } })).structuredContent.selection;
+  assert.equal(receipt.phase, 'applied');
+});
+
+test('a picker cannot overwrite a newer phone policy or a newer draft revision', async t => {
+  const { client, phone, request } = await fixture(t);
+  await request('/v1/device/snapshot', { modeID: 'work', maximumMinutes: 45, requiresRenewalApproval: false }, phone.deviceToken);
+  const opened = (await client.callTool({ name: 'select_focus_maximum', arguments: { deviceId: phone.deviceId, suggestedMinutes: 60 } })).structuredContent.selection;
+  await client.callTool({ name: 'revise_focus_selection', arguments: { selectionId: opened.id, minutes: 90 } });
+  const staleEdit = await client.callTool({ name: 'revise_focus_selection', arguments: { selectionId: opened.id, minutes: 30, expectedRevision: opened.revision } });
+  assert.equal(staleEdit.isError, true);
+  await request('/v1/device/snapshot', { modeID: 'changed-on-phone', maximumMinutes: 120, requiresRenewalApproval: false }, phone.deviceToken);
+  const rejected = await client.callTool({ name: 'confirm_focus_selection', arguments: { selectionId: opened.id, revision: 2, userConfirmed: true } });
+  assert.equal(rejected.isError, true);
+  assert.match(rejected.content[0].text, /policy_changed/);
+  assert.equal((await request('/v1/device/commands', undefined, phone.deviceToken)).commands.length, 0);
 });

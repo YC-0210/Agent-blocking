@@ -4,6 +4,125 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusPhoneTests: XCTestCase {
+  func testLowerMaximumLeavesActiveDeadlineAndEnforcesTheNewLimitOnLaterSessions() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let emergency = TestEmergencyStorage()
+    let now = 1_793_836_800_000.0
+    var appliedSelections: [String] = []
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage,
+      now: { now }, apply: { _, selection in appliedSelections.append(selection) }, release: {})
+    try phone.approve(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45, startMinute: 0,
+        endMinute: 1440, timeZone: "Asia/Taipei"), selection: "unchanged-selection",
+      pairingID: "phone")
+    _ = try phone.receive(
+      .init(
+        id: "start", sequence: 1, action: .start, modeID: "work",
+        durationMinutes: 30, sessionID: "active", issuedAt: now, expiresAt: now + 60_000),
+      pairingID: "phone")
+    let change = try JSONDecoder().decode(
+      FocusCommand.self,
+      from: Data(
+        """
+        {"id":"lower","sequence":2,"action":"set_maximum","modeID":"work",
+         "issuedAt":1793836800000,"expiresAt":1793836860000,
+         "maximumMinutes":15,"expectedMaximumMinutes":45,"userConfirmed":true}
+        """.utf8))
+    XCTAssertEqual(try phone.receive(change, pairingID: "phone").status, "applied")
+    let status = try XCTUnwrap(phone.status())
+    XCTAssertEqual(status.session?.endAt, 1_793_838_600_000)
+    let mode = status.policy.modeID
+    _ = try phone.receive(
+      .init(
+        id: "stop", sequence: 3, action: .stop, modeID: mode,
+        durationMinutes: nil, sessionID: "active", issuedAt: now, expiresAt: now + 60_000),
+      pairingID: "phone")
+    let tooLong = FocusCommand(
+      id: "long", sequence: 4, action: .start, modeID: mode,
+      durationMinutes: 30, sessionID: "later", issuedAt: now, expiresAt: now + 60_000)
+    XCTAssertEqual(
+      try phone.receive(tooLong, pairingID: "phone").reason, "duration_exceeds_approval")
+    let allowed = FocusCommand(
+      id: "short", sequence: 5, action: .start, modeID: mode,
+      durationMinutes: 10, sessionID: "later-short", issuedAt: now, expiresAt: now + 60_000)
+    XCTAssertEqual(try phone.receive(allowed, pairingID: "phone").status, "applied")
+    XCTAssertEqual(appliedSelections, ["unchanged-selection", "unchanged-selection"])
+  }
+
+  func testSessionCommandsCannotAlsoChangeTheMaximum() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let emergency = TestEmergencyStorage()
+    var shielded = false
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage,
+      now: { 1_793_836_800_000 }, apply: { _, _ in shielded = true }, release: { shielded = false })
+    try phone.approve(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45, startMinute: 0,
+        endMinute: 1440, timeZone: "Asia/Taipei"), selection: "private", pairingID: "phone")
+    let mixed = try JSONDecoder().decode(
+      FocusCommand.self,
+      from: Data(
+        """
+        {"id":"mixed","sequence":1,"action":"start","modeID":"work",
+         "sessionID":"session","durationMinutes":30,
+         "issuedAt":1793836800000,"expiresAt":1793836860000,
+         "maximumMinutes":60,"expectedMaximumMinutes":45,"userConfirmed":true}
+        """.utf8))
+    XCTAssertEqual(try phone.receive(mixed, pairingID: "phone").status, "rejected")
+    XCTAssertEqual(try phone.status()?.policy.maximumMinutes, 45)
+    XCTAssertFalse(shielded)
+  }
+
+  func testConfirmedMaximumChangePersistsWithoutChangingCurrentSessionOrSelection() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let emergency = TestEmergencyStorage()
+    var installed: [String] = []
+    var releases = 0
+    let now = 1_793_836_800_000.0
+    func makePhone() -> AgentFocusPhone<String> {
+      AgentFocusPhone(
+        directory: directory, emergency: emergency.storage, now: { now },
+        apply: { _, selection in installed.append(selection) }, release: { releases += 1 })
+    }
+    let phone = makePhone()
+    try phone.approve(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45, startMinute: 0,
+        endMinute: 1440, timeZone: "Asia/Taipei"), selection: "private-app-tokens",
+      pairingID: "phone")
+    _ = try phone.receive(
+      .init(
+        id: "start", sequence: 1, action: .start, modeID: "work",
+        durationMinutes: 30, sessionID: "active", issuedAt: now, expiresAt: now + 60_000),
+      pairingID: "phone")
+    let session = try phone.status()?.session
+    let change = try JSONDecoder().decode(
+      FocusCommand.self,
+      from: Data(
+        """
+        {"id":"limit","sequence":2,"action":"set_maximum","modeID":"work",
+         "issuedAt":1793836800000,"expiresAt":1793836860000,
+         "maximumMinutes":60,"expectedMaximumMinutes":45,"userConfirmed":true}
+        """.utf8))
+    XCTAssertEqual(try phone.receive(change, pairingID: "phone").status, "applied")
+    XCTAssertEqual(try phone.receive(change, pairingID: "phone").status, "applied")
+    let restored = try XCTUnwrap(makePhone().status())
+    XCTAssertEqual(restored.policy.maximumMinutes, 60)
+    XCTAssertNotEqual(restored.policy.modeID, "work")
+    XCTAssertEqual(restored.policy.startMinute, 0)
+    XCTAssertEqual(restored.policy.endMinute, 1440)
+    XCTAssertEqual(restored.policy.timeZone, "Asia/Taipei")
+    XCTAssertEqual(restored.session, session)
+    XCTAssertEqual(installed, ["private-app-tokens"])
+    XCTAssertEqual(releases, 0)
+  }
+
   func testReplacingPairingResetsSequenceAndReceiptOutbox() throws {
     let emergency = TestEmergencyStorage()
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)

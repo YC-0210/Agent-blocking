@@ -175,3 +175,23 @@ test('overlapping submissions allocate distinct ordered sequences after reading 
   const queued = (await request('/v1/device/commands', undefined, phone.deviceToken)).body.commands;
   assert.deepEqual(queued.map(command => command.sequence), [1, 2]);
 });
+
+test('confirmed maximum changes use a separate session-free command and keep phone acknowledgement authoritative', async t => {
+  const { request } = await fixture(t);
+  const phone = await pair(request);
+  const path = `/v1/devices/${phone.deviceId}/commands`;
+  const maximum = { id: 'max-1', action: 'set_maximum', modeID: 'work', maximumMinutes: 60,
+    expectedMaximumMinutes: 45, userConfirmed: true };
+  const response = await request(path, maximum);
+  assert.equal(response.status, 202);
+  assert.equal(response.body.status, 'pending');
+  const queued = (await request('/v1/device/commands', undefined, phone.deviceToken)).body.commands;
+  assert.equal(queued[0].maximumMinutes, 60);
+  assert.equal('sessionID' in queued[0], false);
+  assert.equal('durationMinutes' in queued[0], false);
+  assert.equal((await request(path, { ...maximum, id: 'mixed', durationMinutes: 30 })).status, 400);
+  assert.equal((await request(path, { ...maximum, id: 'unconfirmed', userConfirmed: false })).status, 400);
+  assert.equal((await request(path, { ...start, id: 'start-with-max', maximumMinutes: 60 })).status, 400);
+  await request('/v1/device/receipts', { id: 'max-1', status: 'applied' }, phone.deviceToken);
+  assert.equal((await request(`${path}/max-1`)).body.status, 'applied');
+});
