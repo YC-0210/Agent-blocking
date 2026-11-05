@@ -234,3 +234,17 @@ A fresh physical reboot test is still required. The change removes identified ap
 hazards; it cannot guarantee the OS will invoke a monitor after every reboot, nor can it
 resolve an indefinitely held lock or arbitrary storage/daemon failure. Callback diagnostics
 are intended to distinguish these remaining conditions on the next run.
+
+Signing follow-up: after the owner woke/unlocked the Mac, revision6b0a84c signed
+successfully, was pushed, installed on the paired iPhone13 and launched. The physical
+reboot-expiry retest remains pending.
+
+The prior Quick Tunnel hostname stopped resolving (NXDOMAIN) and its local connector
+reported zero ready connections. The relay stayed alive under its launchctl job. A
+replacement Quick Tunnel is now also managed as an independent launchctl job; its
+public hostname is https://catalogue-computation-convertible-newark.trycloudflare.com.
+The local Codex config changed only its relay URL, preserving the existing agent
+credential path; a private local backup was made. A fresh one-time invitation was
+opened on the phone for owner approval. No pairing code or credential is recorded
+here. Owner setup approval and a Codex MCP reload are required before live testing
+can continue. A named stable tunnel remains preferable to expiring Quick Tunnel URLs.
