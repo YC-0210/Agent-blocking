@@ -166,3 +166,18 @@ Issue completion and marking Linear Done are separate approvals.
 
 These changes are source/test changes. They are not proof that this QA revision has
 been installed or activated on the phone/relay/MCP processes.
+
+## Live short-session follow-up
+
+QA revision `c4e8dee` was installed on the paired iPhone13 and launched; the relay was
+restarted from that revision with the existing pairing/database/tunnel. The running
+Codex MCP connection still needs a reload for the submitted-picker history fix.
+
+The user confirmed the new two-minute test worked and ended automatically. Request
+`focus-b85d3543-07da-4d70-b623-66f4524f26a7` has an authenticated `applied` start receipt,
+sequence15, issued at1793889540615 and original end1793889660615 (epoch milliseconds).
+The last uploaded snapshot still describes the start, so it is historical evidence,
+not fresh proof of release. Automatic release is the user's physical observation.
+Maximum in that snapshot remains170. This establishes a live short-session/automatic
+expiry pass on the QA phone build; it does not complete the broader offline, cellular,
+reboot, manual-clock or DST hardware checklist.
