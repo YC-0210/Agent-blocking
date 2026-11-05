@@ -39,3 +39,19 @@ After client reload, call select_focus_maximum for the existing paired device an
 wait for the user's explicit UI confirmation before sending any policy change.
 Then check applied receipt and phone-observed maximum. Real extension-triggered
 execution, including Apple framework compatibility, is still a separate device check.
+
+Live maximum attempt: the user's 180-minute request was rejected with
+`mode_not_approved`. The command carried the earlier phone approval handle; the
+subsequent phone snapshot carried a different handle and still maximum 45. The
+phone's stale-approval protection is preserved; a new picker must bind the updated
+snapshot rather than replaying or silently rebinding the rejected confirmation.
+
+Simplified both shared picker views to editable minutes, the draggable range and a
+small explicit confirmation action. Removed headings, presets, explanatory copy,
+axis labels and scale menu. The range still spans the complete approved domain
+(maximum: 15–1440); keyboard/numeric entry supports precise values. Status/error
+feedback appears only when needed. Stale-approval rejection now explains the
+settings change. No phone binary change required.
+Validation: all 25 Node tests passed; isolated MCP Apps host verified editing 180,
+explicit submission, pending state and simulated applied receipt. That fixture
+result is not evidence of a live phone maximum update.

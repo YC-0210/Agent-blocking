@@ -2,7 +2,7 @@ import { App } from '@modelcontextprotocol/ext-apps';
 
 const app = new App({ name: 'DO Card focus timeline', version: '0.2.0' }, {}, { autoResize: true });
 const el = id => document.getElementById(id);
-let selection, minutes, editRevision, dirty = false, working = false, timer, saving, expiryTimer, lastContext, axisWindow = 180;
+let selection, minutes, editRevision, dirty = false, working = false, timer, saving, expiryTimer, lastContext;
 const terminal = new Set(['applied', 'rejected', 'expired']);
 const submitted = () => selection && selection.phase !== 'draft';
 const valid = () => Number.isInteger(minutes) && minutes >= selection.minMinutes && minutes <= selection.maxMinutes;
@@ -42,19 +42,9 @@ function render() {
   const maximum = selection.kind === 'maximum';
   const blocked = working || Boolean(saving) || submitted();
   const safeMinutes = Number.isFinite(minutes) ? minutes : selection.minMinutes;
-  const neededScale = [180, 360, 720, 1440].find(n => n >= safeMinutes) ?? 1440;
-  const axisMax = maximum ? Math.max(axisWindow, neededScale) : selection.maxMinutes;
-  el('scale-control').hidden = !maximum;
-  el('scale').value = String(axisMax);
-  el('scale').disabled = blocked;
+  const axisMax = selection.maxMinutes;
   el('picker').hidden = false;
   document.querySelector('main').setAttribute('aria-busy', String(working));
-  el('kind').textContent = maximum ? 'Maximum lock time' : 'Session duration';
-  el('context').textContent = maximum ? 'Agent settings' : selection.issue || 'Your next focus session';
-  el('title').textContent = maximum ? 'A clear limit for your focus.' : 'Make room for your next step.';
-  el('description').textContent = maximum
-    ? 'Choose the maximum duration this agent may request for future sessions. Review the change, then save it here.'
-    : 'Your agent suggested a focus window. Drag its end or type a duration that works for you, then approve the start.';
   el('minutes').min = selection.minMinutes;
   el('minutes').max = selection.maxMinutes;
   el('minutes').value = Number.isFinite(minutes) ? String(minutes) : '';
@@ -66,49 +56,26 @@ function render() {
   range.setAttribute('aria-label', maximum ? 'Drag maximum lock time' : 'Drag session duration');
   range.setAttribute('aria-valuetext', Number.isFinite(minutes) ? `${minutes} minutes` : 'Choose a duration');
   el('fill').style.width = `${Math.max(0, Math.min(100, (safeMinutes - selection.minMinutes) / (axisMax - selection.minMinutes) * 100))}%`;
-  el('track-label').replaceChildren();
-  el('track-label').append(document.createTextNode(maximum ? 'Maximum per session' : selection.issue || 'Focus session'));
-  const detail = document.createElement('small'); detail.textContent = maximum ? 'Future sessions from this agent' : 'Selected distractions paused';
-  el('track-label').append(detail);
-  el('ticks').replaceChildren();
-  for (const value of [selection.minMinutes, Math.round(axisMax / 3), Math.round(axisMax * 2 / 3), axisMax]) {
-    const span = document.createElement('span'); span.textContent = `${value}m`; el('ticks').append(span);
-  }
   const endAt = selection.command?.issuedAt ? selection.command.issuedAt + minutes * 60000 : Date.now() + minutes * 60000;
   const formattedEnd = Number.isFinite(endAt) ? clock(endAt, selection.timeZone) : '—';
   const windowEnded = selection.phase === 'applied' && !maximum && Date.now() >= endAt;
-  el('end').replaceChildren();
-  el('end').append(document.createTextNode(maximum ? valid() ? `${selection.currentMaximumMinutes}m → ${minutes}m` : 'Choose a maximum' : valid() ? `End at ${formattedEnd}` : 'Choose a valid duration'));
-  const timezone = document.createElement('span'); timezone.textContent = maximum ? selection.phase === 'applied' ? 'Previous → saved maximum' : 'Current → proposed maximum' : selection.timeZone;
-  el('end').append(timezone);
-  el('presets').replaceChildren();
-  for (const value of (maximum ? [30, 45, 60, 90, 120] : [15, 30, 45, 60]).filter(n => n >= selection.minMinutes && n <= selection.maxMinutes)) {
-    const button = document.createElement('button'); button.textContent = `${value} min`; button.disabled = blocked;
-    button.setAttribute('aria-pressed', String(minutes === value));
-    button.onclick = () => { edit(value); flush().catch(failure); }; el('presets').append(button);
-  }
-  el('summary').replaceChildren();
-  const summaryLabel = document.createElement('span'); summaryLabel.textContent = maximum ? 'Applies to future sessions' : 'Saved maximum';
-  const summaryValue = document.createElement('strong'); summaryValue.textContent = maximum ? 'This agent only' : `${selection.currentMaximumMinutes} minutes`;
-  el('summary').append(summaryLabel, summaryValue);
-  el('note').textContent = maximum
-    ? 'Saving changes only the maximum. It does not start a block or change a session already running.'
-    : 'The phone enforces your saved maximum and allowed hours. It unlocks automatically when this session expires.';
   const confirm = el('confirm');
   confirm.textContent = working ? 'Sending…' : selection.phase === 'unknown' ? 'Retry the same request' : submitted()
     ? selection.phase === 'applied' ? maximum ? 'Maximum saved' : windowEnded ? 'Session window ended' : 'Blocking active' : selection.phase === 'pending' ? 'Waiting for phone…' : 'Request ended'
-    : !valid() ? 'Choose a valid duration' : maximum ? `Save ${minutes}-minute maximum ↗` : `Start ${minutes}-minute focus ↗`;
+    : !valid() ? 'Choose a valid duration' : maximum ? 'Save maximum' : 'Start focus';
   confirm.disabled = working || Boolean(saving) || !valid() || (submitted() && selection.phase !== 'unknown') ||
     (!submitted() && maximum && minutes === selection.currentMaximumMinutes);
   const messages = {
     pending: 'Request sent. Waiting for the phone to acknowledge it. Pending does not mean applied.',
     unknown: 'Delivery status is unknown. Retry uses the same request; it will not create a second command.',
     applied: maximum ? `The phone confirmed the ${selection.minutes}-minute maximum is saved. Existing sessions are unchanged.` : windowEnded ? 'The scheduled end has passed. Check the phone or ask your agent for current status; this receipt confirms the earlier start.' : `The phone confirmed blocking was applied. Scheduled end: ${formattedEnd}.`,
-    rejected: `The phone rejected this request (${selection.reason ?? 'unknown reason'}). Ask your agent to open a new picker.`,
+    rejected: selection.reason === 'mode_not_approved'
+      ? 'Your phone’s approved settings changed since this picker opened. Nothing was changed. Ask your agent for a fresh picker.'
+      : `The phone rejected this request (${selection.reason ?? 'unknown reason'}). Ask your agent to open a new picker.`,
     expired: 'The command expired before phone acknowledgement. Ask your agent for a new picker.',
   };
   el('status').hidden = !messages[selection.phase]; el('status').textContent = messages[selection.phase] ?? '';
-  el('observed').textContent = `Phone settings last observed ${selection.observedAt ? clock(selection.observedAt, selection.timeZone) : 'at an unknown time'} · ${selection.timeZone}. Open DO Card to sync if these look outdated.`;
+
   if (!valid()) failure(maximum ? `Choose ${selection.minMinutes}–${selection.maxMinutes} minutes for your maximum.` : `Choose ${selection.minMinutes}–${selection.maxMinutes} minutes. To change your maximum, ask your agent separately.`);
 }
 function edit(value) {
@@ -138,7 +105,6 @@ function flush() {
   render();
   return saving;
 }
-el('scale').onchange = event => { axisWindow = Number(event.target.value); render(); };
 el('timeline').oninput = event => edit(event.target.value);
 el('timeline').onchange = () => flush().catch(failure);
 el('minutes').oninput = event => edit(event.target.value);
