@@ -110,3 +110,7 @@ It does not validate Apple shielding or physical-phone maximum updates.
   start a session from its separate picker; lower maximum during it and confirm its
   deadline stays unchanged; verify a later over-limit start is rejected. Repeat the
   other agent's revised notification-delivery scenarios.
+
+Verification results and scoped review findings/fixes are recorded in
+`docs/testing/agent-timeline-results.md`. The maximum timeline includes an explicit
+3/6/12/24-hour scale so its entire 15–1440-minute range is draggable.

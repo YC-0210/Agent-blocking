@@ -64,7 +64,7 @@ function render() {
   range.min = selection.minMinutes; range.max = axisMax; range.step = '1'; range.value = safeMinutes;
   range.disabled = blocked;
   range.setAttribute('aria-label', maximum ? 'Drag maximum lock time' : 'Drag session duration');
-  range.setAttribute('aria-valuetext', `${minutes} minutes`);
+  range.setAttribute('aria-valuetext', Number.isFinite(minutes) ? `${minutes} minutes` : 'Choose a duration');
   el('fill').style.width = `${Math.max(0, Math.min(100, (safeMinutes - selection.minMinutes) / (axisMax - selection.minMinutes) * 100))}%`;
   el('track-label').replaceChildren();
   el('track-label').append(document.createTextNode(maximum ? 'Maximum per session' : selection.issue || 'Focus session'));
@@ -78,7 +78,7 @@ function render() {
   const formattedEnd = Number.isFinite(endAt) ? clock(endAt, selection.timeZone) : '—';
   const windowEnded = selection.phase === 'applied' && !maximum && Date.now() >= endAt;
   el('end').replaceChildren();
-  el('end').append(document.createTextNode(maximum ? `${selection.currentMaximumMinutes}m → ${minutes}m` : valid() ? `End at ${formattedEnd}` : 'Choose a valid duration'));
+  el('end').append(document.createTextNode(maximum ? valid() ? `${selection.currentMaximumMinutes}m → ${minutes}m` : 'Choose a maximum' : valid() ? `End at ${formattedEnd}` : 'Choose a valid duration'));
   const timezone = document.createElement('span'); timezone.textContent = maximum ? selection.phase === 'applied' ? 'Previous → saved maximum' : 'Current → proposed maximum' : selection.timeZone;
   el('end').append(timezone);
   el('presets').replaceChildren();
@@ -109,7 +109,7 @@ function render() {
   };
   el('status').hidden = !messages[selection.phase]; el('status').textContent = messages[selection.phase] ?? '';
   el('observed').textContent = `Phone settings last observed ${selection.observedAt ? clock(selection.observedAt, selection.timeZone) : 'at an unknown time'} · ${selection.timeZone}. Open DO Card to sync if these look outdated.`;
-  if (!valid()) failure(`Choose ${selection.minMinutes}–${selection.maxMinutes} minutes. A maximum change is a separate tool.`);
+  if (!valid()) failure(maximum ? `Choose ${selection.minMinutes}–${selection.maxMinutes} minutes for your maximum.` : `Choose ${selection.minMinutes}–${selection.maxMinutes} minutes. To change your maximum, ask your agent separately.`);
 }
 function edit(value) {
   if (submitted() || working || saving) return;

@@ -191,3 +191,14 @@ local expiry and replay state preserve existing card behavior and emergency acce
 Codex connects to Linear separately; no usage histories or selection tokens are exported.
 See ADR-0013, `docs/experiments/agent-focus-design.md`, and
 `experiments/agent-focus/README.md` for setup and known unverified device behavior.
+
+## Agent chat timelines (2026-11-05 experiment follow-up)
+
+`codex/agent-timeline-tools` adds separate `select_focus_session` and
+`select_focus_maximum` tools using one MCP Apps timeline. Explicit UI confirmation of
+maximum changes is an approved paired-agent capability for this experiment; it affects
+future sessions and preserves active deadlines, app selections and hours. No live
+configuration or push-delivery change is included. See
+`docs/experiments/agent-timeline-tools.md` for protocol, trust assumptions and the
+parallel-worktree merge checklist, and `docs/testing/agent-timeline-results.md` for
+measured test/build evidence.
