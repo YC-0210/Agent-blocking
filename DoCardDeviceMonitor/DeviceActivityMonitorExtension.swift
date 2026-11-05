@@ -27,12 +27,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
     if activity.rawValue.hasPrefix(AgentFocusDevice.activityPrefix) { return }
-    if activity == SubscriptionExpiry.activityName { try? AgentFocusDevice.reconcile() }
-    if activity == SubscriptionExpiry.activityName {
-      SubscriptionExpiry.enforce(blocker: appBlocker)
-      return
-    }
-
+    // Subscription expiry has no effect in this standalone agent experiment.
+    if activity == SubscriptionExpiry.activityName { return }
 
     // Distraction-usage tracking is NOT a blocking activity. Initialize today's
     // bucket and return immediately so no blocking logic ever runs for it.
@@ -53,10 +49,14 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
 
     let snapshotCount = SharedData.profileSnapshots.count
-    log.info("intervalDidStart for activity: \(activity.rawValue), profileSnapshots count: \(snapshotCount)")
+    log.info(
+      "intervalDidStart for activity: \(activity.rawValue), profileSnapshots count: \(snapshotCount)"
+    )
 
     if snapshotCount == 0 {
-      log.error("intervalDidStart: profileSnapshots is EMPTY — blocking will silently no-op for activity: \(activity.rawValue)")
+      log.error(
+        "intervalDidStart: profileSnapshots is EMPTY — blocking will silently no-op for activity: \(activity.rawValue)"
+      )
     }
 
     TimerActivityUtil.startTimerActivity(for: activity)
@@ -68,12 +68,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
       AgentFocusDevice.intervalEnded(activity)
       return
     }
-    if activity == SubscriptionExpiry.activityName { try? AgentFocusDevice.reconcile() }
-    if activity == SubscriptionExpiry.activityName {
-      SubscriptionExpiry.enforce(blocker: appBlocker)
-      return
-    }
-
+    // Subscription expiry has no effect in this standalone agent experiment.
+    if activity == SubscriptionExpiry.activityName { return }
 
     // Distraction-usage tracking activity: no blocking teardown to do.
     if activity.rawValue == DistractionTrackingShared.activityName {
@@ -81,14 +77,17 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
     }
 
     let snapshotCount = SharedData.profileSnapshots.count
-    log.info("intervalDidEnd for activity: \(activity.rawValue), profileSnapshots count: \(snapshotCount)")
+    log.info(
+      "intervalDidEnd for activity: \(activity.rawValue), profileSnapshots count: \(snapshotCount)")
     DebugLogStore.log(
       "intervalDidEnd",
       "activity=\(activity.rawValue) snapshotCount=\(snapshotCount)",
       process: "ext")
 
     if snapshotCount == 0 {
-      log.error("intervalDidEnd: profileSnapshots is EMPTY — stop will silently no-op for activity: \(activity.rawValue)")
+      log.error(
+        "intervalDidEnd: profileSnapshots is EMPTY — stop will silently no-op for activity: \(activity.rawValue)"
+      )
     }
 
     TimerActivityUtil.stopTimerActivity(for: activity)

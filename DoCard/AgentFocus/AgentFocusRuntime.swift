@@ -16,7 +16,7 @@ private final class AgentFocusRedirectPolicy: NSObject, URLSessionTaskDelegate {
 @MainActor
 final class AgentFocusRuntime: ObservableObject {
   static let shared = AgentFocusRuntime()
-  @Published var enabled = UserDefaults.standard.bool(forKey: "agentFocusEnabled")
+  let enabled = true
   @Published var configured = false
   @Published var message = ""
   @Published var setupRelay = ""
@@ -82,8 +82,6 @@ final class AgentFocusRuntime: ObservableObject {
     }
     setupRelay = query.first(where: { $0.name == "relay" })?.value ?? ""
     setupCode = query.first(where: { $0.name == "code" })?.value ?? ""
-    enabled = true
-    UserDefaults.standard.set(true, forKey: "agentFocusEnabled")
     return true
   }
 
@@ -251,9 +249,7 @@ final class AgentFocusAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
     didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
     UNUserNotificationCenter.current().delegate = self
-    if UserDefaults.standard.bool(forKey: "agentFocusEnabled") {
-      application.registerForRemoteNotifications()
-    }
+    application.registerForRemoteNotifications()
     return true
   }
   func application(

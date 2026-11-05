@@ -5,9 +5,11 @@ Date: 2026-11-05.
 
 ## Decision
 
-Implement the user-approved design in `docs/experiments/agent-focus-design.md` behind
-an explicit `docard-agent://setup` entry. This supersedes ADR-0008's no-device-sync
-scope only for this experiment. The existing local card product remains the default.
+Implement the user-approved design in `docs/experiments/agent-focus-design.md` as a standalone agent-only build on this branch. Per the user's 2026-11-05 follow-up,
+it launches directly into Agent Focus setup or Emergency Unlock, with no legacy home,
+onboarding, update gate or subscription entry screen. `docard-agent://setup` supplies
+pairing details but is not required to enter the experiment. This supersedes ADR-0008's
+no-device-sync scope only for this branch.
 The experiment's everyday screen offers Emergency Unlock only; native setup/permissions
 and fresh policy approval are intentional exceptions. The update gate preserves that
 emergency screen. Legacy update behavior is unchanged when the experiment is disabled.
@@ -39,7 +41,9 @@ MCP client and include real stdio discovery. Apple hardware and APNs are system 
   approval to continue. No exact-second background-delivery guarantee is claimed.
 - Per user instruction on 2026-11-05, this experiment exempts agent focus from
   subscription checks at setup, execution and restoration. This is a scoped exception
-  to ADR-0007; existing card/scheduled modes keep their paid-access rules. Screen Time
+  to ADR-0007. StoreKit refresh/reconciliation is removed from the app entry point, and
+  subscription-expiry callbacks are ignored in this build. Legacy subscription source
+  remains compiled for compatibility but is not part of the agent UI or lifecycle. Screen Time
   authorization, phone-approved scope/hours/duration, and Emergency Unlock remain enforced.
 - Device credentials live in the iPhone Keychain with AfterFirstUnlockThisDeviceOnly
   access. They are separate from the Mac agent credential. Pairing codes are random,

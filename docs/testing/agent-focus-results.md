@@ -76,3 +76,14 @@ Linear flow on an actual issue. DeviceActivity scheduling is subject to iOS exec
 
 No App Store/TestFlight submission, SwiftData model/migration changes, or production
 Linear task updates are included.
+
+
+## Standalone entry follow-up (2026-11-05)
+
+User screenshot exposed the root subscription screen after the earlier adapter-only
+exemption. Root now always presents Agent Focus and does not instantiate StoreKit or
+run subscription reconciliation; subscription-expiry monitor callbacks return without
+enforcing access. Signed Debug device and simulator builds succeeded. Installed and
+launched on the user-approved iPhone 13 through devicectl. Simulator launch screenshot
+`/tmp/docard-agent-direct-entry.png` visually confirms Agent Focus setup without a
+subscription or legacy onboarding screen. Actual pairing/shields remain to be tested.

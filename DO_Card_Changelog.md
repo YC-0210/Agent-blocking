@@ -577,3 +577,13 @@ setup, and remove subscription checks from native approval, shield installation 
 restoration. Screen Time authorization, selected apps, approved hours/max duration,
 local expiry and Emergency Unlock remain enforced. Existing card/scheduled paid access
 and StoreKit verification are unchanged. ADR-0013 documents this experiment exception.
+
+
+## Standalone agent entry (2026-11-05)
+
+The prior exemption still left fresh launches on the root subscription screen. Replace
+the legacy root navigation with Agent Focus directly, remove StoreKit services and
+subscription reconciliation from app startup/foreground, and ignore subscription-expiry
+monitor callbacks in this experiment. The agent runtime is always enabled on this branch;
+setup links only populate pairing details. Legacy UI source and model data remain stored.
+Screen Time consent, approved policy limits, expiry and Emergency Unlock remain active.

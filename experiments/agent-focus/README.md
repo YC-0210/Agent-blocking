@@ -10,6 +10,11 @@ This branch contains working code and local automated tests, not a deployed serv
 - **Relay:** Node HTTP server, persistent SQLite database and APNs sender. For the experiment it can run on the same Mac behind an HTTPS tunnel. Keep the Mac awake and both processes running.
 - **iPhone:** native app selection and policy approval, command execution, independent local expiry and Emergency Unlock. No Linear credentials or Screen Time histories leave the phone.
 
+This branch opens Agent Focus directly on launch; the legacy home, onboarding and
+subscription screens are not shown. StoreKit refresh and subscription expiry do not
+participate in the experiment lifecycle. Native Screen Time and policy approval remain
+required by the phone.
+
 This supersedes the no-device-sync rule in ADR-0008 only for the explicitly enabled agent experiment. Existing card and scheduled modes keep their behavior. Finish existing sessions and disable existing schedules before enabling agent mode. No SwiftData models or migrations change.
 
 ## 1. Create your Apple push key
