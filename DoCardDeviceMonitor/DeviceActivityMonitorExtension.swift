@@ -26,6 +26,8 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
   override func intervalDidStart(for activity: DeviceActivityName) {
     super.intervalDidStart(for: activity)
+    if activity.rawValue.hasPrefix(AgentFocusDevice.activityPrefix) { return }
+    if activity == SubscriptionExpiry.activityName { try? AgentFocusDevice.reconcile() }
     if activity == SubscriptionExpiry.activityName {
       SubscriptionExpiry.enforce(blocker: appBlocker)
       return
@@ -62,6 +64,11 @@ class DeviceActivityMonitorExtension: DeviceActivityMonitor {
 
   override func intervalDidEnd(for activity: DeviceActivityName) {
     super.intervalDidEnd(for: activity)
+    if activity.rawValue.hasPrefix(AgentFocusDevice.activityPrefix) {
+      AgentFocusDevice.intervalEnded(activity)
+      return
+    }
+    if activity == SubscriptionExpiry.activityName { try? AgentFocusDevice.reconcile() }
     if activity == SubscriptionExpiry.activityName {
       SubscriptionExpiry.enforce(blocker: appBlocker)
       return

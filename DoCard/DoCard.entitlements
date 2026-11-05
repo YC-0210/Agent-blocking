@@ -20,5 +20,7 @@
 	<array>
 		<string>$(AppIdentifierPrefix)online.do.card.app.shared</string>
 	</array>
+	<key>aps-environment</key>
+	<string>$(DO_CARD_APNS_ENVIRONMENT)</string>
 </dict>
 </plist>

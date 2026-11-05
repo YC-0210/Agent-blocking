@@ -1,3 +1,27 @@
+# 2026-11-05 — opt-in MCP agent focus experiment
+
+Design rationale: let the owner use Codex to tackle a Linear issue while their phone
+applies bounded, card-free focus sessions. Decisions are in the user-approved experiment
+spec and ADR-0013. This explicitly scopes an exception to ADR-0008.
+
+Architecture: a shared Swift phone command controller, separate agent-only shields and
+expiry activity, protected App Group state/outbox, native selection/policy approval,
+Keychain pairing, authenticated SQLite relay/APNs delivery, local stdio MCP tools and
+Linear task instructions. TDD uses three user-approved public seams.
+
+Changed: new AgentFocus native/core/view files and Swift package tests; app startup,
+URL/push configuration and monitor dispatch; update-gate exemption for the agent
+emergency screen; Node relay/MCP/APNs runner and integration tests; setup/evidence docs.
+Not changed: existing NFC strategies, RequestAuthorizer, subscription policy/verification,
+AppBlockerUtil's card store, SwiftData models, migration plan, reports, analytics and CI.
+All changes are confined to the experiment branch. Credentials/state stay untracked.
+
+Real-device scenarios passed: none claimed. No connected phone or APNs key was supplied.
+Build/test results and outstanding cellular/shield/expiry checks are in
+`docs/testing/agent-focus-results.md`. No App Store/TestFlight submission is authorized.
+
+---
+
 # 2026-11-04 — direct founder call entry
 
 Design: a persistent top-right 「聊聊」 entry on the four main tabs opens a compact

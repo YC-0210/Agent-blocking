@@ -30,7 +30,8 @@ private let container: ModelContainer = {
     // Back up the store and its WAL sidecars using the real `.store` filenames.
     let sidecarSuffixes = ["", "-shm", "-wal"]
     for suffix in sidecarSuffixes {
-      let src = suffix.isEmpty
+      let src =
+        suffix.isEmpty
         ? storeURL
         : storeURL.deletingLastPathComponent().appendingPathComponent(
           "\(storeURL.lastPathComponent)\(suffix)"
@@ -55,6 +56,9 @@ private let container: ModelContainer = {
 
 @main
 struct DoCardApp: App {
+  @UIApplicationDelegateAdaptor(AgentFocusAppDelegate.self) private var agentDelegate
+  @State private var agentSetupError = false
+  @StateObject private var agentFocus = AgentFocusRuntime.shared
   #if DEBUG && targetEnvironment(simulator)
     // Force fixture preparation before any app services read persisted state.
     private let preparedContainer: ModelContainer = container
@@ -114,6 +118,8 @@ struct DoCardApp: App {
       Group {
         if isOnboardingUIPrototype {
           OnboardingView()
+        } else if agentFocus.enabled {
+          AgentFocusView(runtime: agentFocus)
         } else if !subscriptionManager.permits(.otherFeature) {
           SubscriptionRequiredView()
         } else if onboardingManager.shouldShowOnboarding {
@@ -132,7 +138,22 @@ struct DoCardApp: App {
             }
         }
       }
-      .modifier(AppUpdateGate())
+      .onOpenURL { url in
+        if url.scheme == "docard-agent", !agentFocus.openSetup(url) { agentSetupError = true }
+      }
+      .alert("Agent setup unavailable", isPresented: $agentSetupError) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(agentFocus.message)
+      }
+      .task(id: agentFocus.enabled) {
+        guard agentFocus.enabled else { return }
+        while !Task.isCancelled {
+          await agentFocus.sync()
+          do { try await Task.sleep(for: .seconds(10)) } catch { break }
+        }
+      }
+      .modifier(AppUpdateGate(preservesAgentEmergencyAccess: agentFocus.enabled))
       .environmentObject(requestAuthorizer)
       .environmentObject(startegyManager)
       .environmentObject(navigationManager)
@@ -156,7 +177,9 @@ struct DoCardApp: App {
       .onChange(of: requestAuthorizer.isAuthorized) { _, authorized in
         if authorized { subscriptionManager.refreshLocalAccess() }
       }
-      .onReceive(NotificationCenter.default.publisher(for: RetentionUploadService.disclosureChanged)) { _ in
+      .onReceive(
+        NotificationCenter.default.publisher(for: RetentionUploadService.disclosureChanged)
+      ) { _ in
         RetentionUploadService.setActive(scenePhase == .active && !isOnboardingUIPrototype)
       }
       .onChange(of: scenePhase) { _, phase in
@@ -164,7 +187,10 @@ struct DoCardApp: App {
         guard phase == .active, !isOnboardingUIPrototype else { return }
         subscriptionManager.refreshLocalAccess()
         reconcileSubscription()
-        Task { await subscriptionManager.checkCurrentEntitlements() }
+        Task {
+          await subscriptionManager.checkCurrentEntitlements()
+          await agentFocus.sync()
+        }
       }
       #if DEBUG && targetEnvironment(simulator)
         .safeAreaInset(edge: .top) {
@@ -182,7 +208,9 @@ struct DoCardApp: App {
     let context = container.mainContext
     if subscriptionManager.isPremium {
       startegyManager.loadActiveSession(context: context)
-    } else { startegyManager.reconcileSubscription(context: context) }
+    } else {
+      startegyManager.reconcileSubscription(context: context)
+    }
   }
 
   private func handleUniversalLink(_ url: URL) {

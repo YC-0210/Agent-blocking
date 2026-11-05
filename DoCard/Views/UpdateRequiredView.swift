@@ -2,6 +2,8 @@ import SwiftUI
 
 /// A single modifier keeps the app entry-point change separate from other startup work.
 struct AppUpdateGate: ViewModifier {
+  // Agent mode's sole everyday control is Emergency Unlock, including offline/outdated builds.
+  var preservesAgentEmergencyAccess = false
   @Environment(\.scenePhase) private var scenePhase
   @EnvironmentObject private var manager: StrategyManager
   @EnvironmentObject private var authorizer: RequestAuthorizer
@@ -9,12 +11,13 @@ struct AppUpdateGate: ViewModifier {
   @StateObject private var updates = AppUpdateManager()
 
   private var shouldGate: Bool {
-    AppUpdatePolicy.shouldGate(
-      updateRequired: updates.requiredUpdate != nil,
-      isBlocking: manager.activeSessionStatus.isBlocking
-        || SharedData.getActiveStrategySharedSession() != nil,
-      isOnboarding: onboarding.shouldShowOnboarding,
-      isAuthorized: authorizer.isAuthorized)
+    !preservesAgentEmergencyAccess
+      && AppUpdatePolicy.shouldGate(
+        updateRequired: updates.requiredUpdate != nil,
+        isBlocking: manager.activeSessionStatus.isBlocking
+          || SharedData.getActiveStrategySharedSession() != nil,
+        isOnboarding: onboarding.shouldShowOnboarding,
+        isAuthorized: authorizer.isAuthorized)
   }
 
   func body(content: Content) -> some View {

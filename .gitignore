@@ -64,3 +64,8 @@ fastlane/test_output
 
 # Local public PostHog project configuration
 Config/PostHog.local.xcconfig
+
+# Local agent-focus experiment credentials, state and dependencies
+experiments/agent-focus/node_modules/
+experiments/agent-focus/.local/
+*.p8

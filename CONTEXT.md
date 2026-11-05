@@ -174,3 +174,14 @@ per-destination revision checkpoints; `RetentionUploadService` drains in the mai
 after disclosure. Config lives in ignored `Config/PostHog.local.xcconfig` or CI settings.
 Debug/Release journals are separate; production queries must filter environment and
 exclude synthetic records. Raw contribution events must be deduplicated before sums.
+
+
+## Agent focus experiment (2026-11-05)
+
+The explicit `codex/mcp-focus-experiment` branch adds an opt-in, card-free agent mode.
+This is a scoped exception to ADR-0008, not restoration of Co-Focus or old sync clients.
+The phone owns app selection and approved hours/duration. Separate named shields,
+local expiry and replay state preserve existing card behavior and emergency access.
+Codex connects to Linear separately; no usage histories or selection tokens are exported.
+See ADR-0013, `docs/experiments/agent-focus-design.md`, and
+`experiments/agent-focus/README.md` for setup and known unverified device behavior.
