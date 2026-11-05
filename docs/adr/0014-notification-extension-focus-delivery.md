@@ -70,3 +70,20 @@ Worktree: `DOCard-ios-notification-extension`, based on `codex/mcp-focus-experim
 at `31f70b3`. Build products and simulator are separate. No live relay, Cloudflare
 process, MCP config, Apple account, existing worktree or physical-phone app is changed.
 See `docs/testing/notification-extension-focus.md` for evidence and the device test plan.
+
+## Deadline recovery follow-up
+
+Physical reboot tests did not reliably invoke local expiry monitors, including dated
+and recurring-clock candidates. Re-delivering an authenticated visible APNs alert after
+expiry cleared restrictions through the existing notification extension without opening
+the app; a fresh phone snapshot and the owner confirmed release. The relay therefore
+adds a durable original-deadline expiry check after an applied-start receipt. It is a
+network-dependent backup, not a replacement or guarantee for local/offline expiry.
+
+Expiry pushes carry an opaque original command ID and an expiry marker with a distinct
+collapse domain. The updated extension invokes a release-only phone path and publishes
+observed status. It never fetches/executes queued commands for an expiry hint. Only the
+phone's stored absolute deadline decides whether release is due; stale/early hints
+cannot release a newer unexpired session. APNs acceptance remains transport evidence,
+not a phone acknowledgement. See docs/testing/agent-focus-expiry-relay.md and
+agent-focus-qa.md for retry, cancellation, restart and device-test limitations.

@@ -24,21 +24,29 @@ final class NotificationService: UNNotificationServiceExtension, @unchecked Send
     handler = contentHandler
     content = mutable
     lock.unlock()
+    let expiryCheck = request.content.userInfo["docardExpiry"] as? Bool == true
     let task = Task { [weak self] in
       var outcome = AgentFocusDeliveryOutcome.pending
       do {
         let pairing = try AgentFocusPairingStore.load()
-        let phone = try AgentFocusDevice.phone(lockTimeout: 0.2)
-        guard try phone.status(pairingID: pairing.deviceId) != nil else {
-          throw AgentFocusDevice.Failure.unavailable
+        let phone = try AgentFocusDevice.phone(lockTimeout: 0.2, expiryOnly: expiryCheck)
+        if !expiryCheck {
+          guard try phone.status(pairingID: pairing.deviceId) != nil else {
+            throw AgentFocusDevice.Failure.unavailable
+          }
+          try AgentFocusDevice.reconcile(lockTimeout: 0.2)
         }
-        try AgentFocusDevice.reconcile(lockTimeout: 0.2)
         let worker = AgentFocusDelivery(phone: phone, pairing: pairing)
         // The notification ID is only a hint. Commands and authority come from the authenticated relay.
-        let result = await worker.run(commandID: commandID)
+        let result = await worker.run(
+          commandID: expiryCheck ? nil : commandID, expiryCheck: expiryCheck)
         outcome = result
       } catch { /* Keep the generic fallback; the main app can retry. */  }
-      self?.finish(body: outcome.notificationBody)
+      let body =
+        expiryCheck && outcome == .pending
+        ? "Expiry check could not complete. Open DO Card if apps remain blocked."
+        : outcome.notificationBody
+      self?.finish(body: body)
     }
     lock.lock()
     if handler == nil { task.cancel() } else { work = task }

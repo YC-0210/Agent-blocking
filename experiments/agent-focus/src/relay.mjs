@@ -26,15 +26,58 @@ async function readBody(req) {
   try { return JSON.parse(body || '{}'); } catch { fail(400, 'invalid_json'); }
 }
 export function createRelay({ agentToken, database = 'agent-focus.sqlite', now = Date.now,
-  push = async () => ({ status: 'unconfigured' }) }) {
+  push = async () => ({ status: 'unconfigured' }), expiryIntervalMs = null }) {
   if (!agentToken || agentToken.length < 32) throw new Error('Agent token must contain at least 32 characters');
+  if (expiryIntervalMs !== null && (!Number.isInteger(expiryIntervalMs) || expiryIntervalMs < 1)) {
+    throw new Error('Expiry worker interval must be a positive integer or null');
+  }
   const db = new DatabaseSync(database);
   db.exec(`PRAGMA journal_mode=WAL;
     CREATE TABLE IF NOT EXISTS devices (id TEXT PRIMARY KEY, tokenHash TEXT, pushToken TEXT,
       snapshot TEXT, observedAt REAL, sequence INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE IF NOT EXISTS pairings (codeHash TEXT PRIMARY KEY, deviceId TEXT, expiresAt REAL);
     CREATE TABLE IF NOT EXISTS commands (deviceId TEXT, id TEXT, command TEXT, request TEXT,
-      status TEXT NOT NULL, reason TEXT, alertSent INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(deviceId, id));`);
+      status TEXT NOT NULL, reason TEXT, alertSent INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(deviceId, id));
+    CREATE TABLE IF NOT EXISTS expiryJobs (deviceId TEXT, commandId TEXT, sessionId TEXT,
+      dueAt REAL NOT NULL, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
+      nextAttemptAt REAL NOT NULL, PRIMARY KEY(deviceId, commandId));
+    CREATE INDEX IF NOT EXISTS expiryJobs_due ON expiryJobs(status, nextAttemptAt);`);
+  let closed = false;
+  let expiryRunning = false;
+  async function deliverExpiries() {
+    if (closed || expiryRunning) return;
+    expiryRunning = true;
+    try {
+      const tick = now();
+      db.prepare("UPDATE expiryJobs SET status = 'expired' WHERE status = 'pending' AND dueAt + 86400000 <= ?").run(tick);
+      const jobs = db.prepare("SELECT * FROM expiryJobs WHERE status = 'pending' AND dueAt <= ? AND nextAttemptAt <= ? ORDER BY nextAttemptAt LIMIT 10").all(tick, tick);
+      for (const job of jobs) {
+        if (closed) return;
+        const claimedAt = now();
+        // Persist a retry lease before APNs I/O. A crash may repeat an uncertain send,
+        // but cannot lose the job or create a tight restart loop.
+        const claimed = db.prepare("UPDATE expiryJobs SET attempts = attempts + 1, nextAttemptAt = ? WHERE deviceId = ? AND commandId = ? AND status = 'pending' AND nextAttemptAt <= ? AND dueAt <= ? AND dueAt + 86400000 > ?")
+          .run(claimedAt + 30000, job.deviceId, job.commandId, claimedAt, claimedAt, claimedAt);
+        if (!claimed.changes) continue;
+        const device = db.prepare('SELECT pushToken FROM devices WHERE id = ?').get(job.deviceId);
+        let delivery;
+        try {
+          delivery = device?.pushToken ? await push({ token: device.pushToken, commandId: job.commandId,
+            expiresAt: job.dueAt + 86400000, kind: 'alert', purpose: 'expiry' }) : null;
+        } catch { delivery = null; }
+        if (closed) return;
+        if (delivery?.status === 'accepted_by_apns') {
+          db.prepare("UPDATE expiryJobs SET status = 'sent' WHERE deviceId = ? AND commandId = ? AND status = 'pending'")
+            .run(job.deviceId, job.commandId);
+        }
+      }
+    } finally { expiryRunning = false; }
+  }
+  const expiryTimer = expiryIntervalMs === null ? null : setInterval(() => {
+    // A failed database operation leaves the persisted lease for a later tick/restart.
+    void deliverExpiries().catch(() => {});
+  }, expiryIntervalMs);
+  expiryTimer?.unref();
   async function notify(device, command, kind) {
     if (!device.pushToken) return { status: 'phone_registration_required' };
     try { return await push({ token: device.pushToken, commandId: command.id, expiresAt: command.expiresAt, kind }); }
@@ -97,8 +140,28 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
           if (!row) fail(404, 'unknown_command');
           if (['applied', 'rejected'].includes(row.status) &&
             (row.status !== receipt.status || row.reason !== (receipt.reason ?? null))) fail(409, 'receipt_conflict');
-          db.prepare('UPDATE commands SET status = ?, reason = ? WHERE deviceId = ? AND id = ?')
-            .run(receipt.status, receipt.reason ?? null, deviceId, receipt.id);
+          db.exec('BEGIN IMMEDIATE');
+          try {
+            db.prepare('UPDATE commands SET status = ?, reason = ? WHERE deviceId = ? AND id = ?')
+              .run(receipt.status, receipt.reason ?? null, deviceId, receipt.id);
+            const command = JSON.parse(row.command);
+            if (receipt.status === 'applied' && command.action === 'start') {
+              const dueAt = command.issuedAt + command.durationMinutes * 60000;
+              // Receipts may arrive out of order after offline recovery. A later
+              // applied stop still ends this owner when its start receipt arrives last.
+              const stopped = db.prepare("SELECT 1 FROM commands WHERE deviceId = ? AND status = 'applied' AND json_extract(command, '$.action') = 'stop' AND json_extract(command, '$.sessionID') = ? AND json_extract(command, '$.sequence') > ? LIMIT 1")
+                .get(deviceId, command.sessionID, command.sequence);
+              db.prepare('INSERT OR IGNORE INTO expiryJobs (deviceId, commandId, sessionId, dueAt, nextAttemptAt, status) VALUES (?, ?, ?, ?, ?, ?)')
+                .run(deviceId, command.id, command.sessionID, dueAt, dueAt, stopped ? 'canceled' : 'pending');
+            } else if (receipt.status === 'applied' && command.action === 'stop') {
+              db.prepare("UPDATE expiryJobs SET status = 'canceled' WHERE deviceId = ? AND sessionId = ? AND status = 'pending' AND EXISTS (SELECT 1 FROM commands AS start WHERE start.deviceId = expiryJobs.deviceId AND start.id = expiryJobs.commandId AND json_extract(start.command, '$.sequence') < ?)")
+                .run(deviceId, command.sessionID, command.sequence);
+            }
+            db.exec('COMMIT');
+          } catch (error) {
+            if (db.isTransaction) db.exec('ROLLBACK');
+            throw error;
+          }
           return send(200, { accepted: true });
         }
         fail(404, 'not_found');
@@ -155,5 +218,10 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
       fail(404, 'not_found');
     } catch (error) { send(error.status ?? 500, { error: error.status ? error.message : 'internal_error' }); }
   });
-  return { server, close() { db.close(); } };
+  return { server, close() {
+    if (closed) return;
+    closed = true;
+    if (expiryTimer) clearInterval(expiryTimer);
+    db.close();
+  } };
 }

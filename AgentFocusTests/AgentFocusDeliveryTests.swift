@@ -4,6 +4,80 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusDeliveryTests: XCTestCase {
+  func testExpiryNotificationCannotExecuteAPendingStart() async throws {
+    let fixture = try DeliveryFixture()
+    defer { fixture.cleanup() }
+    let result = await fixture.worker.run(expiryCheck: true)
+    XCTAssertEqual(result, .expiryChecked)
+    XCTAssertFalse(fixture.shielded)
+    XCTAssertNil(try fixture.phone.status(pairingID: "device")?.session)
+    XCTAssertFalse(fixture.commandFetchRequested)
+  }
+
+  func testEarlyExpiryNotificationPreservesTheLiveDeadline() async throws {
+    let fixture = try DeliveryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.phone.receive(fixture.command, pairingID: "device")
+    let before = try fixture.phone.status(pairingID: "device")?.session
+    fixture.clock += 899_999
+    let outcome = await fixture.worker.run(expiryCheck: true)
+    XCTAssertEqual(outcome, .expiryChecked)
+    XCTAssertTrue(fixture.shielded)
+    XCTAssertEqual(try fixture.phone.status(pairingID: "device")?.session, before)
+    XCTAssertFalse(fixture.commandFetchRequested)
+  }
+
+  func testExpiryNotificationReleasesAfterAMissedMonitorCallbackAndPublishesStatus() async throws {
+    let fixture = try DeliveryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.phone.receive(fixture.command, pairingID: "device")
+    fixture.clock += 900_000
+    let outcome = await fixture.worker.run(expiryCheck: true)
+    XCTAssertEqual(outcome, .expired)
+    XCTAssertFalse(fixture.shielded)
+    XCTAssertNil(try fixture.phone.status(pairingID: "device")?.session)
+    XCTAssertFalse(fixture.commandFetchRequested)
+    let snapshot = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: try XCTUnwrap(fixture.snapshots.last)) as? [String: Any])
+    XCTAssertNil(snapshot["sessionID"])
+    XCTAssertEqual(snapshot["maximumMinutes"] as? Int, 45)
+    XCTAssertEqual(snapshot["requiresRenewalApproval"] as? Bool, true)
+  }
+
+  func testOldExpiryNotificationCannotReleaseANewerUnexpiredSession() async throws {
+    let fixture = try DeliveryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.phone.receive(fixture.command, pairingID: "device")
+    fixture.clock += 10_000
+    try fixture.phone.emergencyUnlock()
+    let mode = try XCTUnwrap(fixture.phone.status()?.policy.modeID)
+    let newer = FocusCommand(
+      id: "newer", sequence: 2, action: .start, modeID: mode,
+      durationMinutes: 30, sessionID: "newer-session", issuedAt: fixture.clock,
+      expiresAt: fixture.clock + 120_000)
+    XCTAssertEqual(try fixture.phone.receive(newer, pairingID: "device").status, "applied")
+    let before = try fixture.phone.status()?.session
+    fixture.clock += 890_001
+    let outcome = await fixture.worker.run(expiryCheck: true)
+    XCTAssertEqual(outcome, .expiryChecked)
+    XCTAssertTrue(fixture.shielded)
+    XCTAssertEqual(try fixture.phone.status()?.session, before)
+    XCTAssertFalse(fixture.commandFetchRequested)
+  }
+
+  func testExpiryReleasesLocallyEvenIfStatusUploadFails() async throws {
+    let fixture = try DeliveryFixture()
+    defer { fixture.cleanup() }
+    _ = try fixture.phone.receive(fixture.command, pairingID: "device")
+    fixture.clock += 900_000
+    fixture.failAllRequests = true
+    let outcome = await fixture.worker.run(expiryCheck: true)
+    XCTAssertEqual(outcome, .expired)
+    XCTAssertFalse(fixture.shielded)
+    XCTAssertNil(try fixture.phone.status()?.session)
+    XCTAssertTrue(fixture.snapshots.isEmpty)
+  }
+
   func testNotificationStartsPhoneFocusWithoutForegroundRuntime() async throws {
     let fixture = try DeliveryFixture()
     defer { fixture.cleanup() }
@@ -72,9 +146,12 @@ final class AgentFocusDeliveryTests: XCTestCase {
 
 private final class DeliveryFixture: @unchecked Sendable {
   let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-  let clock = 1_793_836_800_000.0
+  var clock = 1_793_836_800_000.0
   var queueEmpty = false
+  var commandFetchRequested = false
   var failReceiptUploads = false
+  var failAllRequests = false
+  var snapshots: [Data] = []
   var shielded = false
   var receipts: [FocusReceipt] = []
   var command = FocusCommand(
@@ -106,33 +183,34 @@ private final class DeliveryFixture: @unchecked Sendable {
     DeliveryURLProtocol.handle = nil
     try? FileManager.default.removeItem(at: directory)
   }
+  private func requestBody(_ request: URLRequest) -> Data {
+    if let body = request.httpBody { return body }
+    guard let stream = request.httpBodyStream else { return Data() }
+    stream.open()
+    defer { stream.close() }
+    var buffer = [UInt8](repeating: 0, count: 4096)
+    var data = Data()
+    while stream.hasBytesAvailable {
+      let count = stream.read(&buffer, maxLength: buffer.count)
+      if count <= 0 { break }
+      data.append(contentsOf: buffer.prefix(count))
+    }
+    return data
+  }
+
   func respond(_ request: URLRequest) throws -> (Int, Data) {
+    if failAllRequests { return (503, Data()) }
     guard request.value(forHTTPHeaderField: "Authorization") == "Bearer private-device-token" else {
       return (401, Data())
     }
     switch request.url!.path {
     case "/v1/device/commands":
+      commandFetchRequested = true
       struct Commands: Encodable { let commands: [FocusCommand] }
       return (200, try JSONEncoder().encode(Commands(commands: queueEmpty ? [] : [command])))
     case "/v1/device/receipts":
       if failReceiptUploads { return (503, Data()) }
-      let data: Data
-      if let body = request.httpBody {
-        data = body
-      } else if let stream = request.httpBodyStream {
-        stream.open()
-        defer { stream.close() }
-        var buffer = [UInt8](repeating: 0, count: 4096)
-        var collected = Data()
-        while stream.hasBytesAvailable {
-          let count = stream.read(&buffer, maxLength: buffer.count)
-          if count <= 0 { break }
-          collected.append(contentsOf: buffer.prefix(count))
-        }
-        data = collected
-      } else {
-        data = Data()
-      }
+      let data = requestBody(request)
       receipts.append(try JSONDecoder().decode(FocusReceipt.self, from: data))
       return (200, Data("{}".utf8))
     case "/v1/device/commands/start":
@@ -145,7 +223,9 @@ private final class DeliveryFixture: @unchecked Sendable {
         try JSONEncoder().encode(
           Result(command: command, status: receipts.last?.status ?? "pending"))
       )
-    case "/v1/device/snapshot": return (200, Data("{}".utf8))
+    case "/v1/device/snapshot":
+      snapshots.append(requestBody(request))
+      return (200, Data("{}".utf8))
     default: return (404, Data())
     }
   }

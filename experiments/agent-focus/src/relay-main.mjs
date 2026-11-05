@@ -14,7 +14,7 @@ try {
   const privateKey = createPrivateKey(readFileSync(required('APNS_KEY_FILE')));
   const database = process.env.DO_CARD_DATABASE ?? new URL('../.local/agent-focus.sqlite', import.meta.url).pathname;
   mkdirSync(dirname(database), { recursive: true, mode: 0o700 });
-  const relay = createRelay({ agentToken, database, push: createApnsPush({ privateKey,
+  const relay = createRelay({ agentToken, database, expiryIntervalMs: 1000, push: createApnsPush({ privateKey,
     teamId: required('APNS_TEAM_ID'), keyId: required('APNS_KEY_ID'),
     topic: process.env.APNS_TOPIC ?? 'online.do.card.app',
     sandbox: process.env.APNS_ENVIRONMENT !== 'production',

@@ -330,3 +330,42 @@ New York2026-11-01 01:59EDT→01:01EST has an unambiguous05:45:59→06:01UTC pri
 interval. This regression failed before UTC conversion, then passed. Native registration
 diagnostics now include DeviceActivitySchedule.nextInterval start/end so the on-device
 interpretation can be inspected rather than inferred from Foundation tests.
+
+## Independent deadline-push recovery
+
+The recurring UTC monitor retest still remained blocked after reboot. The owner
+confirmed entering the passcode before expiry, ruling out first-unlock timing as the
+explanation for that run. No first-unlock storage/protection change was implemented.
+
+A manual APNs re-delivery referencing the original applied-start request was then sent
+without launching DO Card. APNs accepted it; the phone uploaded a fresh snapshot with
+no session, and the user confirmed the selected app opened while DO Card stayed closed.
+This establishes an independent online recovery path, not dependable local monitor wake.
+
+The relay now transactionally persists a deadline-check job with each applied-start
+receipt. It uses the original issuedAt+duration, survives SQLite reopen, ignores maximum
+changes, cancels only earlier matching starts when a stop is acknowledged, handles late
+receipt ordering, leases claims before network I/O, retries failed sends30s apart and
+limits delivery to24h after the original deadline. The production worker checks once
+per second. Fake APNs acceptance never changes any phone receipt/session status.
+
+A distinct expiry marker/collapse ID routes the visible notification to release-only
+phone reconciliation. It checks local saved time, never fetches queued commands, cannot
+start/renew/extend a block, and publishes observed status. A failed status upload does
+not undo a completed local release. Snapshots remain required to confirm remote state.
+Five new Swift delivery regressions cover missed local callback, early hint, newer
+session, pending-queue isolation and network-upload failure. Final Swift:76 tests pass.
+New HTTP expiry and real loopback-HTTP2 APNs regressions cover deadline persistence,
+transport retry/identity, cancellation ordering and protocol privacy. Final Node:79 pass.
+Signed Debug build passed. Supporting reports: agent-focus-expiry-relay.md and
+agent-focus-expiry-apns.md. Logs: /tmp/docard-expiry-fallback-swift.log,
+/tmp/docard-expiry-fallback-node.log, /tmp/docard-expiry-fallback-device-build.log.
+
+Limits: this backup requires an available relay and phone connectivity plus iOS accepting
+and executing the visible notification extension. APNs accepted does not guarantee
+execution. Offline+reboot expiry remains unresolved; the earlier ordinary offline expiry
+pass does not establish that combination. A local Mac relay cannot send while asleep,
+and Quick Tunnel addresses can expire. The next hardware test must keep the relay awake,
+phone connected after restart, DO Card closed, and distinguish the automatic deadline
+push from a manual recovery push or app launch. No new session has been started merely
+by installing/activating this backup.

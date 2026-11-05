@@ -7,9 +7,11 @@ struct AgentFocusPairing: Codable, Sendable {
 }
 
 enum AgentFocusDeliveryOutcome: Equatable {
-  case applied, rejected, pending, synced
+  case applied, rejected, pending, synced, expired, expiryChecked
   var notificationBody: String {
     switch self {
+    case .expired: "Your expired focus session was released."
+    case .expiryChecked: "Focus expiry checked."
     case .applied: "Your focus request was applied."
     case .rejected: "Your phone rejected the focus request. Open DO Card to check your settings."
     case .pending, .synced: "A focus request is waiting. Open DO Card if it does not apply."
@@ -61,7 +63,9 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
   }
   deinit { transport.invalidateAndCancel() }
 
-  func run(commandID: String? = nil, pushToken: String? = nil) async -> Outcome {
+  func run(commandID: String? = nil, pushToken: String? = nil, expiryCheck: Bool = false) async
+    -> Outcome
+  {
     let deadline = ContinuousClock.now.advanced(by: .seconds(18))
     // Bound the complete network operation, including a server that keeps sending bytes.
     let timeout = Task { [transport] in
@@ -72,8 +76,18 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
     }
     defer { timeout.cancel() }
     var localReceipt: FocusReceipt?
+    var expiryOutcome: Outcome?
     do {
+      try check(deadline)
       try validateRelay()
+      if expiryCheck {
+        // A push is only a wake-up hint. The phone's own stored deadline decides.
+        let outcome: Outcome = try phone.expire(retryFor: 1) ? .expired : .expiryChecked
+        expiryOutcome = outcome
+        try? await uploadReceipts(deadline: deadline)
+        try await publishSnapshot(deadline: deadline)
+        return outcome
+      }
       if let pushToken {
         _ = try await request(
           "v1/device/push", body: JSONEncoder().encode(Push(token: pushToken)), deadline: deadline)
@@ -91,15 +105,7 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
         if command.id == commandID { localReceipt = receipt }
       }
       try await uploadReceipts(deadline: deadline)
-      if let status = try phone.status(pairingID: pairing.deviceId) {
-        let snapshot = Snapshot(
-          modeID: status.policy.modeID, sessionID: status.session?.id,
-          endAt: status.session?.endAt, requiresRenewalApproval: status.requiresRenewalApproval,
-          maximumMinutes: status.policy.maximumMinutes, startMinute: status.policy.startMinute,
-          endMinute: status.policy.endMinute, timeZone: status.policy.timeZone)
-        _ = try await request(
-          "v1/device/snapshot", body: JSONEncoder().encode(snapshot), deadline: deadline)
-      }
+      try await publishSnapshot(deadline: deadline)
       if let commandID, localReceipt == nil {
         let allowed = CharacterSet(
           charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._~")
@@ -117,10 +123,23 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
     } catch {
       // A local result stays durable even if its network acknowledgement must be retried.
     }
+    if let expiryOutcome { return expiryOutcome }
     switch localReceipt?.status {
     case "applied": return .applied
     case "rejected": return .rejected
     default: return .pending
+    }
+  }
+
+  private func publishSnapshot(deadline: ContinuousClock.Instant) async throws {
+    if let status = try phone.status(pairingID: pairing.deviceId) {
+      let snapshot = Snapshot(
+        modeID: status.policy.modeID, sessionID: status.session?.id,
+        endAt: status.session?.endAt, requiresRenewalApproval: status.requiresRenewalApproval,
+        maximumMinutes: status.policy.maximumMinutes, startMinute: status.policy.startMinute,
+        endMinute: status.policy.endMinute, timeZone: status.policy.timeZone)
+      _ = try await request(
+        "v1/device/snapshot", body: JSONEncoder().encode(snapshot), deadline: deadline)
     }
   }
 
