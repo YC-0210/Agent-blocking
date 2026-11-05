@@ -77,3 +77,23 @@ A second test checks preservation of live sessions, local expiry under unknown s
 and rejection of an old-mode maximum after explicit denial. All 34 Swift tests pass.
 Device Debug build succeeded. Logs: `/tmp/docard-auth-red.log`,
 `/tmp/docard-auth-green.log`, `/tmp/docard-auth-device-build.log`.
+
+## Short-session follow-up
+
+The first two-minute session after the maximum fix reached the phone with the current
+mode, but its receipt was `execution_failed` (maximum remained 170, no live session).
+The native install adapter still required process-local authorizationStatus approved;
+this was inconsistent with reconciliation's cold-process handling. It also read that
+main-queue property from the notification worker's background context.
+
+The adapter now captures the three-state authorization decision on the main queue
+before acquiring the phone lock. Known denial still rejects installation. Unknown
+defers to native monitoring using the owner's already approved, persisted selection;
+it does not synthesize an approved status. Phone pairing/mode/TTL/duration validation,
+expiry and Emergency Unlock remain unchanged. Native operation failures still reject
+and clear owned state. Reading outside the lock avoids dispatch-to-main deadlock with
+a competing main-app phone operation.
+
+All 34 Swift tests and the signed device build pass. This adapter behavior requires
+a fresh physical short-session test; the generic previous failure receipt alone does
+not prove whether any further Apple framework limitation remains.

@@ -63,10 +63,15 @@ enum AgentFocusDevice {
       let directory = FileManager.default.containerURL(
         forSecurityApplicationGroupIdentifier: "group.DO.version3")
     else { throw Failure.unavailable }
+    // Read on the main queue before taking the phone lock. A cold extension's
+    // unknown status cannot override the owner's persisted approval.
+    let authorization = authorizationDecision
     return Phone(
       directory: directory,
       emergency: AgentEmergencyStorage(read: readEmergency, write: writeEmergency),
-      now: { Date().timeIntervalSince1970 * 1000 }, apply: install, release: clearShields,
+      now: { Date().timeIntervalSince1970 * 1000 },
+      apply: { try install($0, selection: $1, authorization: authorization) },
+      release: clearShields,
       lockTimeout: lockTimeout)
   }
 
@@ -112,10 +117,14 @@ enum AgentFocusDevice {
     center.stopMonitoring(center.activities.filter { $0.rawValue.hasPrefix(activityPrefix) })
   }
 
-  private static func install(_ session: AgentFocusSession, selection: FamilyActivitySelection)
+  private static func install(
+    _ session: AgentFocusSession, selection: FamilyActivitySelection, authorization: Bool?
+  )
     throws
   {
-    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+    // The phone has already validated pairing, saved selection, mode and duration.
+    // Reject known denial; unknown defers to the native monitoring operation.
+    guard authorization != false else {
       throw Failure.unauthorized
     }
     guard
