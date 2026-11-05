@@ -202,3 +202,14 @@ configuration or push-delivery change is included. See
 `docs/experiments/agent-timeline-tools.md` for protocol, trust assumptions and the
 parallel-worktree merge checklist, and `docs/testing/agent-timeline-results.md` for
 measured test/build evidence.
+
+
+## Notification extension experiment (2026-11-05)
+
+Branch `codex/agent-notification-extension` in its own worktree implements immediate
+visible mutable pushes and a Notification Service Extension. It shares the phone
+command journal, credentials, validation, named shields and delivery worker with the
+main app. No subscription wall is introduced. ADR-0014 and
+`docs/testing/notification-extension-focus.md` describe limits, separate relay setup,
+provisioning and outstanding real-phone validation. The existing live relay/phone app
+and other worktrees are not modified by building this experiment.

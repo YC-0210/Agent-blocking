@@ -23,6 +23,11 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     let session: AgentFocusSession?
     let requiresRenewalApproval: Bool
   }
+  private struct CompletedCommand: Codable {
+    let receipt: FocusReceipt
+    let sequence: Int
+    let retainUntil: Double
+  }
   private struct Record: Codable {
     var pairingID: String?
     var approvalID: String?
@@ -32,6 +37,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     var state = AgentFocusState()
     var receipts: [FocusReceipt] = []
     var pendingCommand: FocusCommand?
+    var completedCommands: [CompletedCommand]?
   }
   enum Failure: Error { case unavailable, pairingMismatch, activeSession }
   private let emergency: AgentEmergencyStorage
@@ -39,17 +45,19 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
   private let now: () -> Double
   private let apply: (AgentFocusSession, Selection) throws -> Void
   private let release: () -> Void
+  private let lockTimeout: TimeInterval?
 
   init(
     directory: URL, emergency: AgentEmergencyStorage, now: @escaping () -> Double,
     apply: @escaping (AgentFocusSession, Selection) throws -> Void,
-    release: @escaping () -> Void
+    release: @escaping () -> Void, lockTimeout: TimeInterval? = nil
   ) {
     self.directory = directory
     self.emergency = emergency
     self.now = now
     self.apply = apply
     self.release = release
+    self.lockTimeout = lockTimeout
   }
 
   func approve(policy: AgentFocusPolicy, selection: Selection, pairingID: String) throws {
@@ -79,6 +87,11 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
         record.selection != nil
       else { throw Failure.pairingMismatch }
       if record.pendingCommand != nil { try finishPending(&record) }
+      if let result = record.completedCommands?.first(where: {
+        $0.receipt.id == command.id && $0.sequence == command.sequence
+      }) {
+        return result.receipt
+      }
       if let receipt = record.state.lastReceipt, receipt.id == command.id,
         command.sequence == record.state.lastSequence
       {
@@ -92,6 +105,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       let receipt = controller.receive(command, now: now())
       record.state = controller.state
       if receipt.status != "applied" {
+        remember(receipt, command: command, record: &record)
         if !record.receipts.contains(where: { $0.id == receipt.id }) {
           record.receipts.append(receipt)
         }
@@ -102,6 +116,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       if command.action == .setMaximum {
         // One atomic record update; changing a maximum has no platform shield effects.
         record.policy = controller.policy
+        remember(receipt, command: command, record: &record)
         record.receipts.append(receipt)
         try save(record)
         if previousSession != nil && record.state.session == nil { release() }
@@ -138,11 +153,25 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     } else {
       release()
     }
+    remember(receipt, command: command, record: &record)
     record.state.lastReceipt = receipt
     record.pendingCommand = nil
     if !record.receipts.contains(where: { $0.id == receipt.id }) { record.receipts.append(receipt) }
     try save(record)
     return receipt
+  }
+
+  private func remember(_ receipt: FocusReceipt, command: FocusCommand, record: inout Record) {
+    // Retain results past the command TTL and a notification-extension execution window.
+    // Overlapping processes may hold an old queue even after its outbox is acknowledged.
+    var completed = (record.completedCommands ?? []).filter { $0.retainUntil > now() }
+    if !completed.contains(where: { $0.receipt.id == receipt.id }) {
+      completed.append(
+        CompletedCommand(
+          receipt: receipt, sequence: command.sequence,
+          retainUntil: command.expiresAt.isFinite ? command.expiresAt + 60000 : now() + 60000))
+    }
+    record.completedCommands = completed
   }
 
   func emergencyUnlock() throws {
@@ -264,7 +293,17 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     )
     guard fd >= 0 else { throw Failure.unavailable }
     defer { close(fd) }
-    guard flock(fd, LOCK_EX) == 0 else { throw Failure.unavailable }
+    if let lockTimeout {
+      let deadline = ContinuousClock.now.advanced(by: .seconds(lockTimeout))
+      while flock(fd, LOCK_EX | LOCK_NB) != 0 {
+        guard errno == EWOULDBLOCK || errno == EAGAIN, ContinuousClock.now < deadline else {
+          throw Failure.unavailable
+        }
+        Thread.sleep(forTimeInterval: 0.01)
+      }
+    } else {
+      guard flock(fd, LOCK_EX) == 0 else { throw Failure.unavailable }
+    }
     defer { flock(fd, LOCK_UN) }
     return try operation()
   }

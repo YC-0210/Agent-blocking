@@ -26,7 +26,7 @@ async function readBody(req) {
   try { return JSON.parse(body || '{}'); } catch { fail(400, 'invalid_json'); }
 }
 export function createRelay({ agentToken, database = 'agent-focus.sqlite', now = Date.now,
-  push = async () => ({ status: 'unconfigured' }), fallbackAfterMs = 15000 }) {
+  push = async () => ({ status: 'unconfigured' }) }) {
   if (!agentToken || agentToken.length < 32) throw new Error('Agent token must contain at least 32 characters');
   const db = new DatabaseSync(database);
   db.exec(`PRAGMA journal_mode=WAL;
@@ -40,16 +40,6 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
     try { return await push({ token: device.pushToken, commandId: command.id, expiresAt: command.expiresAt, kind }); }
     catch { return { status: 'push_failed' }; }
   }
-  const fallback = setInterval(async () => {
-    const rows = db.prepare("SELECT * FROM commands WHERE status = 'pending' AND alertSent = 0 AND json_extract(command, '$.issuedAt') <= ? AND json_extract(command, '$.expiresAt') > ?")
-      .all(now() - fallbackAfterMs, now());
-    for (const row of rows) {
-      db.prepare('UPDATE commands SET alertSent = 1 WHERE deviceId = ? AND id = ?').run(row.deviceId, row.id);
-      const device = db.prepare('SELECT * FROM devices WHERE id = ?').get(row.deviceId);
-      await notify(device, JSON.parse(row.command), 'alert');
-    }
-  }, 1000);
-  fallback.unref();
   const server = createServer(async (req, res) => {
     const send = (status, value) => {
       res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -91,6 +81,13 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
         if (req.method === 'GET' && path === '/v1/device/commands') {
           const rows = db.prepare("SELECT command FROM commands WHERE deviceId = ? AND status = 'pending' ORDER BY json_extract(command, '$.sequence')").all(deviceId);
           return send(200, { commands: rows.map(row => JSON.parse(row.command)) });
+        }
+        const receiptRoute = path.match(/^\/v1\/device\/commands\/([^/]+)$/);
+        if (req.method === 'GET' && receiptRoute) {
+          const row = db.prepare('SELECT * FROM commands WHERE deviceId = ? AND id = ?')
+            .get(deviceId, decodeURIComponent(receiptRoute[1]));
+          if (!row) fail(404, 'unknown_command');
+          return send(200, { command: JSON.parse(row.command), status: row.status, reason: row.reason });
         }
         if (req.method === 'POST' && path === '/v1/device/receipts') {
           const parsed = receiptSchema.safeParse(await readBody(req));
@@ -145,7 +142,7 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
             if (db.isTransaction) db.exec('ROLLBACK');
             throw error;
           }
-          const delivery = await notify(target, command, 'background');
+          const delivery = await notify(target, command, 'alert');
           return send(202, { command, status: 'pending', delivery });
         }
       }
@@ -158,5 +155,5 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
       fail(404, 'not_found');
     } catch (error) { send(error.status ?? 500, { error: error.status ? error.message : 'internal_error' }); }
   });
-  return { server, close() { clearInterval(fallback); db.close(); } };
+  return { server, close() { db.close(); } };
 }

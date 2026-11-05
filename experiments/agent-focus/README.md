@@ -4,6 +4,12 @@ Codex on your Mac reads a Linear issue and controls a separate agent focus mode 
 
 This branch contains working code and local automated tests, not a deployed service or a verified real-phone result. Apple signing, APNs credentials, an HTTPS endpoint and a physical iPhone are required to finish cellular validation.
 
+This worktree implements the **visible Notification Service Extension** delivery path.
+The relay immediately sends a mutable alert; a small extension fetches and applies the
+command without opening the main app when iOS allows it. This still needs physical-phone
+validation. See [isolated setup and device checks](../../docs/testing/notification-extension-focus.md).
+Use a separate relay port (8788), database, tunnel and MCP entry for this worktree.
+
 ## What runs where
 
 - **Codex on Mac:** connected Linear tools plus this local stdio MCP server.
@@ -93,7 +99,7 @@ Confirmation flags represent what the user said in chat. The MCP server cannot i
 4. On the phone, approve Screen Time, choose apps/websites with Apple's picker, and approve hours and maximum session length. The agent can help you choose a plan in chat; the native picker is the actual app-selection authority. The prototype defaults to 45 minutes and full-day hours until you approve different values. Hours currently describe one daily, same-day interval.
 5. Tap **Approve and connect** and allow notifications. The normal screen becomes agent instructions plus **Emergency Unlock**.
 6. Ask Codex for `focus_status`, which provides the phone-approved `modeID`. Then use the Linear focus prompt or say: “Help me tackle this Linear issue. Block distractions until we finish.”
-7. Starts remain pending until the phone applies them. If a silent push does not execute, a generic alert is attempted after 15 seconds; tap it to let DO Card fetch and validate the pending command. Commands expire after two minutes, so a much later tap cannot unexpectedly block you.
+7. Starts remain pending until the phone applies them. The relay immediately sends a visible mutable notification. The bundled notification extension attempts to fetch and apply the command automatically, then shows a generic result. If it stays pending, open DO Card for the foreground fallback. Notification settings and iOS execution limits still apply. Commands expire after two minutes, so a much later tap cannot unexpectedly block you.
 8. Changing limits or the connection requires a new setup invitation and fresh phone approval, with no agent session active.
 
 ## Agreed task behavior

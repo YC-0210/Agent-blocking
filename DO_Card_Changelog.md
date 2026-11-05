@@ -616,3 +616,29 @@ sessions, selections and hours unchanged. Native enforcement rejects mixed comma
 stale policy handles and unconfirmed maximum changes. Delivery/receipt states stay
 pending until phone acknowledgement. Implementation, approval trust assumptions and
 handoff to the concurrent delivery work are in `docs/experiments/agent-timeline-tools.md`.
+
+
+## Notification extension delivery experiment (2026-11-05)
+
+Separate branch/worktree based on `31f70b3`: replace silent-first/15-second fallback
+with an immediate visible mutable push and an embedded Notification Service Extension.
+Both native entry points use a bounded Foundation delivery worker and explicitly shared
+Keychain credentials. The notification carries only a request ID; authority is fetched
+from the authenticated relay and constrained by phone approval. Persist recent receipts
+for overlapping deliveries; old receipt-upload failures cannot prevent a new unlock.
+The extension has bounded lock acquisition and exactly-once content completion.
+
+No SwiftData schema, subscription, legacy NFC strategy or agent confirmation policy
+changes. No credentials copied, live relay restart, global MCP edit or phone installation.
+Native Screen Time access from this extension remains a physical-device feasibility
+question; local compilation and system-boundary fixtures do not answer it. See ADR-0014.
+
+## Combined live experiment activation (2026-11-05)
+
+Combined shared timeline tools and visible notification-extension delivery on the
+isolated integration branch. Preserved both test suites and added the maximum-update
+receipt-cache regression required for overlapping app/extension delivery. 32 Swift and
+25 Node tests plus signed iPhone build passed; merged build installed on the approved
+phone. Live relay retains the existing pairing database/tunnel; local MCP config targets
+the merged checkout. Client reload is still required to expose its new tools in this
+chat. No maximum change has been submitted. Details: `docs/testing/agent-focus-integration.md`.

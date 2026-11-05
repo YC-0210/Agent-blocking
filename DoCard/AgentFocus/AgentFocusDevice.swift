@@ -14,26 +14,6 @@ enum AgentFocusDevice {
     case unavailable, unauthorized, emptySelection, activeSession
   }
 
-  static func approve(
-    policy: AgentFocusPolicy, selection: FamilyActivitySelection, pairingID: String
-  ) throws {
-    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
-      throw Failure.unauthorized
-    }
-    guard
-      !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
-        || !selection.webDomainTokens.isEmpty,
-      selection.applicationTokens.count <= Entitlements.premiumAppLimit
-    else { throw Failure.emptySelection }
-    guard SharedData.getActiveStrategySharedSession() == nil,
-      SharedData.getActiveScheduleSharedSession() == nil,
-      !SharedData.profileSnapshots.values.contains(where: {
-        $0.schedules.contains(where: { $0.isActive })
-      })
-    else { throw Failure.activeSession }
-    try phone().approve(policy: policy, selection: selection, pairingID: pairingID)
-  }
-
   static func receive(_ command: FocusCommand, pairingID: String) throws -> FocusReceipt {
     try phone().receive(command, pairingID: pairingID)
   }
@@ -55,8 +35,8 @@ enum AgentFocusDevice {
     try localPhone.emergencyUnlock()
   }
 
-  static func reconcile() throws {
-    try phone().reconcile(
+  static func reconcile(lockTimeout: TimeInterval? = nil) throws {
+    try phone(lockTimeout: lockTimeout).reconcile(
       authorized: AuthorizationCenter.shared.authorizationStatus == .approved)
   }
   static func intervalEnded(_ activity: DeviceActivityName) {
@@ -64,7 +44,7 @@ enum AgentFocusDevice {
     try? reconcile()
   }
 
-  private static func phone() throws -> Phone {
+  static func phone(lockTimeout: TimeInterval? = nil) throws -> Phone {
     guard
       let directory = FileManager.default.containerURL(
         forSecurityApplicationGroupIdentifier: "group.DO.version3")
@@ -72,7 +52,8 @@ enum AgentFocusDevice {
     return Phone(
       directory: directory,
       emergency: AgentEmergencyStorage(read: readEmergency, write: writeEmergency),
-      now: { Date().timeIntervalSince1970 * 1000 }, apply: install, release: clearShields)
+      now: { Date().timeIntervalSince1970 * 1000 }, apply: install, release: clearShields,
+      lockTimeout: lockTimeout)
   }
 
   private static var emergencyQuery: [String: Any] {
