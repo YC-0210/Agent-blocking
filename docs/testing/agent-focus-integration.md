@@ -55,3 +55,25 @@ settings change. No phone binary change required.
 Validation: all 25 Node tests passed; isolated MCP Apps host verified editing 180,
 explicit submission, pending state and simulated applied receipt. That fixture
 result is not evidence of a live phone maximum update.
+
+## Cold-process authorization synchronization fix
+
+The repeated `mode_not_approved` receipts were traced to reconciliation collapsing
+Family Controls `.notDetermined` into `false`. Cold notification processes can begin
+with that initial status, so each delivery rotated the phone approval before reading
+the queue. Apple's authorizationStatus documentation describes the initial value and
+requires main-queue access:
+https://developer.apple.com/documentation/familycontrols/authorizationcenter/authorizationstatus
+
+The adapter now reads reconciliation status on the main queue and distinguishes
+approved, explicitly denied and unknown. Unknown cannot revoke persisted approval or
+restore a still-live session; it still releases expired sessions. Explicit denial,
+Emergency Unlock, stale-mode rejection and native install authorization checks remain.
+No pairing reset or approval bypass is added.
+
+TDD evidence: the new persisted-phone regression reproduced approval rotation and
+rejected 170-minute maximum (four failing assertions), then passed after the fix.
+A second test checks preservation of live sessions, local expiry under unknown status
+and rejection of an old-mode maximum after explicit denial. All 34 Swift tests pass.
+Device Debug build succeeded. Logs: `/tmp/docard-auth-red.log`,
+`/tmp/docard-auth-green.log`, `/tmp/docard-auth-device-build.log`.

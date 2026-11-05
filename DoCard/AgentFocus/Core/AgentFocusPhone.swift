@@ -235,7 +235,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     }
   }
 
-  func reconcile(authorized: Bool) throws {
+  func reconcile(authorized: Bool?) throws {
     try locked {
       do {
         var record = try load()
@@ -243,7 +243,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
           release()
           return
         }
-        if !authorized {
+        if authorized == false {
           let cancellation = AgentEmergencyCancellation(
             pairingID: record.pairingID,
             approvalID: record.approvalID, nextModeID: UUID().uuidString,
@@ -258,6 +258,11 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
           record.state.lastEmergencyAt = now()
           try save(record)
           release()
+          return
+        }
+        // A cold extension cannot infer revocation from an undetermined status.
+        // Leave a live session untouched; expiry below still releases expired sessions.
+        if authorized == nil, let session = record.state.session, session.endAt > now() {
           return
         }
         if record.pendingCommand != nil { try finishPending(&record) }

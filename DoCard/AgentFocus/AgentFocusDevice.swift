@@ -37,8 +37,22 @@ enum AgentFocusDevice {
 
   static func reconcile(lockTimeout: TimeInterval? = nil) throws {
     try phone(lockTimeout: lockTimeout).reconcile(
-      authorized: AuthorizationCenter.shared.authorizationStatus == .approved)
+      authorized: authorizationDecision)
   }
+  // AuthorizationCenter starts as notDetermined in a newly launched process.
+  // Only an explicit denial invalidates the persisted phone approval.
+  private static var authorizationDecision: Bool? {
+    let read = { () -> Bool? in
+      switch AuthorizationCenter.shared.authorizationStatus {
+      case .approved: return true
+      case .denied: return false
+      case .notDetermined: return nil
+      @unknown default: return nil
+      }
+    }
+    return Thread.isMainThread ? read() : DispatchQueue.main.sync(execute: read)
+  }
+
   static func intervalEnded(_ activity: DeviceActivityName) {
     guard activity.rawValue.hasPrefix(activityPrefix) else { return }
     try? reconcile()

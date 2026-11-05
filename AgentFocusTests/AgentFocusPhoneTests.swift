@@ -4,6 +4,71 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusPhoneTests: XCTestCase {
+  func testUndeterminedAuthorizationPreservesApprovalForMaximumDelivery() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let emergency = TestEmergencyStorage()
+    let now = 1_793_836_800_000.0
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage,
+      now: { now }, apply: { _, _ in }, release: {})
+    try phone.approve(
+      policy: .init(
+        modeID: "approved", maximumMinutes: 45, startMinute: 0,
+        endMinute: 1440, timeZone: "Asia/Taipei"), selection: "private", pairingID: "phone")
+    // A newly launched extension has no determined Family Controls status yet.
+    try phone.reconcile(authorized: nil)
+    try phone.reconcile(authorized: nil)
+    XCTAssertEqual(try phone.status()?.policy.modeID, "approved")
+    let command = FocusCommand(
+      id: "maximum", sequence: 1, action: .setMaximum, modeID: "approved",
+      durationMinutes: nil, sessionID: nil, issuedAt: now, expiresAt: now + 60_000,
+      maximumMinutes: 170, expectedMaximumMinutes: 45, userConfirmed: true)
+    XCTAssertEqual(try phone.receive(command, pairingID: "phone").status, "applied")
+    let savedMode = try XCTUnwrap(phone.status()?.policy.modeID)
+    try phone.reconcile(authorized: nil)
+    XCTAssertEqual(try phone.status()?.policy.modeID, savedMode)
+    XCTAssertEqual(try phone.status()?.policy.maximumMinutes, 170)
+    XCTAssertNil(try phone.status()?.session)
+  }
+
+  func testUnknownAuthorizationPreservesLiveSessionAndExpiryWhileDenialCancelsApproval() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let emergency = TestEmergencyStorage()
+    var now = 1_793_836_800_000.0
+    var applications = 0
+    var releases = 0
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: emergency.storage,
+      now: { now }, apply: { _, _ in applications += 1 }, release: { releases += 1 })
+    try phone.approve(
+      policy: .init(
+        modeID: "approved", maximumMinutes: 45, startMinute: 0,
+        endMinute: 1440, timeZone: "Asia/Taipei"), selection: "private", pairingID: "phone")
+    let start = FocusCommand(
+      id: "start", sequence: 1, action: .start, modeID: "approved",
+      durationMinutes: 2, sessionID: "session", issuedAt: now, expiresAt: now + 60_000)
+    XCTAssertEqual(try phone.receive(start, pairingID: "phone").status, "applied")
+    try phone.reconcile(authorized: nil)
+    XCTAssertEqual(try phone.status()?.session?.id, "session")
+    XCTAssertEqual(applications, 1)
+    XCTAssertEqual(releases, 0)
+    now += 120_000
+    try phone.reconcile(authorized: nil)
+    XCTAssertNil(try phone.status()?.session)
+    XCTAssertGreaterThan(releases, 0)
+    XCTAssertEqual(try phone.status()?.policy.modeID, "approved")
+    try phone.reconcile(authorized: false)
+    XCTAssertNotEqual(try phone.status()?.policy.modeID, "approved")
+    let staleMaximum = FocusCommand(
+      id: "maximum", sequence: 2, action: .setMaximum, modeID: "approved",
+      durationMinutes: nil, sessionID: nil, issuedAt: now, expiresAt: now + 60_000,
+      maximumMinutes: 170, expectedMaximumMinutes: 45, userConfirmed: true)
+    XCTAssertEqual(try phone.receive(staleMaximum, pairingID: "phone").reason, "mode_not_approved")
+    XCTAssertEqual(try phone.status()?.policy.maximumMinutes, 45)
+  }
+
   func testOverlappingMaximumDeliveryKeepsItsAppliedReceiptAfterANewerPolicyChange() throws {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
