@@ -248,3 +248,38 @@ credential path; a private local backup was made. A fresh one-time invitation wa
 opened on the phone for owner approval. No pairing code or credential is recorded
 here. Owner setup approval and a Codex MCP reload are required before live testing
 can continue. A named stable tunnel remains preferable to expiring Quick Tunnel URLs.
+
+## Reboot retest: original end callback still absent
+
+The next two-minute physical test also failed. Before opening DO Card, diagnostics
+were copied through devicectl: registration for session8fabb528 was present, and a
+start callback at registration recorded busy/nonblocking failure as expected while the
+native start held the phone lock. There was no end callback entry/result file after
+reboot and the approved deadline. No new monitor crash appeared in the available crash
+listing. This is evidence of no recorded end callback, not proof that the extension
+was never launched under every possible failure mode. The start receipt was applied.
+The previous candidate must not be reported as resolving reboot expiry.
+
+A second bounded on-device recovery experiment adds a fixed `recovery` monitor. It
+starts at the whole-second rounded approved deadline and runs for24h, with full date
+components and explicit calendar/timezone. Its start callback invokes the same locked,
+due-only expiry path. Both monitor registrations must succeed before shields apply;
+both names are reused rather than accumulating activities. Callback traces distinguish
+primary/recovery roles and include their activity name, never selection tokens or
+credentials. Existing older monitors cannot clear a newer unexpired owner.
+
+The additional public-phone regression verifies the recovery window's literal UTC
+bounds, unchanged approved deadline, and cleanup without the original end callback or
+readable emergency ledger. It tests schedule intent and core recovery, not OS callback
+delivery. Final Swift suite:68 tests passed. Signed Debug build passed before final
+native diagnostics/calendar refinement; final signing/install results are recorded in
+the live handoff. Existing Node sources remain unchanged (prior66-test pass).
+
+Apple's nextInterval documentation says scheduled dates are the earliest invocation
+points and callbacks depend on device use during a relevant interval. This is another
+recovery opportunity through the same framework, not a guaranteed boot/deadline wake,
+and cannot cover arbitrary offline/non-use beyond the24h window. A busy recovery-start
+callback intentionally cannot wait on a synchronous startMonitoring caller. Physical
+retest is required; if still blocked, preserve callback evidence before opening DO Card.
+https://developer.apple.com/documentation/deviceactivity/deviceactivityschedule/nextinterval
+https://developer.apple.com/documentation/deviceactivity/deviceactivityname

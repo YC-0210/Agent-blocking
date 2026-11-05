@@ -33,6 +33,12 @@ struct AgentFocusSession: Codable, Equatable, Sendable {
 
   // DeviceActivity DateComponents has whole-second resolution.
   var monitoringEndAt: Double { ceil(endAt / 1000) * 1000 }
+
+  // A future-start monitor provides another on-device expiry opportunity after reboot.
+  // This is a recovery window, never an extension of the approved session deadline.
+  var expiryRecoveryWindow: DateInterval {
+    DateInterval(start: Date(timeIntervalSince1970: monitoringEndAt / 1000), duration: 86400)
+  }
 }
 
 struct AgentFocusState: Codable, Equatable, Sendable {

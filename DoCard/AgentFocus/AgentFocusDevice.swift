@@ -63,16 +63,18 @@ enum AgentFocusDevice {
 
   private static func handleInterval(_ activity: DeviceActivityName, event: String) {
     guard activity.rawValue.hasPrefix(activityPrefix) else { return }
-    recordExpiryEvent(event + "_entered")
+    let role = activity.rawValue == activityPrefix + "recovery" ? "recovery" : "primary"
+    let trace = role + "_" + event
+    recordExpiryEvent(trace + "_entered", activity: activity)
     do {
       // startMonitoring may synchronously wait for its start callback while holding
       // the phone lock. A start wake-up is opportunistic and must never wait on it.
       let ending = event == "end"
       let expired = try phone(lockTimeout: ending ? 0.2 : 0, expiryOnly: true)
         .expire(retryFor: ending ? 5 : 0)
-      recordExpiryEvent(event + (expired ? "_expired" : "_ignored"))
+      recordExpiryEvent(trace + (expired ? "_expired" : "_ignored"), activity: activity)
     } catch {
-      recordExpiryEvent(event + "_failed")
+      recordExpiryEvent(trace + "_failed", activity: activity)
     }
   }
 
@@ -81,10 +83,11 @@ enum AgentFocusDevice {
     let at: Double
     let sessionID: String?
     let endAt: Double?
+    let activityName: String?
   }
 
   private static func recordExpiryEvent(
-    _ event: String, session: AgentFocusSession? = nil
+    _ event: String, session: AgentFocusSession? = nil, activity: DeviceActivityName? = nil
   ) {
     guard
       let directory = FileManager.default.containerURL(
@@ -92,7 +95,7 @@ enum AgentFocusDevice {
     else { return }
     let entry = ExpiryEvent(
       event: event, at: Date().timeIntervalSince1970 * 1000,
-      sessionID: session?.id, endAt: session?.endAt)
+      sessionID: session?.id, endAt: session?.endAt, activityName: activity?.rawValue)
     // Fixed diagnostic filenames, no app tokens, credentials or legacy model initialization.
     try? JSONEncoder().encode(entry).write(
       to: directory.appendingPathComponent("agent-expiry-" + event + ".json"),
@@ -181,21 +184,31 @@ enum AgentFocusDevice {
     // Backdate only the monitoring window, never the approved end or shield duration.
     // One extra second preserves the minimum after DateComponents truncation.
     let monitoringStart = min(now, end.addingTimeInterval(-901))
-    var start = Calendar.current.dateComponents(
-      [.year, .month, .day, .hour, .minute, .second], from: monitoringStart)
-    var finish = Calendar.current.dateComponents(
-      [.year, .month, .day, .hour, .minute, .second], from: end)
-    start.timeZone = .current
-    finish.timeZone = .current
+    func components(_ date: Date) -> DateComponents {
+      var value = Calendar.current.dateComponents(
+        [.year, .month, .day, .hour, .minute, .second], from: date)
+      value.calendar = .current
+      value.timeZone = .current
+      return value
+    }
     let center = DeviceActivityCenter()
-    // A single named monitor is replaced on the next start, so expiry/stop needs no
-    // monitoring cleanup and cannot accumulate one registered activity per session.
+    // Two stable monitors are replaced on the next start: the normal end callback,
+    // plus a future-start recovery window if reboot loses that end callback.
+    // Neither callback queries or changes monitoring while holding the phone lock.
     let name = DeviceActivityName(activityPrefix + "current")
     try center.startMonitoring(
       name,
       during: DeviceActivitySchedule(
-        intervalStart: start, intervalEnd: finish, repeats: false))
-    recordExpiryEvent("registered", session: session)
+        intervalStart: components(monitoringStart), intervalEnd: components(end), repeats: false))
+    let recovery = session.expiryRecoveryWindow
+    let recoveryName = DeviceActivityName(activityPrefix + "recovery")
+    try center.startMonitoring(
+      recoveryName,
+      during: DeviceActivitySchedule(
+        intervalStart: components(recovery.start), intervalEnd: components(recovery.end),
+        repeats: false))
+    recordExpiryEvent("registered", session: session, activity: name)
+    recordExpiryEvent("recovery_registered", session: session, activity: recoveryName)
     let store = ManagedSettingsStore(named: storeName)
     store.shield.applications =
       selection.applicationTokens.isEmpty ? nil : selection.applicationTokens

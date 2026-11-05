@@ -155,6 +155,25 @@ final class AgentFocusPhoneBoundaryTests: XCTestCase {
     XCTAssertFalse(fixture.shielded)
   }
 
+  func testRecoveryIntervalBeginsAfterApprovedDeadlineWithoutExtendingSession() throws {
+    let fixture = try PhoneBoundaryFixture()
+    defer { fixture.cleanup() }
+    fixture.clock += 900
+    _ = try fixture.receive(fixture.start(2))
+    let session = try XCTUnwrap(fixture.phone.status()?.session)
+    let recovery = session.expiryRecoveryWindow
+    XCTAssertEqual(session.endAt, 1_793_836_920_900)
+    XCTAssertEqual(recovery.start.timeIntervalSince1970, 1_793_836_921)
+    XCTAssertEqual(recovery.end.timeIntervalSince1970, 1_793_923_321)
+    // No original end callback is simulated; only the independent recovery wake-up.
+    fixture.clock = 1_793_836_921_000
+    fixture.failLedgerRead = true
+    XCTAssertTrue(try fixture.recreate().expire())
+    XCTAssertFalse(fixture.shielded)
+    fixture.failLedgerRead = false
+    XCTAssertNil(try fixture.phone.status()?.session)
+  }
+
   // Each test below exercises the persisted phone API and observable native effects.
   func testDSTFullDayHoursEndAtNextLocalMidnight() throws {
 
