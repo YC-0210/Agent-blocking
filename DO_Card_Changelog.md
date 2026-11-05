@@ -596,3 +596,13 @@ reduced a requested 15-minute monitor to less than Apple's minimum. Backdate the
 start while preserving the exact approved end; retain a one-second truncation margin.
 Signed device build/install passed and a fresh 15-minute command received an applied
 phone acknowledgement. Removed temporary diagnostic logging before the successful run.
+
+
+## Two-minute expiry experiment (2026-11-05)
+
+Per user request, lower the minimum session duration from 15 to 2 minutes in the phone,
+relay and MCP schemas. The previously fixed native monitor start supports short remaining
+intervals without extending the session deadline. Phone maximum/hours/renewal rules remain
+unchanged. New phone expiry and real MCP-to-relay queue tests failed before the change and
+passed after it; 21 Swift and 19 Node tests pass. Signed build installed on the paired
+iPhone; a two-minute start was acknowledged applied. Actual automatic expiry result pending.

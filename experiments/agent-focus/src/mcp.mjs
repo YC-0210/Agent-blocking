@@ -21,7 +21,7 @@ export function createFocusMcp({ relayURL, agentToken }) {
   server.registerTool('start_focus', {
     description: 'Start an approved phone focus session. Read focus_status first for the current modeID; Emergency Unlock rotates it to invalidate old queued requests without disconnecting you. Pending means NOT applied. Use a stable requestId for retries. Never automatically renew after expiry; ask the user first.',
     inputSchema: { deviceId: z.string().uuid(), modeID: id, requestId: id, sessionID: id,
-      durationMinutes: z.number().int().min(15).max(1440), renewalConfirmed: z.boolean().optional() },
+      durationMinutes: z.number().int().min(2).max(1440), renewalConfirmed: z.boolean().optional() },
   }, async ({ deviceId, requestId, ...command }) => result(
     await request(`/v1/devices/${deviceId}/commands`, { id: requestId, action: 'start', ...command })));
   server.registerTool('stop_focus', {

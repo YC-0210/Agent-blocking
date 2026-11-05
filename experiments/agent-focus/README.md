@@ -76,7 +76,9 @@ Tools:
 
 - `pair_phone`: one-use invitation, expires in 10 minutes; includes the relay address, pairing code and phone setup link. Treat the code as private.
 - `focus_status`: last phone-observed policy/session, with `observedAt`; it may be stale.
-- `start_focus`: use the approved `modeID`, duration, fresh session ID, and stable request ID. Refresh focus_status before each start; Emergency Unlock rotates the handle. Reuse the same request ID on retries.
+- `start_focus`: supports sessions from 2 minutes up to the phone-approved maximum.
+  Native monitoring uses an earlier window start to satisfy Apple's 15-minute monitoring
+  minimum without extending the approved blocking deadline. Use the approved `modeID`, duration, fresh session ID, and stable request ID. Refresh focus_status before each start; Emergency Unlock rotates the handle. Reuse the same request ID on retries.
 - `stop_focus`: targets one session; `completed` requires `completionConfirmed: true`, and `break` requires `userInsisted: true`.
 - `command_status`: pending/applied/rejected/expired command result. Only the phone can acknowledge application.
 - Prompt `focus_on_linear_issue`: guides Codex through Linear requirements, focus, breaks and completion approval.

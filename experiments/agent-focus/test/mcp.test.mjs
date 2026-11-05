@@ -100,3 +100,15 @@ test('Codex can discover tools through the real stdio process', async t => {
   const { tools } = await client.listTools();
   assert.deepEqual(tools.map(tool => tool.name).sort(), ['command_status', 'focus_status', 'pair_phone', 'start_focus', 'stop_focus']);
 });
+
+
+test('two-minute expiry test reaches the phone queue through MCP and the relay', async t => {
+  const { client, phone, request } = await fixture(t);
+  const response = await client.callTool({ name: 'start_focus', arguments: {
+    ...input, deviceId: phone.deviceId, durationMinutes: 2,
+  } });
+  assert.notEqual(response.isError, true);
+  assert.equal(value(response).status, 'pending');
+  const queued = await request('/v1/device/commands', undefined, phone.deviceToken);
+  assert.equal(queued.commands[0].durationMinutes, 2);
+});

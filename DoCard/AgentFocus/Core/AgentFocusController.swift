@@ -132,7 +132,7 @@ final class AgentFocusController {
       return FocusReceipt(id: command.id, status: "rejected", reason: "session_already_active")
     }
     if command.action == .start {
-      guard let minutes = command.durationMinutes, minutes >= 15 else {
+      guard let minutes = command.durationMinutes, minutes >= 2 else {
         return FocusReceipt(id: command.id, status: "rejected", reason: "invalid_duration")
       }
     }

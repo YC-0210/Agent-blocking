@@ -4,6 +4,23 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusTests: XCTestCase {
+  func testTwoMinuteSessionExpiresWithoutExtendingItsDeadline() throws {
+    let phone = AgentFocusController(
+      policy: .init(
+        modeID: "work", maximumMinutes: 45, startMinute: 0, endMinute: 1440,
+        timeZone: "Asia/Taipei"))
+    let issued = 1_793_836_800_000.0
+    let command = FocusCommand(
+      id: "short-test", sequence: 1, action: .start, modeID: "work",
+      durationMinutes: 2, sessionID: "two-minutes", issuedAt: issued,
+      expiresAt: issued + 120_000)
+    XCTAssertEqual(phone.receive(command, now: issued + 3_000).status, "applied")
+    XCTAssertEqual(phone.state.session?.endAt, issued + 120_000)
+    try phone.reconcile(now: issued + 120_000)
+    XCTAssertNil(phone.state.session)
+    XCTAssertTrue(phone.state.requiresRenewalApproval)
+  }
+
   func testPhoneRejectsSessionLongerThanApprovedLimit() throws {
     let phone = AgentFocusController(
       policy: .init(

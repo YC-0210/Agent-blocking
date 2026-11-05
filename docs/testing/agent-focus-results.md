@@ -104,3 +104,17 @@ and installation. The debug probe was removed before the successful build. The r
 DeviceActivity error is not reproducible in the Foundation-only package; this is a
 physical-device boundary check, not a new unit test. Visual shield appearance, offline
 expiry and cellular delivery remain separate user/device checks.
+
+
+## Two-minute expiry test setup (2026-11-05)
+
+A new core test requests two minutes with three seconds of delivery delay and checks
+the unchanged deadline, local expiration and renewal requirement. It failed before the
+minimum was lowered to two minutes, then passed (21 Swift total). A real MCP client and
+HTTP relay test likewise failed before schema changes and passed after them (19 Node
+total). Signed Debug phone build/install passed. Restarted relay with its persistent
+database and existing tunnel; used an updated SDK MCP client for the live short command
+because an already running MCP process retains its old input schema until reloaded.
+Phone acknowledged the two-minute session applied, expiring 20:48:26 Asia/Taipei.
+User was asked to background DO Card and check a selected app after expiry without
+opening DO Card; no stop command will be sent for this test. Outcome pending.

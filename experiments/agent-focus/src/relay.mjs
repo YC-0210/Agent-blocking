@@ -6,7 +6,7 @@ import { DatabaseSync } from 'node:sqlite';
 const commandSchema = z.object({
   id: z.string().min(1).max(80), action: z.enum(['start', 'stop']),
   modeID: z.string().min(1).max(80), sessionID: z.string().min(1).max(80),
-  durationMinutes: z.number().int().min(15).max(1440).optional(), renewalConfirmed: z.boolean().optional(),
+  durationMinutes: z.number().int().min(2).max(1440).optional(), renewalConfirmed: z.boolean().optional(),
 }).strict();
 const receiptSchema = z.object({ id: z.string().min(1).max(80),
   status: z.enum(['applied', 'rejected']), reason: z.string().max(100).optional().nullable() }).strict();
