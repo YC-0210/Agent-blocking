@@ -40,7 +40,20 @@ export function registerFocusPickers({ server, request, now = Date.now }) {
     }
   }
   async function open(kind, { deviceId, suggestedMinutes, issue }) {
-    for (const [id, value] of selections) if (now() >= value.expiresAt) selections.delete(id);
+    for (const [id, value] of selections) {
+      if (!value.submission && now() >= value.expiresAt) selections.delete(id);
+    }
+    // Draft expiry must not erase an immutable submission during ordinary use.
+    // Under history pressure, discard only old, idle submitted views; their durable
+    // request receipts remain available through command_status, never resubmitted.
+    if (selections.size >= 100) {
+      for (const [id, value] of selections) {
+        if (value.submission && !value.sending && now() >= value.expiresAt) {
+          selections.delete(id);
+          break;
+        }
+      }
+    }
     if (selections.size >= 100) throw new Error('too_many_open_pickers');
     const observed = await phone(deviceId);
     const snapshot = observed.snapshot;

@@ -181,8 +181,15 @@ final class AgentFocusController {
     calendar.timeZone = zone
     let date = Date(timeIntervalSince1970: now / 1000)
     let dayStart = calendar.startOfDay(for: date)
-    let windowStart = calendar.date(byAdding: .minute, value: policy.startMinute, to: dayStart)!
-    let windowEnd = calendar.date(byAdding: .minute, value: policy.endMinute, to: dayStart)!
+    // Approved hours are wall-clock times, not elapsed minutes on a 23/25-hour day.
+    func boundary(_ minute: Int) -> Date? {
+      if minute == 1440 { return calendar.date(byAdding: .day, value: 1, to: dayStart) }
+      return calendar.date(
+        bySettingHour: minute / 60, minute: minute % 60, second: 0, of: dayStart,
+        matchingPolicy: .nextTime, repeatedTimePolicy: .first, direction: .forward)
+    }
+    guard let windowStart = boundary(policy.startMinute), let windowEnd = boundary(policy.endMinute)
+    else { return FocusReceipt(id: command.id, status: "rejected", reason: "invalid_policy") }
     let endAt = min(command.issuedAt, now) + Double(command.durationMinutes ?? 0) * 60000
     guard date >= windowStart, endAt <= windowEnd.timeIntervalSince1970 * 1000 else {
       return FocusReceipt(id: command.id, status: "rejected", reason: "outside_approved_hours")

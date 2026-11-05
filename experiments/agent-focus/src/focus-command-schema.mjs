@@ -15,7 +15,8 @@ export const commandSchema = z.object({
     ? command.maximumMinutes !== undefined && command.expectedMaximumMinutes !== undefined &&
       command.userConfirmed === true && command.sessionID === undefined &&
       command.durationMinutes === undefined && command.renewalConfirmed === undefined
-    : command.sessionID !== undefined && command.maximumMinutes === undefined &&
+    : command.sessionID !== undefined && (command.action !== 'start' || command.durationMinutes !== undefined) &&
+      command.maximumMinutes === undefined &&
       command.expectedMaximumMinutes === undefined && command.userConfirmed === undefined;
   if (!valid) context.addIssue({ code: 'custom', message: 'Session and maximum changes must be separate' });
 });
