@@ -24,7 +24,7 @@ async function fixture(t) {
   }
   const invite = await request('/v1/pairings', {});
   const phone = await request('/v1/pairings/redeem', { code: invite.code });
-  return { client, request, phone };
+  return { client, request, phone, url, token };
 }
 const input = { requestId: 'command-1', modeID: 'work', durationMinutes: 30, sessionID: 'session-1' };
 const value = response => JSON.parse(response.content[0].text);
@@ -192,5 +192,47 @@ test('a picker cannot overwrite a newer phone policy or a newer draft revision',
   const rejected = await client.callTool({ name: 'confirm_focus_selection', arguments: { selectionId: opened.id, revision: 2, userConfirmed: true } });
   assert.equal(rejected.isError, true);
   assert.match(rejected.content[0].text, /policy_changed/);
+  assert.equal((await request('/v1/device/commands', undefined, phone.deviceToken)).commands.length, 0);
+});
+
+
+test('confirmation cannot cross a concurrent chat revision or proposal expiry during the phone check', async t => {
+  const { phone, request, url, token } = await fixture(t);
+  await request('/v1/device/snapshot', { modeID: 'work', maximumMinutes: 45, requiresRenewalApproval: false }, phone.deviceToken);
+  const { createServer } = await import('node:http');
+  let armed = false, entered, resume;
+  const proxy = createServer(async (req, res) => {
+    if (armed && req.method === 'GET' && req.url === `/v1/devices/${phone.deviceId}`) {
+      armed = false; entered(); await new Promise(resolve => { resume = resolve; });
+    }
+    const chunks = []; for await (const chunk of req) chunks.push(chunk);
+    const upstream = await fetch(url + req.url, { method: req.method,
+      headers: { authorization: req.headers.authorization, 'content-type': 'application/json' },
+      ...(chunks.length ? { body: Buffer.concat(chunks) } : {}) });
+    res.writeHead(upstream.status, { 'content-type': 'application/json' }); res.end(await upstream.text());
+  });
+  await new Promise(resolve => proxy.listen(0, '127.0.0.1', resolve));
+  let clock = Date.now();
+  const server = createFocusMcp({ relayURL: `http://127.0.0.1:${proxy.address().port}`, agentToken: token, now: () => clock });
+  const client = new Client({ name: 'concurrent-codex', version: '1.0.0' });
+  const [a,b] = InMemoryTransport.createLinkedPair(); await server.connect(b); await client.connect(a);
+  t.after(async () => { await client.close(); await server.close(); await new Promise(resolve => proxy.close(resolve)); });
+  async function blockedConfirmation(draft, change) {
+    const waiting = new Promise(resolve => { entered = resolve; }); armed = true;
+    const confirmation = client.callTool({ name: 'confirm_focus_selection', arguments: {
+      selectionId: draft.id, revision: draft.revision, userConfirmed: true,
+    } });
+    await waiting;
+    await change(); resume();
+    const result = await confirmation;
+    assert.equal(result.isError, true);
+    return result;
+  }
+  const opened = (await client.callTool({ name: 'select_focus_maximum', arguments: { deviceId: phone.deviceId, suggestedMinutes: 60 } })).structuredContent.selection;
+  const revised = await blockedConfirmation(opened, () => client.callTool({ name: 'revise_focus_selection', arguments: { selectionId: opened.id, minutes: 1440 } }));
+  assert.match(revised.content[0].text, /selection_changed/);
+  const expiring = (await client.callTool({ name: 'select_focus_maximum', arguments: { deviceId: phone.deviceId, suggestedMinutes: 60 } })).structuredContent.selection;
+  const expired = await blockedConfirmation(expiring, async () => { clock += 600001; });
+  assert.match(expired.content[0].text, /selection_expired/);
   assert.equal((await request('/v1/device/commands', undefined, phone.deviceToken)).commands.length, 0);
 });

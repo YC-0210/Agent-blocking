@@ -122,17 +122,23 @@ export function registerFocusPickers({ server, request, now = Date.now }) {
     if (selection.revision !== revision) throw new Error('selection_changed: refresh and review the new value before confirming');
     if (!selection.submission) {
       const observed = await phone(selection.deviceId);
+      // The draft remains editable during network I/O. Revalidate after the last await,
+      // then bind the exact displayed revision and payload without yielding again.
+      find(selectionId);
+      if (selection.revision !== revision) {
+        throw new Error('selection_changed: review the latest value before confirming');
+      }
       if (observed.snapshot.modeID !== selection.modeID ||
         observed.snapshot.maximumMinutes !== selection.currentMaximumMinutes) {
         throw new Error('policy_changed: open a new picker with current phone settings');
       }
       if (selection.kind === 'session' && observed.snapshot.sessionID) throw new Error('session_active');
       validate(selection, selection.minutes);
-      selection.submission = selection.kind === 'maximum'
+      if (!selection.submission) selection.submission = Object.freeze(selection.kind === 'maximum'
         ? { id: selection.requestId, action: 'set_maximum', modeID: selection.modeID,
           maximumMinutes: selection.minutes, expectedMaximumMinutes: selection.currentMaximumMinutes, userConfirmed: true }
         : { id: selection.requestId, action: 'start', modeID: selection.modeID,
-          durationMinutes: selection.minutes, sessionID: `session-${selection.id}`, renewalConfirmed: true };
+          durationMinutes: selection.minutes, sessionID: `session-${selection.id}`, renewalConfirmed: true });
     }
     if (!selection.sending) {
       // Stable payload survives a lost response; concurrent/repeated clicks cannot create new sessions.

@@ -2,7 +2,7 @@ import { App } from '@modelcontextprotocol/ext-apps';
 
 const app = new App({ name: 'DO Card focus timeline', version: '0.2.0' }, {}, { autoResize: true });
 const el = id => document.getElementById(id);
-let selection, minutes, editRevision, dirty = false, working = false, timer, saving, expiryTimer, lastContext;
+let selection, minutes, editRevision, dirty = false, working = false, timer, saving, expiryTimer, lastContext, axisWindow = 180;
 const terminal = new Set(['applied', 'rejected', 'expired']);
 const submitted = () => selection && selection.phase !== 'draft';
 const valid = () => Number.isInteger(minutes) && minutes >= selection.minMinutes && minutes <= selection.maxMinutes;
@@ -42,7 +42,11 @@ function render() {
   const maximum = selection.kind === 'maximum';
   const blocked = working || Boolean(saving) || submitted();
   const safeMinutes = Number.isFinite(minutes) ? minutes : selection.minMinutes;
-  const axisMax = maximum ? Math.max(180, Math.min(1440, Math.ceil(safeMinutes / 60) * 60)) : selection.maxMinutes;
+  const neededScale = [180, 360, 720, 1440].find(n => n >= safeMinutes) ?? 1440;
+  const axisMax = maximum ? Math.max(axisWindow, neededScale) : selection.maxMinutes;
+  el('scale-control').hidden = !maximum;
+  el('scale').value = String(axisMax);
+  el('scale').disabled = blocked;
   el('picker').hidden = false;
   document.querySelector('main').setAttribute('aria-busy', String(working));
   el('kind').textContent = maximum ? 'Maximum lock time' : 'Session duration';
@@ -134,6 +138,7 @@ function flush() {
   render();
   return saving;
 }
+el('scale').onchange = event => { axisWindow = Number(event.target.value); render(); };
 el('timeline').oninput = event => edit(event.target.value);
 el('timeline').onchange = () => flush().catch(failure);
 el('minutes').oninput = event => edit(event.target.value);
