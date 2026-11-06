@@ -28,6 +28,23 @@ with Done. Release builds do not include this view or launch behavior.
 
 ## Automatic identification prerequisites
 
+After installing/selecting the newer Xcode, accepting its license and completing
+its first-launch setup, build the opt-in identification experiment with:
+
+```sh
+bash tools/selected-app-icons/build-identification.sh IPHONE_HARDWARE_UDID
+```
+
+This generates a temporary copy of the main app's entitlements with the usage
+capability added. It enables the compile gate for the build and asks automatic
+signing to update the development profile. Extensions retain their own existing
+entitlements. Normal Debug and Release builds retain their original entitlements.
+If the team cannot provision this capability, signing must fail; do not remove the
+entitlement or force signing to make the test appear to pass. The script finishes
+by checking the embedded profile and SDK. It does not install or launch the app.
+Omit the hardware UDID to build for a generic physical iOS device while waiting
+for the paired phone to be unlocked.
+
 ```sh
 python3 tools/selected-app-icons/preflight.py \
   --profile /path/to/DoCard.app/embedded.mobileprovision
@@ -92,3 +109,12 @@ existing core tests pass. These checks do not validate the gated new SDK symbols
 or the data-access permission transition; those require the pending Xcode update
 and a qualifying development profile. The prepared build has not been installed
 over the local rendering experiment.
+
+After the Xcode update: Xcode 27.2 (27B52) successfully type-checks the API and
+builds the full Debug app with `DO_CARD_APP_DATA_ACCESS_PROBE` and signing
+disabled. All 85 existing core tests also pass under the updated toolchain.
+Signing currently fails because Xcode reports **No Accounts**, and the cached
+profile lacks the usage capability. No identification build has been installed.
+Sign in to Xcode Settings → Accounts, load the developer team, and rerun the
+signed build script. Verify its embedded profile before installation. Unlock the
+paired iPhone to allow the updated development services to initialize.

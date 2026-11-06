@@ -25,7 +25,13 @@ func probe() async throws {
   }
 }
 """
-sdk = subprocess.check_output(["xcrun", "--sdk", "iphoneos", "--show-sdk-path"], text=True).strip()
+try:
+    sdk = subprocess.check_output(
+        ["xcrun", "--sdk", "iphoneos", "--show-sdk-path"], text=True,
+        stderr=subprocess.DEVNULL).strip()
+except (OSError, subprocess.CalledProcessError):
+    print("SDK unavailable — open Xcode, accept its license and finish installing required components.")
+    raise SystemExit(1)
 with tempfile.TemporaryDirectory(prefix="docard-icon-sdk-") as directory:
     source = pathlib.Path(directory) / "Probe.swift"
     source.write_text(probe)

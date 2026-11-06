@@ -911,10 +911,11 @@
 			baseConfigurationReference = A011C0DEA011C0DEA011C0DE /* PostHog.xcconfig */;
 			buildSettings = {
 				DO_CARD_POSTHOG_ENVIRONMENT = development;
+				DO_CARD_AGENT_APP_ENTITLEMENTS = DoCard/DoCard.entitlements;
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = DoCard/DoCard.entitlements;
+				CODE_SIGN_ENTITLEMENTS = "$(DO_CARD_AGENT_APP_ENTITLEMENTS)";
 				DO_CARD_APNS_ENVIRONMENT = development;
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;

@@ -18,10 +18,17 @@
       NavigationStack {
         List {
           Section {
-            Text("Local icon experiment")
-            Text(
-              "Compare the native icon on the left with the rendered image on the right. A blank or generic image is a failed capture, even if an image was returned."
-            )
+            #if DO_CARD_APP_DATA_ACCESS_PROBE
+              Text("Local app identification experiment")
+              Text(
+                "Tap Allow local app identification and approve Apple's permission prompt. A successful match shows the app's bundle identifier under its name. This does not capture or upload icon images."
+              )
+            #else
+              Text("Local icon experiment")
+              Text(
+                "Compare the native icon on the left with the rendered image on the right. A blank or generic image is a failed capture, even if an image was returned."
+              )
+            #endif
             Text("Nothing is uploaded. This does not change your blocked apps, limits or session.")
           }
           Section("Selected apps: \(selection.applicationTokens.count)") {
@@ -35,18 +42,22 @@
                   }
                 }
                 Spacer()
-                if let image = renders[token] {
-                  Image(uiImage: image).resizable().frame(width: 48, height: 48)
-                    .border(.secondary)
-                } else {
-                  Text(attemptedRender ? "No image" : "Not tested").font(.caption)
-                }
+                #if !DO_CARD_APP_DATA_ACCESS_PROBE
+                  if let image = renders[token] {
+                    Image(uiImage: image).resizable().frame(width: 48, height: 48)
+                      .border(.secondary)
+                  } else {
+                    Text(attemptedRender ? "No image" : "Not tested").font(.caption)
+                  }
+                #endif
               }
             }
           }
           Section {
-            Button("Try rendering selected icons") { render() }
-              .disabled(selection.applicationTokens.isEmpty)
+            #if !DO_CARD_APP_DATA_ACCESS_PROBE
+              Button("Try rendering selected icons") { render() }
+                .disabled(selection.applicationTokens.isEmpty)
+            #endif
             Button("Check automatic identification") { Task { await identify() } }
               .disabled(selection.applicationTokens.isEmpty)
             #if DO_CARD_APP_DATA_ACCESS_PROBE
@@ -87,7 +98,7 @@
         if #available(iOS 26.4, *) {
           guard AuthorizationCenter.shared.authorizationStatus == .approvedWithDataAccess else {
             message =
-              "Data access has not been approved. This probe does not request or change authorization."
+              "Data access has not been approved. Tap Allow local app identification to request Apple's permission."
             return
           }
           do {
