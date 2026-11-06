@@ -1,8 +1,12 @@
-import { defineRailway, project, service, volume } from "railway/iac";
+import { defineRailway, github, project, service, volume } from "railway/iac";
 
 export default defineRailway(() => {
   const relayVolume = volume("relay-volume", { alerts: { usage: { "100": {}, "80": {}, "95": {} } }, allowOnlineResize: true, region: "iad", sizeMB: 500 });
   const relay = service("relay", {
+    source: github("YC-0210/Agent-blocking", {
+      branch: "codex/agent-focus-integration",
+      rootDirectory: "/experiments/agent-focus",
+    }),
     build: { buildEnvironment: "V3", builder: "DOCKERFILE", dockerfilePath: "Dockerfile" },
     deploy: {
       sleepApplication: false,

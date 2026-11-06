@@ -6,17 +6,20 @@ require the agent to run. Phone execution remains subject to iOS/APNs availabili
 
 ## Service configuration
 
-The current deployment uses CLI source uploads from this directory. Link the
-intended project/service, then run `npm ci`, `railway config plan`, and
-`railway config apply --yes` to apply `.railway/railway.ts`. Review the plan first:
-it must retain the relay volume. Run `railway up . --path-as-root` to upload and
-deploy the Docker source after setting the secrets below. The `railway` SDK is a
-development dependency for configuration commands, excluded from the runtime image.
+The relay is connected to `YC-0210/Agent-blocking`, branch
+`codex/agent-focus-integration`, with root directory `/experiments/agent-focus`.
+GitHub deployments build this directory's Dockerfile. Source, branch and root are
+declared in `.railway/railway.ts`. Link the existing project/service, then run
+`npm ci`, `railway config plan`, and `railway config apply --yes` to apply it. Review
+the plan first: it must retain the relay volume. The `railway` SDK is a development
+dependency for configuration commands, excluded from the runtime image. CLI source
+uploads remain a manual fallback; they are no longer the configured source.
 
 Railway's older `railway.json` format cannot configure new services and stops
 being read on December 1, 2026. This project uses the current IaC format instead.
 Secrets are unmanaged by IaC and remain in Railway; configuration planning does
-not read their values into the source. GitHub autodeployment is not connected.
+not read their values into the source. GitHub is connected to the standalone
+Agent-blocking repository.
 
 Attach a persistent volume mounted at `/data` **before deployment**. The IaC file
 declares that mount and disables sleeping, runs one replica, checks `/healthz`, and
@@ -158,3 +161,20 @@ and DO Card closed. This includes mode and maximum rejection, idempotency, stop
 ownership, visible lock/unlock, expiry and unconfirmed-renewal rejection. See the
 [case-by-case report](../../docs/testing/railway-ten-e2e.md). No additional product
 changes were needed; a blank capture was rerun and manually verified.
+
+## Standalone repository cutover
+
+The standalone checkout is `/Users/chen/Documents/ChatGPT/Agent-blocking`. The saved
+Codex `docard_focus` entry runs
+`/Users/chen/Documents/ChatGPT/Agent-blocking/experiments/agent-focus/src/mcp-main.mjs`
+and reads its token from that directory's ignored `.local/agent-token` (mode 600).
+Run `npm ci` in the agent-focus directory before starting the MCP process. A private
+Codex configuration backup was retained outside the repository. Existing running
+MCP connections may retain their original process until reconnected; use a fresh
+stdio connection to verify the configured executable immediately.
+
+The existing Railway project, service, `/data` volume, secrets, HTTPS origin and
+paired phone are reused. Repository migration needs no new pairing or native app
+installation. The old DOCard-ios remote integration branch was removed after the
+full branch history was copied to Agent-blocking. Other DO Card worktrees retain
+their existing remotes.
