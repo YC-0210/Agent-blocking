@@ -1,3 +1,95 @@
+# 2026-11-06 — Ten-case Railway physical regression suite
+
+Passed 10/10 actual cloud command/phone/X scenarios with the local relay/tunnel
+unloaded and DO Card closed: invalid mode, above-maximum duration, cold start,
+start retry/conflict, wrong-session stop, correct stop, duplicate stop, old-session
+stop protection, automatic expiry, and unconfirmed-renewal rejection. Expiry phone
+state cleared +0.603 seconds; X visibly accessible at first capture +3.394 seconds.
+A blank launch screenshot was excluded and its case rerun after a capture delay
+adjustment. No additional product failure or app/server source change. Existing
+45-minute maximum, two-app selection/identity and mode remained unchanged. No
+active session remains; renewal approval is required as designed. Exact evidence,
+commands and limits: docs/testing/railway-ten-e2e.md.
+
+# 2026-11-06 — Railway automatic-expiry physical verification
+
+Passed a two-minute cloud session with DO Card terminated and no stop command.
+Stopped the local launchd relay and tunnel (SIGTERM alone restarted the relay),
+confirmed no port 8787 listener, and left both services unloaded. X showed its
+shield 9.720 seconds before expiry and its normal feed at the first post-expiry
+capture, 4.128 seconds after the deadline. Railway received the cleared phone
+snapshot 1.640 seconds after expiry. Final process inventory had no main-app
+process; the session is inactive, 45-minute maximum and two-app selection unchanged.
+Renewal approval is required after expiry as designed. No source/build changes.
+Evidence and mechanism-isolation limits: docs/testing/railway-lock-unlock.md.
+
+# 2026-11-06 — Railway hosting for the agent focus relay
+
+Follow-up native enforcement repair: a cold main-app launch reused persisted phone
+approval without restoring Family Controls authorization in that process. A controlled
+physical test showed notDetermined/empty store/X accessible before refresh versus
+approved/two applications/X visibly shielded afterward. AgentFocusDevice now provides
+a main-actor preparation call, awaited by AgentFocusRuntime before reconciliation and
+delivery. It restores the existing individual grant only when status is undetermined;
+known-denial handling and user approval remain intact. No selection reset or migration.
+The attempted notification-extension refresh stalled and was removed; final extension
+source is unchanged. Temporary native logging and debug flags were removed.
+
+Final validation: clean signed iPhone Debug build passed; all 89 Swift tests passed.
+Repeated physical checks included a successful cold-process cycle on the final clean
+build: Railway start applied, X visibly shielded, Railway stop applied, X normal again.
+No DO Card foreground fallback was needed for either command. The final session is
+inactive; two selected apps and the 45-minute maximum are unchanged. Exact command IDs
+and limits are in docs/testing/railway-lock-unlock.md. Automatic expiry/reboot/offline
+recovery were not established by these explicit start/stop checks.
+
+Design rationale: remove the Mac's always-on relay/tunnel requirement while retaining
+the current authenticated queue, APNs adapter, persistent SQLite and one-second
+expiry recovery worker. Choose a single persistent Node container over a serverless
+rewrite so deadline recovery keeps its existing behavior. Local stdio MCP/agent
+execution remains on the Mac.
+
+Changed: relay runner accepts environment secrets and configurable host binding;
+GET /healthz verifies database readiness; added a restricted Docker build context,
+Railway manifest requiring /data with sleeping disabled, process-level hosting
+tests, and a deployment/phone-cutover guide. Railway account provisioning revealed
+the old railway.json format cannot configure new services; replaced it with
+.railway/railway.ts and a development-only Railway SDK dependency.
+Not changed: iOS extensions, Screen Time authorization, Emergency Unlock, NFC,
+subscriptions, SwiftData/migrations, command/receipt contracts and expiry job logic.
+
+Validation: full Node suite passed 115 tests, including environment-secret startup,
+file-based startup, protected APIs, health response and durable pairing across a
+real relay process restart. Docker image built successfully; a container smoke check
+passed health/authentication and pairing persistence across a container restart with
+a mounted volume. Live IaC plan/apply succeeded for the new docard-focus project,
+relay service and 500 MB /data volume. A Railway HTTPS domain is reserved and the
+existing agent token and user-supplied APNs key are stored privately. Deployment
+56fe86d4-2396-499d-96b7-cb598f208eae succeeded. Cloud health/auth checks and a real
+stdio MCP handshake/pair_phone passed. Only allowlisted source files were uploaded.
+Saved Codex relay URL now targets Railway, with a private configuration backup.
+Phone approval is complete. Follow-up verification exposed a native push-token race:
+performSync could clear a newly received token after an older pass captured nil.
+AgentFocusRuntime now retains the token for the process lifetime, allowing later
+syncs and changed relay pairings to register it. Subsequent registration is idempotent.
+Temporary callback logging was removed. The final physical iPhone Debug build passed
+and was installed as an overlay; 89 Swift tests passed. No schema migration occurred.
+
+Real-device red/green evidence: before repair, diagnostic delivery returned
+phone_registration_required after reopening; after repair, APNs accepted a harmless
+invalid-stop diagnostic while DO Card was backgrounded, and the phone acknowledged
+rejection with mode_not_approved. Its mode handle, 45-minute maximum and inactive
+session stayed unchanged. Fresh real stdio MCP status resolved the cloud phone.
+After the owner restarted Codex, actual cloud lock/unlock testing was explicitly
+authorized. Two finite starts and matching stops were acknowledged applied by the
+phone, but X remained accessible both before and after foreground reconciliation.
+The owner confirmed X was selected. Both sessions were stopped; visible locking
+is not verified, and automatic expiry remains untested. Root cause is not yet
+established. See docs/testing/railway-lock-unlock.md. The restarted MCP reaches
+Railway; its leftover old default device ID was corrected in the saved config.
+
+---
+
 # 2026-11-05 — opt-in MCP agent focus experiment
 
 Design rationale: let the owner use Codex to tackle a Linear issue while their phone

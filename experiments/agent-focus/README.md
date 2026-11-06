@@ -12,6 +12,9 @@ Use a separate relay port (8788), database, tunnel and MCP entry for this worktr
 
 ## What runs where
 
+To host the relay without keeping the Mac awake, follow [Railway deployment](RAILWAY.md).
+This includes a Docker image, persistent volume requirements, and the phone cutover.
+
 - **Codex on Mac:** connected Linear tools plus this local stdio MCP server.
 - **Relay:** Node HTTP server, persistent SQLite database and APNs sender. For the experiment it can run on the same Mac behind an HTTPS tunnel. Keep the Mac awake and both processes running.
 - **iPhone:** native app selection and policy approval, command execution, independent local expiry and Emergency Unlock. No Linear credentials or Screen Time histories leave the phone.

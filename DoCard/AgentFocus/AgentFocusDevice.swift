@@ -15,6 +15,15 @@ enum AgentFocusDevice {
     case unavailable, unauthorized, emptySelection, activeSession
   }
 
+  @MainActor
+  static func prepareAuthorization() async throws {
+    // AuthorizationCenter starts undetermined in every process. Restore the
+    // existing individual grant before opening the native settings store.
+    if AuthorizationCenter.shared.authorizationStatus == .notDetermined {
+      try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+    }
+  }
+
   static func receive(_ command: FocusCommand, pairingID: String) throws -> FocusReceipt {
     try phone().receive(command, pairingID: pairingID)
   }

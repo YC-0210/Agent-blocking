@@ -104,6 +104,10 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
     try {
       db.prepare("UPDATE commands SET status = 'expired', reason = 'delivery_expired' WHERE status = 'pending' AND json_extract(command, '$.expiresAt') <= ?").run(now());
       const path = new URL(req.url, 'http://localhost').pathname;
+      if (req.method === 'GET' && path === '/healthz') {
+        db.prepare('SELECT 1').get();
+        return send(200, { status: 'ok' });
+      }
       const isAgent = matches(req.headers.authorization, `Bearer ${agentToken}`);
       if (req.method === 'POST' && path === '/v1/pairings/redeem') {
         const { code } = await readBody(req);

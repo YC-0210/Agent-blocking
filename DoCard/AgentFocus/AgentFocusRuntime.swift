@@ -241,6 +241,7 @@ final class AgentFocusRuntime: ObservableObject {
 
   private func performSync() async {
     do {
+      try await AgentFocusDevice.prepareAuthorization()
       try AgentFocusDevice.reconcile()
       let pairing = try AgentFocusPairingStore.load()
       // Show reconciled local state before the relay's network wait.
@@ -262,7 +263,8 @@ final class AgentFocusRuntime: ObservableObject {
       if result == .synced {
         if connectionPending { message = "" }
         connectionPending = false
-        pushToken = nil
+        // Retain the token across syncs and relay changes. Registration can arrive
+        // while a pass that captured nil is awaiting the network.
       } else {
         connectionPending = true
         message =
