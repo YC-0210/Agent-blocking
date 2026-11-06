@@ -9,6 +9,7 @@ targets:
     sources:
       - path: App
       - path: ../../DoCard/AgentFocus.xcstrings
+      - path: ../../DoCard/AgentFocus/Core
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: online.do.agent.ui.capture

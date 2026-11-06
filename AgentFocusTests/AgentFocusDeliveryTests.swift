@@ -8,7 +8,8 @@ final class AgentFocusDeliveryTests: XCTestCase {
     let fixture = try DeliveryFixture()
     defer { fixture.cleanup() }
     try fixture.phone.saveAppGroup(
-      name: "Deep Work", selection: "SECRET-SELECTION-TOKEN", pairingID: "device",
+      name: "Instagram", selection: "SECRET-SELECTION-TOKEN", pairingID: "device",
+      iconKey: "instagram",
       expectedModeID: try XCTUnwrap(fixture.phone.status()?.policy.modeID))
     let outcome = await fixture.worker.run(expiryCheck: true)
     XCTAssertEqual(outcome, .expiryChecked)
@@ -16,8 +17,9 @@ final class AgentFocusDeliveryTests: XCTestCase {
     let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     let groups = try XCTUnwrap(snapshot["appGroups"] as? [[String: Any]])
     XCTAssertEqual(groups.count, 2)
-    XCTAssertEqual(groups[1]["name"] as? String, "Deep Work")
-    XCTAssertEqual(Set(groups[1].keys), Set(["id", "name"]))
+    XCTAssertEqual(groups[1]["name"] as? String, "Instagram")
+    XCTAssertEqual(groups[1]["iconKey"] as? String, "instagram")
+    XCTAssertEqual(Set(groups[1].keys), Set(["id", "name", "iconKey"]))
     XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("SECRET-SELECTION-TOKEN"))
   }
 

@@ -4,6 +4,32 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentAppGroupTests: XCTestCase {
+  func testChangingThePrivateSelectionClearsItsPreviouslyConfirmedAppIdentity() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let phone = AgentFocusPhone<String>(
+      directory: directory, emergency: .init(read: { nil }, write: { _ in }),
+      now: { 1_793_836_800_000 }, apply: { _, _ in }, release: {})
+    try phone.approve(
+      policy: .init(
+        modeID: "approved", maximumMinutes: 45,
+        startMinute: 0, endMinute: 1440, timeZone: "Asia/Taipei"), selection: "private",
+      pairingID: "phone")
+    try phone.saveAppGroup(
+      id: "default", name: "Instagram", selection: "private", pairingID: "phone",
+      iconKey: "instagram", expectedModeID: "approved")
+    XCTAssertEqual(try phone.status()?.appGroups.first?.iconKey, "instagram")
+    let mode = try XCTUnwrap(phone.status()?.policy.modeID)
+    XCTAssertThrowsError(
+      try phone.saveAppGroup(
+        id: "default", name: "Bad", selection: "private",
+        pairingID: "phone", iconKey: "https://invalid.test/tracker", expectedModeID: mode))
+    try phone.updateSelection("different-private", pairingID: "phone", expectedModeID: mode)
+    XCTAssertNil(try phone.status()?.appGroups.first?.iconKey)
+    XCTAssertEqual(
+      try phone.appSelection(groupID: "default", pairingID: "phone"), "different-private")
+  }
+
   func testIdleSelectionEditorAndDefaultGroupShareTheSameSelection() throws {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }

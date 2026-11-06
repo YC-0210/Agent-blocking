@@ -14,7 +14,8 @@ async function picker(locale, languages = ['en-US']) {
     return elements.get(id);
   };
   const document = { documentElement: {}, getElementById: element, querySelector: element,
-    createElement: () => ({}) };
+    createElement: () => ({ children: [], append(...children) { this.children.push(...children); },
+      setAttribute(name, value) { this[name] = value; } }) };
   let host;
   const calls = [];
   class App {
@@ -27,13 +28,13 @@ async function picker(locale, languages = ['en-US']) {
   const source = readFileSync(new URL('../src/ui/focus-picker.mjs', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '');
   vm.runInNewContext(source, { App, resolveLocale, translate, errorMessage, rejectionMessage,
-    document, navigator: { languages }, Intl, Date, setInterval: () => 1, clearInterval() {},
+    appIcon: () => '<svg></svg>', document, navigator: { languages }, Intl, Date, setInterval: () => 1, clearInterval() {},
     setTimeout: () => 1, clearTimeout() {} });
   await new Promise(resolve => setImmediate(resolve));
   return { host, calls, document, element, show(selection) {
     host.ontoolresult({ structuredContent: { selection: { id: 'test', revision: 1, kind: 'session',
       minutes: 30, minMinutes: 2, maxMinutes: 45, currentMaximumMinutes: 45,
-      timeZone: 'Asia/Taipei', phase: 'draft', ...selection } } });
+      timeZone: 'Asia/Taipei', phase: 'draft', appGroups: [{ id: 'instagram', name: 'Instagram', iconKey: 'instagram' }], appGroupID: 'instagram', ...selection } } });
   } };
 }
 
@@ -100,14 +101,25 @@ test('host locale changes retranslate the current picker without resetting draft
   assert.deepEqual(ui.calls, []);
 });
 
-test('Chinese app-group controls retain authored aliases and never send a command on render', async () => {
+test('app chips show the confirmed name and icon beside the slider without group controls or commands', async () => {
   const ui = await picker('zh-TW');
-  ui.show({ appGroups: [{ id: 'work', name: 'My work' }], appGroupID: 'work' });
+  ui.show({ appGroups: [{ id: 'work', name: 'Instagram', iconKey: 'instagram' }], appGroupID: 'work' });
   assert.equal(ui.element('review-apps').textContent, '在 iPhone 檢視或變更');
-  assert.equal(ui.element('refresh-groups').textContent, '重新整理群組');
-  assert.equal(ui.element('app-group').children[0].textContent, 'My work');
-  assert.equal(ui.element('app-group').value, 'work');
+  assert.equal(ui.element('refresh-groups').textContent, '重新整理 App');
+  const chip = ui.element('app-options').children[0];
+  assert.equal(chip['aria-pressed'], 'true');
+  assert.equal(chip.children[1].textContent, 'Instagram');
+  assert.match(chip.children[0].innerHTML, /svg/);
   assert.deepEqual(ui.calls, []);
   ui.show({ kind: 'maximum', minutes: 45, minMinutes: 15, maxMinutes: 1440 });
   assert.equal(ui.element('groups').hidden, true);
+});
+
+test('legacy selections are never inferred to be Instagram and require an explicit phone association', async () => {
+  const ui = await picker('en');
+  ui.show({ appGroups: [{ id: 'default', name: 'Saved apps' }], appGroupID: 'default' });
+  assert.equal(ui.element('app-options').children.length, 0);
+  assert.equal(ui.element('confirm').disabled, true);
+  assert.equal(ui.element('confirm').textContent, 'Choose an app on iPhone');
+  assert.deepEqual(ui.calls, []);
 });

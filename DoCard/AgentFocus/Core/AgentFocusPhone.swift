@@ -5,6 +5,23 @@ import Foundation
 struct AgentAppGroup: Codable, Equatable, Sendable, Identifiable {
   let id: String
   let name: String
+  var iconKey: String? = nil
+}
+
+/// An identity explicitly chosen by the person, never inferred from a Screen Time token.
+enum AgentAppIdentity: String, CaseIterable {
+  case instagram, tiktok, youtube, facebook, reddit, x, other
+  var displayName: String {
+    switch self {
+    case .instagram: "Instagram"
+    case .tiktok: "TikTok"
+    case .youtube: "YouTube"
+    case .facebook: "Facebook"
+    case .reddit: "Reddit"
+    case .x: "X"
+    case .other: "Other app"
+    }
+  }
 }
 
 struct AgentEmergencyCancellation: Codable {
@@ -129,7 +146,10 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       guard let index = saved.firstIndex(where: { $0.summary.id == "default" }) else {
         throw Failure.invalidGroup
       }
-      saved[index] = SavedGroup(summary: saved[index].summary, selection: selection)
+      // Editing the private selection invalidates its previously confirmed display identity.
+      var summary = saved[index].summary
+      summary.iconKey = nil
+      saved[index] = SavedGroup(summary: summary, selection: selection)
       record.appGroups = saved
       // Queued starts approved for the previous app selection must not apply to the new one.
       record.policy = mode(policy, id: UUID().uuidString)
@@ -146,7 +166,8 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
   /// A local, explicitly approved edit. It invalidates older chat proposals without changing limits.
   @discardableResult
   func saveAppGroup(
-    id: String? = nil, name: String, selection: Selection, pairingID: String, expectedModeID: String
+    id: String? = nil, name: String, selection: Selection, pairingID: String,
+    iconKey: String? = nil, expectedModeID: String
   ) throws
     -> AgentAppGroup
   {
@@ -164,7 +185,8 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
         !trimmed.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
       else { throw Failure.invalidGroup }
       var saved = groups(in: record)
-      let summary = AgentAppGroup(id: id ?? UUID().uuidString, name: trimmed)
+      if let iconKey, AgentAppIdentity(rawValue: iconKey) == nil { throw Failure.invalidGroup }
+      let summary = AgentAppGroup(id: id ?? UUID().uuidString, name: trimmed, iconKey: iconKey)
       if let id {
         guard let index = saved.firstIndex(where: { $0.summary.id == id }) else {
           throw Failure.invalidGroup

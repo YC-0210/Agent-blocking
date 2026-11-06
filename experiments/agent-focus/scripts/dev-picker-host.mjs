@@ -10,7 +10,7 @@ import { createRelay } from '../src/relay.mjs';
 import { createFocusMcp } from '../src/mcp.mjs';
 const port = Number(process.env.FOCUS_UI_PORT ?? 8792);
 const origin = `http://127.0.0.1:${port}`;
-const appGroups = [{ id: 'default', name: 'Saved apps' }, { id: 'deep-work', name: 'Deep Work' }];
+const appGroups = [{ id: 'default', name: 'Instagram', iconKey: 'instagram' }, { id: 'youtube', name: 'YouTube', iconKey: 'youtube' }];
 const token = randomBytes(32).toString('hex');
 const relay = createRelay({ agentToken: token, database: ':memory:' });
 await new Promise(resolve => relay.server.listen(0, '127.0.0.1', resolve));

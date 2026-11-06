@@ -62,6 +62,19 @@ test('malformed snapshots cannot replace the last phone-observed approval', asyn
   assert.equal(observed.body.snapshot.startMinute, 480);
 });
 
+test('phone-authored app identities sync only approved local icon keys, never arbitrary icon URLs', async t => {
+  const { request, pair } = await fixture(t);
+  const phone = await pair();
+  const appGroups = [{ id: 'instagram-choice', name: 'Instagram', iconKey: 'instagram' }];
+  assert.equal((await request('/v1/device/snapshot', { ...snapshot, appGroups }, phone.deviceToken)).status, 200);
+  assert.deepEqual((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.appGroups, appGroups);
+  for (const invalid of [
+    { ...appGroups[0], iconKey: 'https://tracker.invalid/icon.png' },
+    { ...appGroups[0], iconKey: 'unknown' },
+    { ...appGroups[0], applicationToken: 'private' },
+  ]) assert.equal((await request('/v1/device/snapshot', { ...snapshot, appGroups: [invalid] }, phone.deviceToken)).status, 400);
+});
+
 test('a start without a finite duration is rejected before delivery', async t => {
   const { request, pair } = await fixture(t);
   const phone = await pair();

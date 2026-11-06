@@ -49,7 +49,7 @@ final class AgentFocusRuntime: ObservableObject {
   }
 
   func saveAppGroup(
-    id: String?, name: String, selection: FamilyActivitySelection,
+    id: String?, name: String, iconKey: String, selection: FamilyActivitySelection,
     pairingID: String, expectedModeID: String
   ) async throws
     -> String
@@ -58,14 +58,14 @@ final class AgentFocusRuntime: ObservableObject {
       throw AgentFocusDevice.Failure.unauthorized
     }
     guard
-      !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
-        || !selection.webDomainTokens.isEmpty,
-      selection.applicationTokens.count <= Entitlements.premiumAppLimit
+      selection.applicationTokens.count == 1,
+      selection.categoryTokens.isEmpty, selection.webDomainTokens.isEmpty,
+      AgentAppIdentity(rawValue: iconKey) != nil
     else { throw AgentFocusDevice.Failure.emptySelection }
     let pairing = try AgentFocusPairingStore.load()
     guard pairing.deviceId == pairingID else { throw Failure.missingPairing }
     let group = try AgentFocusDevice.phone(lockTimeout: 0.2).saveAppGroup(
-      id: id, name: name, selection: selection, pairingID: pairing.deviceId,
+      id: id, name: name, selection: selection, pairingID: pairing.deviceId, iconKey: iconKey,
       expectedModeID: expectedModeID)
     refreshFocusStatus(pairingID: pairing.deviceId)
     await sync()
@@ -121,7 +121,7 @@ final class AgentFocusRuntime: ObservableObject {
           status?.session?.id != session
         {
           message = String(
-            localized: "That session has ended or changed. Showing current app groups.",
+            localized: "That session has ended or changed. Showing your current apps.",
             table: "AgentFocus")
         }
         presentAppReview(groupID: query.first(where: { $0.name == "groupId" })?.value)

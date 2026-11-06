@@ -17,9 +17,27 @@ enum ThemeManager { static let accentColor = Color(red: 1, green: 107.0 / 255, b
     struct Session { let endAt: Double }
     var session: Session?
     var applicationPending = false
+    var appGroups: [AgentAppGroup] = []
+    var activeAppGroupID: String? = nil
   }
   @Published var focusStatus: Status?
   @Published var connectionPending = false
+  struct AppReview: Identifiable {
+    let id = UUID()
+    let groupID: String?
+  }
+  @Published var appReview: AppReview?
+  func presentAppReview(groupID: String? = nil) { appReview = AppReview(groupID: groupID) }
+  func appGroupEditContext() throws -> (pairingID: String, modeID: String) {
+    ("fixture", "fixture-mode")
+  }
+  func savedAppSelection(groupID: String) throws -> FamilyActivitySelection {
+    FamilyActivitySelection()
+  }
+  func saveAppGroup(
+    id: String?, name: String, iconKey: String, selection: FamilyActivitySelection,
+    pairingID: String, expectedModeID: String
+  ) async throws -> String { id ?? "fixture-app" }
   init() {
     let args = ProcessInfo.processInfo.arguments
     setupRelay = args.contains("invitation") ? "https://focus.example.com" : ""

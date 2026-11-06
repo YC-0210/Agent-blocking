@@ -1,5 +1,9 @@
 // Product copy only. Protocol names, receipts and approval semantics stay language-neutral.
 const traditional = {
+  'Choose an app': '選擇 App', 'Choose an app on iPhone': '請在 iPhone 設定 App',
+  'Refresh apps': '重新整理 App',
+  'Open this address on your paired iPhone. If your chat app cannot open it, open DO Card and tap Manage apps.': '請在已配對的 iPhone 開啟此連結。若聊天工具無法開啟，請在 DO Card 點選「管理 App」。',
+  'This chat host could not open the iPhone link. Open DO Card on your paired iPhone and tap Manage apps.': '聊天工具無法開啟 iPhone 連結。請在已配對的 iPhone 開啟 DO Card，點選「管理 App」。',
   'Apps for this session': '本次專注的 App', 'App group': 'App 群組',
   'Choose a group saved on your iPhone. Actual app names and icons stay on the phone.': '選擇儲存在 iPhone 上的群組。實際 App 名稱與圖示只會顯示在手機上。',
   'Review / change on iPhone': '在 iPhone 檢視或變更', 'Refresh groups': '重新整理群組',
@@ -7,7 +11,7 @@ const traditional = {
   'Open this address on your paired iPhone. If your chat app cannot open it, open DO Card and tap Review app groups.': '請在已配對的 iPhone 開啟此連結。如果聊天工具無法開啟，請開啟 DO Card，點選「檢視 App 群組」。',
   'Saved apps — review on iPhone': '已儲存的 App — 請在 iPhone 檢視',
   'This chat host could not open the iPhone link. Open DO Card on your paired iPhone and tap Review app groups.': '聊天工具無法開啟 iPhone 連結。請在已配對的 iPhone 開啟 DO Card，點選「檢視 App 群組」。',
-  'The selected app group changed. Refresh groups and review your choice.': 'App 群組已變更。請重新整理群組，並確認你的選擇。',
+  'The selected app changed. Refresh apps and review your choice.': 'App 已變更。請重新整理 App，並確認你的選擇。',
   'DO · Focus timeline': 'DO · 專注時間設定',
   'minutes': '分鐘', 'Confirm': '確認',
   'Duration in minutes': '時間（分鐘）', 'Drag to choose duration': '拖曳以調整時間',
@@ -83,14 +87,14 @@ export function errorMessage(error) {
     selection_already_submitted: 'This request was already submitted. Its duration cannot be changed.',
     phone_setup_required: 'Open DO Card to sync its approved settings.',
     session_active: 'A session is already active. Check its status with your agent.',
-    app_group_not_approved: 'The selected app group changed. Refresh groups and review your choice.',
+    app_group_not_approved: 'The selected app changed. Refresh apps and review your choice.',
     duration_exceeds_approval: 'The duration exceeds your approved maximum.',
     too_many_open_pickers: 'Close an old picker and ask your agent to open a new one.',
   })[code] ?? 'Unable to confirm the result. Refresh or try again later.';
 }
 export function rejectionMessage(reason) {
   return ({
-    app_group_not_approved: 'The selected app group changed. Refresh groups and review your choice.',
+    app_group_not_approved: 'The selected app changed. Refresh apps and review your choice.',
     duration_exceeds_approval: 'The duration exceeds your approved maximum.',
     outside_approved_hours: 'The session falls outside your approved hours.',
     renewal_approval_required: 'A new confirmation is required before starting again.',

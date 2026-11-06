@@ -1,3 +1,4 @@
+import { appIcon } from './app-icons.mjs';
 import { resolveLocale, translate, errorMessage, rejectionMessage } from './focus-i18n.mjs';
 import { App } from '@modelcontextprotocol/ext-apps';
 
@@ -14,16 +15,17 @@ function localize() {
   el('timeline').setAttribute('aria-label', t('Drag to choose duration'));
   el('confirm').textContent = t('Confirm');
   el('groups').setAttribute('aria-label', t('Apps for this session'));
+  el('app-options').setAttribute('aria-label', t('Choose an app'));
   for (const [id, copy] of Object.entries({
-    'group-label': 'App group',
-    'group-note': 'Choose a group saved on your iPhone. Actual app names and icons stay on the phone.',
-    'review-apps': 'Review / change on iPhone', 'refresh-groups': 'Refresh groups',
+    'app-empty': 'Choose an app on iPhone',
+    'review-apps': 'Review / change on iPhone', 'refresh-groups': 'Refresh apps',
     'review-summary': 'Open from another device',
-    'review-help': 'Open this address on your paired iPhone. If your chat app cannot open it, open DO Card and tap Review app groups.',
+    'review-help': 'Open this address on your paired iPhone. If your chat app cannot open it, open DO Card and tap Manage apps.',
   })) el(id).textContent = t(copy);
   render();
   if (lastFailure && !el('error').hidden) failure(lastFailure);
 }
+let appRenderKey;
 let selection, minutes, editRevision, dirty = false, working = false, timer, saving, expiryTimer, lastContext;
 const terminal = new Set(['applied', 'rejected', 'expired']);
 const submitted = () => selection && selection.phase !== 'draft';
@@ -74,20 +76,25 @@ function render() {
   const axisMax = selection.maxMinutes;
   el('picker').hidden = false;
   el('groups').hidden = maximum;
+  el('app-management').hidden = maximum;
+  const identities = (selection.appGroups ?? []).filter(app => ['instagram', 'tiktok', 'youtube', 'facebook', 'reddit', 'x', 'other'].includes(app.iconKey));
+  const chosenApp = identities.find(app => app.id === selection.appGroupID);
   if (!maximum) {
-    const groups = selection.appGroups ?? [];
-    const select = el('app-group');
-    select.replaceChildren(...groups.map(group => {
-      const option = document.createElement('option');
-      option.value = group.id; option.textContent = group.name;
-      return option;
+    const nextAppKey = JSON.stringify([selection.id, identities, selection.appGroupID, blocked]);
+    if (nextAppKey !== appRenderKey) {
+    appRenderKey = nextAppKey;
+    el('app-options').replaceChildren(...identities.map(app => {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'app-chip'; button.disabled = blocked;
+      button.setAttribute('aria-pressed', String(app.id === selection.appGroupID));
+      const icon = document.createElement('span'); icon.className = `app-icon ${app.iconKey}`;
+      icon.setAttribute('aria-hidden', 'true'); icon.innerHTML = appIcon(app.iconKey);
+      const name = document.createElement('span'); name.textContent = app.name;
+      button.append(icon, name); button.onclick = () => chooseApp(app.id);
+      return button;
     }));
-    if (!groups.length) {
-      const option = document.createElement('option'); option.textContent = t('Saved apps — review on iPhone'); select.append(option);
     }
-    if (groups.length) select.value = selection.appGroupID ?? groups[0].id;
-    else select.selectedIndex = 0;
-    select.disabled = blocked || !groups.length;
+    el('app-empty').hidden = Boolean(chosenApp);
     el('refresh-groups').disabled = blocked;
     el('review-apps').disabled = working || Boolean(saving);
     el('review-url').textContent = selection.reviewURL ?? '';
@@ -108,10 +115,10 @@ function render() {
   const formattedEnd = Number.isFinite(endAt) ? clock(endAt, selection.timeZone) : '—';
   const windowEnded = selection.phase === 'applied' && !maximum && Date.now() >= endAt;
   const confirm = el('confirm');
-  confirm.textContent = working ? t('Sending…') : selection.phase === 'unknown' ? t('Retry the same request') : submitted()
+  confirm.textContent = !maximum && !chosenApp && !submitted() ? t('Choose an app on iPhone') : working ? t('Sending…') : selection.phase === 'unknown' ? t('Retry the same request') : submitted()
     ? selection.phase === 'applied' ? maximum ? t('Maximum saved') : windowEnded ? t('Session window ended') : t('Blocking active') : selection.phase === 'pending' ? t('Waiting for phone…') : t('Request ended')
     : !valid() ? t('Choose a valid duration') : maximum ? t('Save maximum') : t('Start focus');
-  confirm.disabled = working || Boolean(saving) || !valid() || (submitted() && selection.phase !== 'unknown') ||
+  confirm.disabled = (!maximum && !chosenApp) || working || Boolean(saving) || !valid() || (submitted() && selection.phase !== 'unknown') ||
     (!submitted() && maximum && minutes === selection.currentMaximumMinutes);
   const messages = {
     pending: t('Request sent. Waiting for the phone to acknowledge it. Pending does not mean applied.'),
@@ -157,8 +164,7 @@ el('timeline').oninput = event => edit(event.target.value);
 el('timeline').onchange = () => flush().catch(failure);
 el('minutes').oninput = event => edit(event.target.value);
 el('minutes').onchange = () => flush().catch(failure);
-el('app-group').onchange = async event => {
-  const appGroupID = event.target.value;
+async function chooseApp(appGroupID) {
   if (!selection || submitted() || working || saving) return;
   try {
     working = true; el('error').hidden = true; render();
@@ -184,11 +190,11 @@ el('review-apps').onclick = async () => {
     const result = await app.openLink({ url: selection.reviewURL });
     if (result.isError) throw new Error('link_denied');
   } catch {
-    failure({ copy: 'This chat host could not open the iPhone link. Open DO Card on your paired iPhone and tap Review app groups.' });
+    failure({ copy: 'This chat host could not open the iPhone link. Open DO Card on your paired iPhone and tap Manage apps.' });
   }
 };
 el('confirm').onclick = async () => {
-  if (working || !selection || !valid()) return;
+  if (working || !selection || !valid() || el('confirm').disabled) return;
   try {
     working = true; el('error').hidden = true; render();
     await flush();

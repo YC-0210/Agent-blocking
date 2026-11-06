@@ -1406,6 +1406,236 @@
           }
         }
       }
+    },
+    "Manage apps": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "管理 App"
+          }
+        }
+      }
+    },
+    "Applying the session. Blocking is not yet confirmed.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在套用專注設定，尚未確認是否生效。"
+          }
+        }
+      }
+    },
+    "Unlinked selection": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未設定顯示名稱"
+          }
+        }
+      }
+    },
+    "Add app": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新增 App"
+          }
+        }
+      }
+    },
+    "Your apps": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你的 App"
+          }
+        }
+      }
+    },
+    "Choose app on this iPhone": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在此 iPhone 選擇 App"
+          }
+        }
+      }
+    },
+    "Choose exactly one app, without categories or websites.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請只選取一個 App，不要選取類別或網站。"
+          }
+        }
+      }
+    },
+    "Private iPhone selection": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iPhone 上的私密選取項目"
+          }
+        }
+      }
+    },
+    "App name and icon": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App 名稱與圖示"
+          }
+        }
+      }
+    },
+    "Choose an identity": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇顯示名稱與圖示"
+          }
+        }
+      }
+    },
+    "Other app": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "其他 App"
+          }
+        }
+      }
+    },
+    "App name": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App 名稱"
+          }
+        }
+      }
+    },
+    "Choose the name and icon that match the app selected above. Apple does not identify it for chat.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請選擇與上方 App 相符的名稱與圖示。Apple 不會向聊天室提供此 App 的身分。"
+          }
+        }
+      }
+    },
+    "I confirm the selected app matches this name and icon.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "我確認選取的 App 與此名稱及圖示相符。"
+          }
+        }
+      }
+    },
+    "Save app for chat": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存 App，供聊天室使用"
+          }
+        }
+      }
+    },
+    "Shown in chat": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聊天室顯示內容"
+          }
+        }
+      }
+    },
+    "Only the name and icon you choose here are shared with your agent. The actual selection stays on this iPhone.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只有你在這裡選擇的名稱與圖示會分享給 AI 助理，實際選取資料仍留在此 iPhone。"
+          }
+        }
+      }
+    },
+    "End this session before changing apps.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先結束本次專注，再變更 App。"
+          }
+        }
+      }
+    },
+    "Could not load this app. Refresh the phone status and try again.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法載入此 App。請重新整理手機狀態後再試。"
+          }
+        }
+      }
+    },
+    "Saved on this iPhone. Reconnect to sync, then refresh apps in chat.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已儲存在此 iPhone。重新連線同步後，請在聊天室重新整理 App。"
+          }
+        }
+      }
+    },
+    "Saved. Return to chat and refresh apps.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已儲存。請回到聊天室重新整理 App。"
+          }
+        }
+      }
+    },
+    "Could not save. Check your selection and reopen this screen if settings changed.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法儲存。請檢查選取項目；若設定已變更，請重新開啟此畫面。"
+          }
+        }
+      }
+    },
+    "That session has ended or changed. Showing your current apps.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "該次專注已結束或變更，現在顯示你目前的 App。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"
