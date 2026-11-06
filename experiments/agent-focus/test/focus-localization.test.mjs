@@ -170,3 +170,15 @@ test('English demo override wins while normal builds keep automatic language sel
   assert.equal(ui.document.documentElement.lang, 'en');
   assert.equal(ui.element('confirm').textContent, 'Start focus');
 });
+
+test('Traditional Chinese demo override stays Chinese even in an English chat host', async () => {
+  assert.equal(resolveLocale('en-US', ['en-US'], 'zh-Hant'), 'zh-Hant');
+  const ui = await picker('en-US', ['en-US'], undefined, 'zh-Hant');
+  ui.show({});
+  assert.equal(ui.element('selection-label').textContent, '已選取 3 個 App');
+  assert.equal(ui.element('confirm').textContent, '開始專注');
+  ui.host.onhostcontextchanged({ locale: 'en-US' });
+  assert.equal(ui.document.documentElement.lang, 'zh-Hant');
+  ui.show({ kind: 'maximum', minutes: 170, minMinutes: 15, maxMinutes: 1440 });
+  assert.equal(ui.element('confirm').textContent, '儲存時間上限');
+});

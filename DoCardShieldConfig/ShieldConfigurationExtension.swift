@@ -40,11 +40,16 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
   }
 
   private func copy(_ key: String) -> String {
-    #if DEBUG && DO_CARD_ENGLISH_DEMO
-      guard let path = Bundle.main.path(forResource: "en", ofType: "lproj"),
-        let english = Bundle(path: path)
+    #if DEBUG && (DO_CARD_ENGLISH_DEMO || DO_CARD_ZH_HANT_DEMO)
+      #if DO_CARD_ZH_HANT_DEMO
+        let language = "zh-Hant"
+      #else
+        let language = "en"
+      #endif
+      guard let path = Bundle.main.path(forResource: language, ofType: "lproj"),
+        let localized = Bundle(path: path)
       else { return key }
-      return english.localizedString(forKey: key, value: key, table: "AgentFocus")
+      return localized.localizedString(forKey: key, value: key, table: "AgentFocus")
     #else
       return Bundle.main.localizedString(forKey: key, value: key, table: "AgentFocus")
     #endif

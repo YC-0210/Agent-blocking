@@ -70,6 +70,7 @@ const traditional = {
 
 export function resolveLocale(preferred, fallbacks = [], demoLanguage) {
   if (demoLanguage === 'en') return 'en';
+  if (demoLanguage === 'zh-Hant') return 'zh-Hant';
   for (const locale of [preferred, ...fallbacks]) {
     if (typeof locale !== 'string') continue;
     const normalized = locale.toLowerCase().replaceAll('_', '-');

@@ -10,8 +10,9 @@ if [ "$#" -eq 1 ]; then probe_destination="id=$1"; fi
 probe_flags='$(inherited) DEBUG DO_CARD_APP_DATA_ACCESS_PROBE'
 case "${DO_CARD_DEMO_LANGUAGE:-}" in
   en) probe_flags="$probe_flags DO_CARD_ENGLISH_DEMO" ;;
+  zh-Hant) probe_flags="$probe_flags DO_CARD_ZH_HANT_DEMO" ;;
   '') ;;
-  *) echo 'DO_CARD_DEMO_LANGUAGE must be en or unset' >&2; exit 2 ;;
+  *) echo 'DO_CARD_DEMO_LANGUAGE must be en, zh-Hant or unset' >&2; exit 2 ;;
 esac
 
 probe_root=$(cd "$(dirname "$0")/../.." && pwd)

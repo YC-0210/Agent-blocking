@@ -159,31 +159,41 @@ merge instructions: `docs/experiments/agent-timeline-tools.md`.
 
 Normal picker builds follow the chat host's language, with browser/device language
 fallback and English for unsupported languages. The native app follows its iOS
-app/device language. For the current English demo, build the picker with:
+app/device language. Demo builds explicitly support `en` and `zh-Hant`:
 
 ```sh
-DO_CARD_DEMO_LANGUAGE=en npm run build:ui
+DO_CARD_DEMO_LANGUAGE=zh-Hant npm run build:ui
 ```
 
-This explicit demo override survives host locale updates. To restore automatic
-selection, run `npm run build:ui` without the variable. Open a fresh chat picker
-to load the rebuilt resource. Existing open pickers retain their loaded code.
+Use `en` instead for an English demo. To restore automatic selection, run
+`npm run build:ui` with the variable unset. The override survives host locale
+updates. Open a fresh picker; existing open pickers retain their loaded code.
 
-Launch the installed phone app in English temporarily, without changing device
-or persisted app-language preferences:
+Build the signed phone experiment with the matching shield-extension language:
+
+```sh
+DO_CARD_DEMO_LANGUAGE=zh-Hant bash tools/selected-app-icons/build-identification.sh
+```
+
+Run that command from the repository root. It adds the matching Debug-only demo
+flag; normal builds still use device language. Launch the main app temporarily in
+Traditional Chinese without changing device or persisted app-language preferences:
 
 ```sh
 xcrun devicectl device process launch --device IPHONE_HARDWARE_UDID \
-  --terminate-existing online.do.card.app -- -AppleLanguages '(en)' -AppleLocale en_US
+  --terminate-existing online.do.card.app -- -AppleLanguages '(zh-Hant)' -AppleLocale zh_TW
 ```
 
-These are Apple's documented language-testing launch arguments. A normal app
-relaunch without them returns to its app/device language. No phone rebuild is
-needed for this temporary demo setting.
+For English use `(en)` and `en_US`. These are Apple's documented language-testing
+launch arguments. A normal app relaunch without them returns to its app/device
+language. A separate shield process uses its compile-time demo flag rather than
+inheriting main-app launch arguments.
 
-
-Validation: 100 Node tests pass, including automatic language selection and the
-English demo override under a Traditional Chinese host. An isolated browser with
-`zh-TW` locale verified English session and maximum controls. The demo resource
-was rebuilt with `DO_CARD_DEMO_LANGUAGE=en`; the paired iPhone was relaunched
-with English arguments and a fresh live chat picker opened.
+Current recording configuration (2026-11-06): Traditional Chinese picker and
+signed phone build installed, main app relaunched with Traditional Chinese
+arguments. 113 Node tests pass, including both explicit demo languages and normal
+automatic selection. A real isolated browser with an English locale verified
+Chinese session and maximum controls. Signed Debug and unsigned Release builds
+pass. Compiled app, shield and notification bundles contain Traditional Chinese
+strings; the shield title/button were checked explicitly. No blocking command was
+sent by changing the language.
