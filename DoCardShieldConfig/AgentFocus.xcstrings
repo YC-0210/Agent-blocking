@@ -96,6 +96,38 @@
           }
         }
       }
+    },
+    "Go back to work.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Go back to work."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "回去專心工作。"
+          }
+        }
+      }
+    },
+    "Close app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close app"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "關閉 App"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

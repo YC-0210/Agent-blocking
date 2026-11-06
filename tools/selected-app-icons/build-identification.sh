@@ -7,6 +7,12 @@ if [ "$#" -gt 1 ]; then
 fi
 probe_destination='generic/platform=iOS'
 if [ "$#" -eq 1 ]; then probe_destination="id=$1"; fi
+probe_flags='$(inherited) DEBUG DO_CARD_APP_DATA_ACCESS_PROBE'
+case "${DO_CARD_DEMO_LANGUAGE:-}" in
+  en) probe_flags="$probe_flags DO_CARD_ENGLISH_DEMO" ;;
+  '') ;;
+  *) echo 'DO_CARD_DEMO_LANGUAGE must be en or unset' >&2; exit 2 ;;
+esac
 
 probe_root=$(cd "$(dirname "$0")/../.." && pwd)
 probe_entitlements_dir=$(mktemp -d /tmp/docard-data-access-entitlements.XXXXXX)
@@ -27,7 +33,7 @@ xcodebuild -project DoCard.xcodeproj -scheme DoCard -configuration Debug \
   -destination "$probe_destination" -derivedDataPath /tmp/DOCardIdentificationPhone \
   -allowProvisioningUpdates \
   "DO_CARD_AGENT_APP_ENTITLEMENTS=$probe_entitlements_dir/Probe.entitlements" \
-  'SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) DEBUG DO_CARD_APP_DATA_ACCESS_PROBE' \
+  "SWIFT_ACTIVE_COMPILATION_CONDITIONS=$probe_flags" \
   build
 
 python3 tools/selected-app-icons/preflight.py \
