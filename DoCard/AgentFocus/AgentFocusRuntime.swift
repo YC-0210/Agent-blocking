@@ -23,6 +23,37 @@ final class AgentFocusRuntime: ObservableObject {
   @Published var setupCode = ""
   @Published private(set) var focusStatus: AgentFocusDevice.Phone.Status?
   @Published private(set) var connectionPending = false
+  @Published var appReview: AppReview?
+  struct AppReview: Identifiable {
+    let id = UUID()
+    let groupID: String?
+  }
+
+  func presentAppReview(groupID: String? = nil) {
+    refreshFocusStatus()
+    appReview = AppReview(groupID: focusStatus?.activeAppGroupID ?? groupID)
+  }
+
+  func savedAppSelection(groupID: String) throws -> FamilyActivitySelection {
+    let pairing = try AgentFocusPairingStore.load()
+    return try AgentFocusDevice.phone(lockTimeout: 0.2).appSelection(
+      groupID: groupID, pairingID: pairing.deviceId)
+  }
+
+  func saveAppGroup(id: String?, name: String, selection: FamilyActivitySelection) async throws
+    -> String
+  {
+    guard
+      !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
+        || !selection.webDomainTokens.isEmpty
+    else { throw AgentFocusDevice.Failure.emptySelection }
+    let pairing = try AgentFocusPairingStore.load()
+    let group = try AgentFocusDevice.phone(lockTimeout: 0.2).saveAppGroup(
+      id: id, name: name, selection: selection, pairingID: pairing.deviceId)
+    refreshFocusStatus(pairingID: pairing.deviceId)
+    await sync()
+    return group.id
+  }
   private var syncing = false
   private var pushToken: String?
   private let redirectPolicy = AgentFocusRedirectPolicy()
@@ -59,7 +90,29 @@ final class AgentFocusRuntime: ObservableObject {
   }
 
   func openSetup(_ url: URL) -> Bool {
-    guard url.scheme == "docard-agent", url.host == "setup" else { return false }
+    guard url.scheme == "docard-agent" else { return false }
+    if url.host == "apps" {
+      do {
+        let pairing = try AgentFocusPairingStore.load()
+        let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        guard query.first(where: { $0.name == "deviceId" })?.value == pairing.deviceId else {
+          throw Failure.missingPairing
+        }
+        let status = try AgentFocusDevice.phone(lockTimeout: 0.2).status(
+          pairingID: pairing.deviceId)
+        if let session = query.first(where: { $0.name == "sessionId" })?.value,
+          status?.session?.id != session
+        {
+          message = "That session has ended or changed. Showing current app groups."
+        }
+        presentAppReview(groupID: query.first(where: { $0.name == "groupId" })?.value)
+        return true
+      } catch {
+        message = "Cannot review this phone’s apps right now. Open DO Card and try again."
+        return false
+      }
+    }
+    guard url.host == "setup" else { return false }
     guard !StrategyManager.shared.activeSessionStatus.isBlocking,
       !SharedData.profileSnapshots.values.contains(where: {
         $0.schedules.contains(where: { $0.isActive })

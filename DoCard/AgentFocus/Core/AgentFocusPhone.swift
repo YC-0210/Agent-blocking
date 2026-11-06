@@ -1,6 +1,12 @@
 import Darwin
 import Foundation
 
+/// Only user-authored aliases and opaque IDs leave the phone; never native selection tokens.
+struct AgentAppGroup: Codable, Equatable, Sendable, Identifiable {
+  let id: String
+  let name: String
+}
+
 struct AgentEmergencyCancellation: Codable {
   let pairingID: String?
   let approvalID: String?
@@ -23,6 +29,8 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     let session: AgentFocusSession?
     let requiresRenewalApproval: Bool
     var applicationPending = false
+    var appGroups: [AgentAppGroup] = []
+    var activeAppGroupID: String? = nil
   }
   private struct CompletedCommand: Codable {
     let receipt: FocusReceipt
@@ -39,8 +47,14 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     var receipts: [FocusReceipt] = []
     var pendingCommand: FocusCommand?
     var completedCommands: [CompletedCommand]?
+    var appGroups: [SavedGroup]?
+    var activeAppGroupID: String?
   }
-  enum Failure: Error { case unavailable, pairingMismatch, activeSession, busy }
+  private struct SavedGroup: Codable {
+    let summary: AgentAppGroup
+    let selection: Selection
+  }
+  enum Failure: Error { case unavailable, pairingMismatch, activeSession, busy, invalidGroup }
   private let emergency: AgentEmergencyStorage
   private let directory: URL
   private let now: () -> Double
@@ -76,8 +90,65 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       record.cancellationRevision = revision
       record.policy = policy
       record.selection = selection
+      record.appGroups = [
+        SavedGroup(summary: .init(id: "default", name: "Saved apps"), selection: selection)
+      ]
+      record.activeAppGroupID = nil
       record.state.lastReceipt = nil
       try save(record)
+    }
+  }
+
+  private func groups(in record: Record) -> [SavedGroup] {
+    record.appGroups ?? record.selection.map {
+      [SavedGroup(summary: .init(id: "default", name: "Saved apps"), selection: $0)]
+    } ?? []
+  }
+
+  /// A local, explicitly approved edit. It invalidates older chat proposals without changing limits.
+  @discardableResult
+  func saveAppGroup(id: String? = nil, name: String, selection: Selection, pairingID: String) throws
+    -> AgentAppGroup
+  {
+    try locked {
+      var record = try load()
+      guard record.pairingID == pairingID, let policy = record.policy else {
+        throw Failure.pairingMismatch
+      }
+      guard record.state.session == nil, record.pendingCommand == nil else {
+        throw Failure.activeSession
+      }
+      let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+      guard !trimmed.isEmpty, trimmed.utf16.count <= 40,
+        !trimmed.unicodeScalars.contains(where: { CharacterSet.controlCharacters.contains($0) })
+      else { throw Failure.invalidGroup }
+      var saved = groups(in: record)
+      let summary = AgentAppGroup(id: id ?? UUID().uuidString, name: trimmed)
+      if let id {
+        guard let index = saved.firstIndex(where: { $0.summary.id == id }) else {
+          throw Failure.invalidGroup
+        }
+        saved[index] = SavedGroup(summary: summary, selection: selection)
+      } else {
+        guard saved.count < 8 else { throw Failure.invalidGroup }
+        saved.append(SavedGroup(summary: summary, selection: selection))
+      }
+      record.appGroups = saved
+      record.policy = mode(policy, id: UUID().uuidString)
+      try save(record)
+      return summary
+    }
+  }
+
+  /// Native UI only: callers render Apple's privacy-preserving labels on the phone.
+  func appSelection(groupID: String, pairingID: String) throws -> Selection {
+    try locked {
+      let record = try load()
+      guard record.pairingID == pairingID else { throw Failure.pairingMismatch }
+      guard let group = groups(in: record).first(where: { $0.summary.id == groupID }) else {
+        throw Failure.invalidGroup
+      }
+      return group.selection
     }
   }
 
@@ -103,8 +174,21 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       validationState.lastEmergencyAt = nil
       let previousSession = record.state.session
       let controller = AgentFocusController(policy: policy, state: validationState)
-      let receipt = controller.receive(command, now: now())
+      var receipt = controller.receive(command, now: now())
       record.state = controller.state
+      if receipt.status == "applied", command.action == .start {
+        let saved = groups(in: record)
+        if let group = saved.first(where: { $0.summary.id == (command.appGroupID ?? "default") }) {
+          record.appGroups = saved
+          record.selection = group.selection
+          record.activeAppGroupID = group.summary.id
+        } else {
+          record.state.session = nil
+          receipt = FocusReceipt(
+            id: command.id, status: "rejected", reason: "app_group_not_approved")
+          record.state.lastReceipt = receipt
+        }
+      }
       if receipt.status != "applied" {
         remember(receipt, command: command, record: &record)
         if !record.receipts.contains(where: { $0.id == receipt.id }) {
@@ -224,7 +308,9 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       return Status(
         policy: policy, session: record.state.session,
         requiresRenewalApproval: record.state.requiresRenewalApproval,
-        applicationPending: record.pendingCommand != nil)
+        applicationPending: record.pendingCommand != nil,
+        appGroups: groups(in: record).map(\.summary),
+        activeAppGroupID: record.state.session == nil ? nil : record.activeAppGroupID ?? "default")
     }
   }
 

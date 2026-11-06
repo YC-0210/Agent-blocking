@@ -78,6 +78,9 @@ struct AgentFocusView: View {
       .onChange(of: runtime.setupCode) { _, _ in loadInvitation() }
       .onChange(of: runtime.setupRelay) { _, _ in loadInvitation() }
     }
+    .sheet(item: $runtime.appReview) { review in
+      AgentAppGroupsView(runtime: runtime, initialGroupID: review.groupID)
+    }
     .preferredColorScheme(.light)
   }
 
@@ -171,6 +174,16 @@ struct AgentFocusView: View {
           Text("No active session.").font(.subheadline).foregroundStyle(Palette.muted)
         }
         Rectangle().fill(Palette.rule).frame(height: 1).accessibilityHidden(true)
+        Button {
+          runtime.presentAppReview()
+        } label: {
+          Label(
+            focusing ? "Review this session’s apps" : "Review app groups",
+            systemImage: "square.grid.2x2"
+          )
+          .frame(minHeight: 44)
+        }
+        .accessibilityIdentifier("agent-focus-review-apps")
         emergencyButton
         Text("Ends this session. Your agent stays paired.")
           .font(.footnote).foregroundStyle(Palette.muted)
@@ -429,5 +442,159 @@ private struct BoldPrimaryStyle: ButtonStyle {
         Color(red: 45 / 255, green: 40 / 255, blue: 31 / 255), in: RoundedRectangle(cornerRadius: 9)
       )
       .opacity(!isEnabled ? 0.45 : configuration.isPressed ? 0.8 : 1)
+  }
+}
+
+/// Selection labels are rendered by iOS on this device, never exported to chat.
+private struct AgentAppGroupsView: View {
+  @ObservedObject var runtime: AgentFocusRuntime
+  let initialGroupID: String?
+  @Environment(\.dismiss) private var dismiss
+  @State private var groupID: String?
+  @State private var name = ""
+  @State private var selection = FamilyActivitySelection()
+  @State private var picker = false
+  @State private var saving = false
+  @State private var error = ""
+  private var active: Bool {
+    runtime.focusStatus?.session != nil || runtime.focusStatus?.applicationPending == true
+  }
+  private var known: Bool { runtime.focusStatus != nil }
+  private var hasSelection: Bool {
+    !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
+      || !selection.webDomainTokens.isEmpty
+  }
+
+  var body: some View {
+    NavigationStack {
+      Form {
+        overviewSection
+        appSelectionSection
+        if !active {
+          Section {
+            TextField("Group name", text: $name).disabled(!known || saving)
+            Text(
+              "Saving shares the group name you type with your paired agent and relay. Actual app names, icons and selection tokens stay on this iPhone. Use a generic name such as Deep Work."
+            )
+            .font(.footnote)
+            Button(saving ? "Saving…" : "Save group and share name") {
+              saving = true
+              error = ""
+              Task {
+                do {
+                  groupID = try await runtime.saveAppGroup(
+                    id: groupID, name: name, selection: selection)
+                  error =
+                    runtime.connectionPending
+                    ? "Saved on this phone. Reopen DO Card online to sync, then refresh groups in chat."
+                    : "Saved. Return to chat and refresh groups before starting."
+                } catch {
+                  self.error =
+                    "Could not save. Check the name, selection and that no session is active."
+                }
+                saving = false
+              }
+            }.disabled(
+              !known || saving || !hasSelection
+                || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || name.utf16.count > 40)
+          } header: {
+            Text("Chat name")
+          }
+        } else {
+          Text(
+            "App groups cannot change during a session. End this session before editing future groups."
+          )
+        }
+        if !error.isEmpty { Section { Text(error) } }
+        Section { Button("Emergency Unlock", action: runtime.emergencyUnlock) }
+      }
+      .navigationTitle("Session apps")
+      .toolbar {
+        ToolbarItem(placement: .cancellationAction) {
+          Button("Emergency Unlock", action: runtime.emergencyUnlock)
+        }
+        ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } }
+      }
+      .familyActivityPicker(isPresented: $picker, selection: $selection)
+      .onAppear { load(runtime.focusStatus?.activeAppGroupID ?? initialGroupID ?? "default") }
+      .onChange(of: runtime.focusStatus?.activeAppGroupID) { _, id in
+        if let id { load(id) }
+      }
+    }
+  }
+
+  private var overviewSection: some View {
+    Section {
+      if let status = runtime.focusStatus {
+        if status.applicationPending {
+          Text(
+            "Applying the session. These are the requested apps; blocking is not yet confirmed."
+          )
+        } else if let session = status.session {
+          Text(
+            Date().timeIntervalSince1970 * 1000 < session.endAt
+              ? "These are the apps selected for this session."
+              : "The session deadline has passed. Checking release status.")
+        } else {
+          Text("No active session. Choose a saved group to review or edit.")
+        }
+      } else {
+        Text("Status unavailable. Editing is disabled. Emergency Unlock is still available.")
+      }
+      if !active {
+        ForEach(runtime.focusStatus?.appGroups ?? []) { group in
+          Button {
+            load(group.id)
+          } label: {
+            HStack {
+              Text(group.name)
+              Spacer()
+              if groupID == group.id { Image(systemName: "checkmark") }
+            }
+          }.disabled(!known || saving)
+        }
+        Button("Create app group") {
+          groupID = nil
+          name = ""
+          selection = FamilyActivitySelection()
+          error = ""
+        }.disabled(!known || saving || (runtime.focusStatus?.appGroups.count ?? 8) >= 8)
+      }
+    } header: {
+      Text(active ? "This session" : "Saved groups")
+    }
+  }
+
+  private var appSelectionSection: some View {
+    Section {
+      ForEach(Array(selection.applicationTokens), id: \.self) { Label($0) }
+      ForEach(Array(selection.categoryTokens), id: \.self) { Label($0) }
+      ForEach(Array(selection.webDomainTokens), id: \.self) { Label($0) }
+      if !hasSelection { Text("No selection loaded.") }
+      if !active {
+        Button("Choose apps and websites") { picker = true }.disabled(!known || saving)
+      }
+    } header: {
+      Text("Apps, categories and websites")
+    } footer: {
+      Text(
+        "Names and icons are displayed privately by iOS. Selecting a category can include more apps than those listed individually."
+      )
+    }
+  }
+
+  private func load(_ id: String) {
+    do {
+      selection = try runtime.savedAppSelection(groupID: id)
+      groupID = id
+      name = runtime.focusStatus?.appGroups.first(where: { $0.id == id })?.name ?? "Saved apps"
+      error = ""
+    } catch {
+      selection = FamilyActivitySelection()
+      groupID = nil
+      name = ""
+      self.error = "This group is unavailable. Refresh the phone status and try again."
+    }
   }
 }

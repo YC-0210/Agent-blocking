@@ -38,6 +38,8 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
     let startMinute: Int
     let endMinute: Int
     let timeZone: String
+    let appGroups: [AgentAppGroup]
+    let activeAppGroupID: String?
   }
   private final class RedirectPolicy: NSObject, URLSessionTaskDelegate {
     func urlSession(
@@ -137,7 +139,8 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
         modeID: status.policy.modeID, sessionID: status.session?.id,
         endAt: status.session?.endAt, requiresRenewalApproval: status.requiresRenewalApproval,
         maximumMinutes: status.policy.maximumMinutes, startMinute: status.policy.startMinute,
-        endMinute: status.policy.endMinute, timeZone: status.policy.timeZone)
+        endMinute: status.policy.endMinute, timeZone: status.policy.timeZone,
+        appGroups: status.appGroups, activeAppGroupID: status.activeAppGroupID)
       _ = try await request(
         "v1/device/snapshot", body: JSONEncoder().encode(snapshot), deadline: deadline)
     }

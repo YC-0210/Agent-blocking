@@ -4,6 +4,22 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusDeliveryTests: XCTestCase {
+  func testGroupSnapshotContainsOnlyAuthoredAliasAndIDNeverPrivateSelection() async throws {
+    let fixture = try DeliveryFixture()
+    defer { fixture.cleanup() }
+    try fixture.phone.saveAppGroup(
+      name: "Deep Work", selection: "SECRET-SELECTION-TOKEN", pairingID: "device")
+    let outcome = await fixture.worker.run(expiryCheck: true)
+    XCTAssertEqual(outcome, .expiryChecked)
+    let data = try XCTUnwrap(fixture.snapshots.last)
+    let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let groups = try XCTUnwrap(snapshot["appGroups"] as? [[String: Any]])
+    XCTAssertEqual(groups.count, 2)
+    XCTAssertEqual(groups[1]["name"] as? String, "Deep Work")
+    XCTAssertEqual(Set(groups[1].keys), Set(["id", "name"]))
+    XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("SECRET-SELECTION-TOKEN"))
+  }
+
   func testExpiryNotificationCannotExecuteAPendingStart() async throws {
     let fixture = try DeliveryFixture()
     defer { fixture.cleanup() }
