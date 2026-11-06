@@ -334,3 +334,15 @@ test('session picker follows selected identities and clears stale icons while ma
   assert.deepEqual(noPermission.selectedApps, []);
   assert.deepEqual(await f.queue(), []);
 });
+
+test('a fresh picker keeps selected icons after background and expiry snapshots for the same selection', async t => {
+  const f = await fixture(t);
+  const counts = { applications: 2, categories: 0, websites: 0 };
+  const selectionIdentity = '22222222-2222-4222-8222-222222222222';
+  await f.snapshot({ selectionIdentity, selectionSummary: counts, selectedAppIDs: ['com.burbn.instagram','com.supercell.laser'] });
+  assert.equal((await f.open('session', 15)).selectedApps.length, 2);
+  await f.snapshot({ selectionIdentity, selectionSummary: counts, sessionID: null, requiresRenewalApproval: true });
+  const reopened = await f.open('session', 15);
+  assert.deepEqual(reopened.selectedApps.map(app => app.name), ['Instagram','Brawl Stars']);
+  assert.deepEqual(await f.queue(), []);
+});

@@ -1,5 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { request as sendHTTP } from 'node:http';
 import { createRelay } from '../src/relay.mjs';
 
 export const agentToken = 'test-agent-secret-at-least-32-characters';
@@ -251,4 +252,70 @@ test('paired phone discovery is agent-only, excludes invitations and never expos
   assert.deepEqual(response.body.devices, [{ deviceId: phone.deviceId, observedAt: null }]);
   assert.equal(JSON.stringify(response.body).includes(phone.deviceToken), false);
   assert.equal(JSON.stringify(response.body).includes('tokenHash'), false);
+});
+
+const identityA = '22222222-2222-4222-8222-222222222222';
+const identityB = '33333333-3333-4333-8333-333333333333';
+const iconSnapshot = { modeID: 'work', requiresRenewalApproval: false, maximumMinutes: 45,
+  selectionIdentity: identityA, selectionSummary: { applications: 2, categories: 0, websites: 0 } };
+const iconIDs = ['com.burbn.instagram', 'com.supercell.laser'];
+
+test('matching selection identity retains approved icons across background start and expiry snapshots', async t => {
+  const { request } = await fixture(t); const phone = await pair(request);
+  await request('/v1/device/snapshot', { ...iconSnapshot, selectedAppIDs: iconIDs }, phone.deviceToken);
+  for (const update of [{ sessionID: 'session', endAt: Date.now() + 120000 },
+    { modeID: 'after-expiry', sessionID: null, requiresRenewalApproval: true }]) {
+    assert.equal((await request('/v1/device/snapshot', { ...iconSnapshot, ...update }, phone.deviceToken)).status, 200);
+    assert.deepEqual((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.selectedAppIDs, iconIDs);
+  }
+});
+
+test('changed or missing selection identity never inherits icons just because app counts match', async t => {
+  const { request } = await fixture(t); const phone = await pair(request);
+  for (const selectionIdentity of [identityB, undefined]) {
+    await request('/v1/device/snapshot', { ...iconSnapshot, selectedAppIDs: iconIDs }, phone.deviceToken);
+    await request('/v1/device/snapshot', { ...iconSnapshot, selectionIdentity }, phone.deviceToken);
+    assert.equal((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.selectedAppIDs, undefined);
+  }
+});
+
+test('explicit identity revocation clears icons and later unknown background updates cannot restore them', async t => {
+  const { request } = await fixture(t); const phone = await pair(request);
+  await request('/v1/device/snapshot', { ...iconSnapshot, selectedAppIDs: iconIDs }, phone.deviceToken);
+  await request('/v1/device/snapshot', { ...iconSnapshot, selectionIdentity: undefined, selectedAppIDs: [] }, phone.deviceToken);
+  assert.deepEqual((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.selectedAppIDs, []);
+  await request('/v1/device/snapshot', iconSnapshot, phone.deviceToken);
+  assert.equal((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.selectedAppIDs, undefined);
+});
+
+test('a mismatched application count or malformed selection identity cannot retain known icons', async t => {
+  const { request } = await fixture(t); const phone = await pair(request);
+  await request('/v1/device/snapshot', { ...iconSnapshot, selectedAppIDs: iconIDs }, phone.deviceToken);
+  const mismatch = { ...iconSnapshot, selectionSummary: { applications: 1, categories: 0, websites: 0 } };
+  await request('/v1/device/snapshot', mismatch, phone.deviceToken);
+  assert.equal((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.selectedAppIDs, undefined);
+  assert.equal((await request('/v1/device/snapshot', { ...iconSnapshot, selectionIdentity: 'opaque-token-or-hash' }, phone.deviceToken)).status, 400);
+});
+
+
+test('a slow background upload cannot resurrect identities cleared while its body was arriving', { timeout: 5000 }, async t => {
+  const { request, relay, base } = await fixture(t); const phone = await pair(request);
+  await request('/v1/device/snapshot', { ...iconSnapshot, selectedAppIDs: iconIDs }, phone.deviceToken);
+  const entered = new Promise(resolve => relay.server.once('request', resolve));
+  const payload = JSON.stringify(iconSnapshot);
+  let stalled;
+  const finished = new Promise((resolve, reject) => {
+    stalled = sendHTTP(base + '/v1/device/snapshot', { method: 'POST', headers: {
+      authorization: `Bearer ${phone.deviceToken}`, 'content-type': 'application/json' } }, response => {
+      response.resume(); response.on('end', () => resolve(response.statusCode));
+    });
+    stalled.on('error', reject);
+  });
+  t.after(() => stalled.destroy());
+  stalled.write(payload.slice(0, 10));
+  await entered;
+  await request('/v1/device/snapshot', { ...iconSnapshot, selectionIdentity: undefined, selectedAppIDs: [] }, phone.deviceToken);
+  stalled.end(payload.slice(10));
+  assert.equal(await finished, 200);
+  assert.equal((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.selectedAppIDs, undefined);
 });

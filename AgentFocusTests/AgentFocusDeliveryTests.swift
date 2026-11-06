@@ -4,6 +4,32 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusDeliveryTests: XCTestCase {
+  func testBackgroundExpiryConfirmsSelectionWithoutReexportingCachedIdentities() async throws {
+    let fixture = try DeliveryFixture(summary: .init(applications: 2, categories: 0, websites: 0))
+    defer { fixture.cleanup() }
+    fixture.selectedAppIDs = ["com.burbn.instagram", "com.supercell.laser"]
+    fixture.selectionIdentity = "22222222-2222-4222-8222-222222222222"
+    _ = await fixture.worker.run(expiryCheck: true)
+    let data = try XCTUnwrap(fixture.snapshots.last)
+    let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    XCTAssertNil(snapshot["selectedAppIDs"])
+    XCTAssertEqual(snapshot["selectionIdentity"] as? String, "22222222-2222-4222-8222-222222222222")
+    XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("opaque-on-phone"))
+  }
+
+  func testUnknownSharingPermissionKeepsOnlyTheRandomSelectionIdentity() async throws {
+    let fixture = try DeliveryFixture(summary: .init(applications: 1, categories: 0, websites: 0))
+    defer { fixture.cleanup() }
+    fixture.selectedAppIDs = ["com.burbn.instagram"]
+    fixture.selectionIdentity = "22222222-2222-4222-8222-222222222222"
+    fixture.allowIdentities = nil
+    _ = await fixture.worker.run()
+    let snapshot = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: XCTUnwrap(fixture.snapshots.last)) as? [String: Any])
+    XCTAssertNil(snapshot["selectedAppIDs"])
+    XCTAssertEqual(snapshot["selectionIdentity"] as? String, "22222222-2222-4222-8222-222222222222")
+  }
+
   func testRevokedIdentitySharingCannotLeakCachedIDsAfterNetworkWait() async throws {
     let fixture = try DeliveryFixture(summary: .init(applications: 1, categories: 0, websites: 0))
     defer { fixture.cleanup() }
@@ -12,7 +38,8 @@ final class AgentFocusDeliveryTests: XCTestCase {
     _ = await fixture.worker.run()
     let data = try XCTUnwrap(fixture.snapshots.last)
     let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
-    XCTAssertNil(snapshot["selectedAppIDs"])
+    XCTAssertEqual(snapshot["selectedAppIDs"] as? [String], [])
+    XCTAssertNil(snapshot["selectionIdentity"])
   }
 
   func testSnapshotExportsOnlyResolvedSelectedAppIDsWithoutOpaqueSelection() async throws {
@@ -198,7 +225,8 @@ private final class DeliveryFixture: @unchecked Sendable {
   var snapshots: [Data] = []
   var summary: AgentSelectionSummary?
   var selectedAppIDs: [String]?
-  var allowIdentities = true
+  var allowIdentities: Bool? = true
+  var selectionIdentity: String?
   var revokeIdentitiesOnCommandFetch = false
   var shielded = false
   var receipts: [FocusReceipt] = []
@@ -210,7 +238,8 @@ private final class DeliveryFixture: @unchecked Sendable {
     directory: directory,
     emergency: .init(read: { nil }, write: { _ in }), now: { self.clock },
     apply: { _, _ in self.shielded = true }, release: { self.shielded = false },
-    summarize: { _ in self.summary }, identify: { _ in self.selectedAppIDs })
+    summarize: { _ in self.summary }, identify: { _ in self.selectedAppIDs },
+    identifyRevision: { _ in self.selectionIdentity })
   lazy var worker: AgentFocusDelivery<String> = {
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [DeliveryURLProtocol.self]

@@ -56,6 +56,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     var activeAppGroupID: String? = nil
     var selectionSummary: AgentSelectionSummary? = nil
     var selectedAppIDs: [String]? = nil
+    var selectionIdentity: String? = nil
   }
   private struct CompletedCommand: Codable {
     let receipt: FocusReceipt
@@ -90,13 +91,15 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
   private let lockTimeout: TimeInterval?
   private let summarize: (Selection) -> AgentSelectionSummary?
   private let identify: (Selection) -> [String]?
+  private let identifyRevision: (Selection) -> String?
 
   init(
     directory: URL, emergency: AgentEmergencyStorage, now: @escaping () -> Double,
     apply: @escaping (AgentFocusSession, Selection) throws -> Void,
     release: @escaping () -> Void, lockTimeout: TimeInterval? = nil,
     summarize: @escaping (Selection) -> AgentSelectionSummary? = { _ in nil },
-    identify: @escaping (Selection) -> [String]? = { _ in nil }
+    identify: @escaping (Selection) -> [String]? = { _ in nil },
+    identifyRevision: @escaping (Selection) -> String? = { _ in nil }
   ) {
     self.directory = directory
     self.emergency = emergency
@@ -106,6 +109,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     self.lockTimeout = lockTimeout
     self.summarize = summarize
     self.identify = identify
+    self.identifyRevision = identifyRevision
   }
 
   func approve(policy: AgentFocusPolicy, selection: Selection, pairingID: String) throws {
@@ -393,7 +397,8 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
         appGroups: groups(in: record).map(\.summary),
         activeAppGroupID: record.state.session == nil ? nil : record.activeAppGroupID ?? "default",
         selectionSummary: selection.flatMap(summarize),
-        selectedAppIDs: selection.flatMap(identify))
+        selectedAppIDs: selection.flatMap(identify),
+        selectionIdentity: selection.flatMap(identifyRevision))
     }
   }
 

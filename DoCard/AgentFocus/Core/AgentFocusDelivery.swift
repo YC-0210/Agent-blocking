@@ -49,6 +49,7 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
     let activeAppGroupID: String?
     let selectionSummary: AgentSelectionSummary?
     let selectedAppIDs: [String]?
+    let selectionIdentity: String?
   }
   private final class RedirectPolicy: NSObject, URLSessionTaskDelegate {
     func urlSession(
@@ -60,12 +61,13 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
   private let phone: AgentFocusPhone<Selection>
   private let pairing: AgentFocusPairing
   private let transport: URLSession
-  private let allowIdentities: () -> Bool
+  // nil means unknown in this process; false is an explicit revocation.
+  private let allowIdentities: () -> Bool?
 
   init(
     phone: AgentFocusPhone<Selection>, pairing: AgentFocusPairing,
     configuration: URLSessionConfiguration = .ephemeral,
-    allowIdentities: @escaping () -> Bool = { false }
+    allowIdentities: @escaping () -> Bool? = { nil }
   ) {
     self.phone = phone
     self.pairing = pairing
@@ -151,6 +153,7 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
     async throws
   {
     if let status = try phone.status(pairingID: pairing.deviceId) {
+      let approval = sharingIdentities ? allowIdentities() : nil
       let snapshot = Snapshot(
         modeID: status.policy.modeID, sessionID: status.session?.id,
         endAt: status.session?.endAt, requiresRenewalApproval: status.requiresRenewalApproval,
@@ -158,7 +161,8 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
         endMinute: status.policy.endMinute, timeZone: status.policy.timeZone,
         appGroups: status.appGroups, activeAppGroupID: status.activeAppGroupID,
         selectionSummary: status.selectionSummary,
-        selectedAppIDs: sharingIdentities && allowIdentities() ? status.selectedAppIDs : nil)
+        selectedAppIDs: approval == true ? status.selectedAppIDs : approval == false ? [] : nil,
+        selectionIdentity: approval == false ? nil : status.selectionIdentity)
       _ = try await request(
         "v1/device/snapshot", body: JSONEncoder().encode(snapshot), deadline: deadline)
     }

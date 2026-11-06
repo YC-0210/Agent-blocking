@@ -26,9 +26,11 @@ installed alternate, seasonal or tinted icon.
 - Delivery checks fresh explicit data-access approval outside the phone lock,
   after network waits, immediately before snapshot publication. Missing approval
   withholds IDs. Clearing a revoked cache schedules a corrective sync.
-- Extension and expiry delivery do not enumerate applications or publish identity
-  metadata. They omit IDs, so a new picker opened from such a snapshot can show
-  counts until the main app supplies another authorized snapshot.
+- Extension and expiry delivery do not enumerate applications or republish bundle
+  IDs. They send a random selection marker matched to the same local tokens,
+  allowing the relay to retain previously authorized icons for that selection.
+  Explicit denial clears IDs; unknown permission does not masquerade as denial.
+  See [the persistence fix](../agent-persistent-icons/README.md).
 - The relay accepts at most 50 unique syntactically valid bundle IDs, never more
   than the selected application count. Snapshot bodies are bounded at 32 KiB;
   other endpoints retain their 8 KiB limit. No image URLs or tokens are accepted.

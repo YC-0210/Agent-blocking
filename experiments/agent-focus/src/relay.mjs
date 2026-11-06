@@ -15,12 +15,14 @@ const snapshotSchema = z.object({ modeID: z.string().min(1).max(80),
     categories: z.number().int().min(0).max(10000), websites: z.number().int().min(0).max(10000) }).strict().optional(),
   selectedAppIDs: z.array(z.string().max(255).regex(/^[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/)).max(50)
     .refine(ids => new Set(ids).size === ids.length).optional(),
+  selectionIdentity: z.string().uuid().optional(),
   appGroups: z.array(z.object({ id: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/),
     name: z.string().trim().min(1).max(40).regex(/^[^\x00-\x1f\x7f]+$/),
     iconKey: z.enum(['instagram', 'tiktok', 'youtube', 'facebook', 'reddit', 'x', 'other']).optional() }).strict()).max(8)
     .refine(groups => new Set(groups.map(group => group.id)).size === groups.length).optional(),
   activeAppGroupID: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/).nullable().optional() }).strict()
-  .refine(snapshot => !snapshot.selectedAppIDs || (snapshot.selectionSummary && snapshot.selectedAppIDs.length <= snapshot.selectionSummary.applications));
+  .refine(snapshot => !snapshot.selectedAppIDs || snapshot.selectedAppIDs.length === 0 ||
+    (snapshot.selectionSummary && snapshot.selectedAppIDs.length <= snapshot.selectionSummary.applications));
 const hash = value => createHash('sha256').update(value).digest('hex');
 function matches(a, b) {
   const x = Buffer.from(a ?? ''), y = Buffer.from(b ?? '');
@@ -128,8 +130,19 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
         if (req.method === 'POST' && path === '/v1/device/snapshot') {
           const parsed = snapshotSchema.safeParse(await readBody(req));
           if (!parsed.success) fail(400, 'invalid_snapshot');
+          const next = parsed.data;
+          const current = db.prepare('SELECT snapshot FROM devices WHERE id = ?').get(deviceId);
+          const previous = JSON.parse(current.snapshot ?? 'null');
+          // A background process may confirm the same selection without access to
+          // identities. Preserve only a matching random selection marker, never counts alone.
+          if (next.selectedAppIDs === undefined && next.selectionIdentity &&
+            next.selectionIdentity === previous?.selectionIdentity &&
+            next.selectionSummary?.applications === previous?.selectionSummary?.applications &&
+            previous.selectedAppIDs) {
+            next.selectedAppIDs = previous.selectedAppIDs;
+          }
           db.prepare('UPDATE devices SET snapshot = ?, observedAt = ? WHERE id = ?')
-            .run(JSON.stringify(parsed.data), now(), deviceId);
+            .run(JSON.stringify(next), now(), deviceId);
           return send(200, { accepted: true });
         }
         if (req.method === 'GET' && path === '/v1/device/commands') {
