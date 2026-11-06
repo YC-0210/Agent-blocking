@@ -63,3 +63,24 @@ worktree, install on the owner's phone, or change live MCP/relay configuration.
 
 合併後仍需以繁中 iPhone 檢查系統封鎖畫面、通知顯示與原生 App 選擇器。
 聊天室目前以 host/DOM adapter 測試，尚未在真實聊天工具中做繁中視覺 walkthrough。
+
+## Integration activation (2026-11-06)
+
+Merged `3ee6c07` from `codex/agent-zh-tw` into
+`codex/agent-focus-integration` at `afce172`, preserving the latest physical
+start/unlock test records. No merge conflicts or additional behavior changes.
+
+Parent-run verification:76 Swift tests and84 Node tests pass. Signed Debug
+iPhone app/all extensions and Release iOS compile validation (signing disabled)
+both report `BUILD SUCCEEDED`. Verified built zh-Hant AgentFocus.strings in the
+app (66 entries), notification service (7), and shield configuration (6).
+Overlay-installed and launched on the paired iPhone13. Restarted the existing
+relay to activate APNs localization keys; database, tunnel address and pairing
+configuration are retained. The rebuilt picker resource is read on demand.
+
+Logs: `/tmp/docard-zh-tw-integration-swift.log`,
+`/tmp/docard-zh-tw-integration-node.log`,
+`/tmp/docard-zh-tw-integration-device.log`,
+`/tmp/docard-zh-tw-integration-release.log`.
+Physical Chinese appearance and native notification/shield copy still require
+owner verification; installation and bundled resources do not establish those.
