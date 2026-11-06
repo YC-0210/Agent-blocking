@@ -3,6 +3,7 @@ import FamilyControls
 import SwiftUI
 
 // Screenshot-only fixtures. No native effects, credentials or networking.
+enum Entitlements { static let premiumAppLimit = 50 }
 enum ThemeManager { static let accentColor = Color(red: 1, green: 107.0 / 255, blue: 53.0 / 255) }
 @MainActor final class RequestAuthorizer: ObservableObject {
   @Published var isAuthorized = ProcessInfo.processInfo.arguments.contains("authorized")
@@ -28,16 +29,17 @@ enum ThemeManager { static let accentColor = Color(red: 1, green: 107.0 / 255, b
   }
   @Published var appReview: AppReview?
   func presentAppReview(groupID: String? = nil) { appReview = AppReview(groupID: groupID) }
-  func appGroupEditContext() throws -> (pairingID: String, modeID: String) {
-    ("fixture", "fixture-mode")
-  }
   func savedAppSelection(groupID: String) throws -> FamilyActivitySelection {
     FamilyActivitySelection()
   }
-  func saveAppGroup(
-    id: String?, name: String, iconKey: String, selection: FamilyActivitySelection,
-    pairingID: String, expectedModeID: String
-  ) async throws -> String { id ?? "fixture-app" }
+  func editableSelection() throws -> (
+    selection: FamilyActivitySelection, modeID: String, pairingID: String
+  ) {
+    (FamilyActivitySelection(), "fixture-mode", "fixture")
+  }
+  func saveSelection(
+    _ selection: FamilyActivitySelection, pairingID: String, expectedModeID: String
+  ) async -> Bool { true }
   init() {
     let args = ProcessInfo.processInfo.arguments
     setupRelay = args.contains("invitation") ? "https://focus.example.com" : ""

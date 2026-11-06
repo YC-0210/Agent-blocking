@@ -11,6 +11,8 @@ const snapshotSchema = z.object({ modeID: z.string().min(1).max(80),
   requiresRenewalApproval: z.boolean(), maximumMinutes: z.number().int().optional(),
   startMinute: z.number().int().optional(), endMinute: z.number().int().optional(),
   timeZone: z.string().max(100).optional(),
+  selectionSummary: z.object({ applications: z.number().int().min(0).max(10000),
+    categories: z.number().int().min(0).max(10000), websites: z.number().int().min(0).max(10000) }).strict().optional(),
   appGroups: z.array(z.object({ id: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/),
     name: z.string().trim().min(1).max(40).regex(/^[^\x00-\x1f\x7f]+$/),
     iconKey: z.enum(['instagram', 'tiktok', 'youtube', 'facebook', 'reddit', 'x', 'other']).optional() }).strict()).max(8)

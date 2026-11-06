@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { resolveLocale, translate, errorMessage, rejectionMessage } from '../src/ui/focus-i18n.mjs';
 
-async function picker(locale, languages = ['en-US']) {
+async function picker(locale, languages = ['en-US'], toolHandler) {
   const elements = new Map();
   const element = id => {
     if (!elements.has(id)) elements.set(id, { hidden: true, style: {}, children: [],
@@ -23,18 +23,18 @@ async function picker(locale, languages = ['en-US']) {
     connect() { return Promise.resolve(); }
     getHostContext() { return { locale }; }
     updateModelContext() { return Promise.resolve(); }
-    async callServerTool(args) { calls.push(args); throw new Error('Unexpected command'); }
+    async callServerTool(args) { calls.push(args); if (toolHandler) return toolHandler(args); throw new Error('Unexpected command'); }
   }
   const source = readFileSync(new URL('../src/ui/focus-picker.mjs', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '');
   vm.runInNewContext(source, { App, resolveLocale, translate, errorMessage, rejectionMessage,
-    appIcon: () => '<svg></svg>', document, navigator: { languages }, Intl, Date, setInterval: () => 1, clearInterval() {},
+    document, navigator: { languages }, Intl, Date, setInterval: () => 1, clearInterval() {},
     setTimeout: () => 1, clearTimeout() {} });
   await new Promise(resolve => setImmediate(resolve));
   return { host, calls, document, element, show(selection) {
     host.ontoolresult({ structuredContent: { selection: { id: 'test', revision: 1, kind: 'session',
       minutes: 30, minMinutes: 2, maxMinutes: 45, currentMaximumMinutes: 45,
-      timeZone: 'Asia/Taipei', phase: 'draft', appGroups: [{ id: 'instagram', name: 'Instagram', iconKey: 'instagram' }], appGroupID: 'instagram', ...selection } } });
+      timeZone: 'Asia/Taipei', phase: 'draft', selectionSummary: { applications: 3, categories: 0, websites: 0 }, ...selection } } });
   } };
 }
 
@@ -101,24 +101,45 @@ test('host locale changes retranslate the current picker without resetting draft
   assert.deepEqual(ui.calls, []);
 });
 
-test('app chips show the confirmed name and icon beside the slider without group controls or commands', async () => {
+test('the picker displays multiple selected apps without identity setup or manual refresh', async () => {
   const ui = await picker('zh-TW');
-  ui.show({ appGroups: [{ id: 'work', name: 'Instagram', iconKey: 'instagram' }], appGroupID: 'work' });
-  assert.equal(ui.element('refresh-groups').textContent, '重新整理 App');
-  const chip = ui.element('app-options').children[0];
-  assert.equal(chip['aria-pressed'], 'true');
-  assert.equal(chip.children[1].textContent, 'Instagram');
-  assert.match(chip.children[0].innerHTML, /svg/);
+  ui.show({});
+  assert.equal(ui.element('selection-label').textContent, '已選取 3 個 App');
+  assert.equal(ui.element('confirm').disabled, false);
   assert.deepEqual(ui.calls, []);
+  ui.element('minutes').oninput({ target: { value: '17' } });
+  ui.show({ revision: 2, selectionSummary: { applications: 5, categories: 0, websites: 0 } });
+  assert.equal(ui.element('selection-label').textContent, '已選取 5 個 App');
+  assert.equal(ui.element('minutes').value, '17');
   ui.show({ kind: 'maximum', minutes: 45, minMinutes: 15, maxMinutes: 1440 });
   assert.equal(ui.element('groups').hidden, true);
 });
 
-test('legacy selections are never inferred to be Instagram and require an explicit phone association', async () => {
+test('missing private selection counts require phone sync without inventing app identities', async () => {
   const ui = await picker('en');
-  ui.show({ appGroups: [{ id: 'default', name: 'Saved apps' }], appGroupID: 'default' });
-  assert.equal(ui.element('app-options').children.length, 0);
+  ui.show({ selectionSummary: undefined });
   assert.equal(ui.element('confirm').disabled, true);
-  assert.equal(ui.element('confirm').textContent, 'Choose an app on iPhone');
+  assert.equal(ui.element('confirm').textContent, 'Choose apps on iPhone');
   assert.deepEqual(ui.calls, []);
+});
+
+test('a count refresh arriving during a time edit preserves that time and rebases its revision', async () => {
+  const current = { id: 'test', kind: 'session', revision: 2, minutes: 30, phase: 'draft',
+    minMinutes: 2, maxMinutes: 45, currentMaximumMinutes: 45, timeZone: 'Asia/Taipei',
+    selectionSummary: { applications: 5, categories: 0, websites: 0 } };
+  const ui = await picker('en', ['en-US'], async ({ name, arguments: args }) => {
+    if (name === 'focus_selection_status') return { structuredContent: { selection: current } };
+    if (name === 'revise_focus_selection' && args.expectedRevision === 2) {
+      return { structuredContent: { selection: { ...current, revision: 3, minutes: args.minutes } } };
+    }
+    return { isError: true, content: [{ type: 'text', text: 'selection_changed' }] };
+  });
+  ui.show({});
+  ui.element('minutes').oninput({ target: { value: '17' } });
+  ui.show(current);
+  await ui.element('minutes').onchange();
+  assert.equal(ui.element('minutes').value, '17');
+  assert.equal(ui.element('selection-label').textContent, '5 selected apps');
+  assert.equal(ui.calls[0].arguments.expectedRevision, 2);
+  assert.equal(ui.calls.some(call => call.name === 'confirm_focus_selection'), false);
 });

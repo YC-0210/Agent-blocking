@@ -73,7 +73,7 @@ export function registerFocusPickers({ server, request, now = Date.now }) {
       minMinutes: kind === 'maximum' ? 15 : 2,
       maxMinutes: kind === 'maximum' ? 1440 : snapshot.maximumMinutes,
       timeZone: snapshot.timeZone ?? 'UTC', startMinute: snapshot.startMinute, endMinute: snapshot.endMinute,
-      ...(kind === 'session' ? { appGroups: snapshot.appGroups ?? [], appGroupID: snapshot.appGroups?.find(app => app.iconKey)?.id ?? snapshot.appGroups?.[0]?.id } : {}),
+      ...(kind === 'session' ? { appGroups: snapshot.selectionSummary ? [] : snapshot.appGroups ?? [], appGroupID: snapshot.selectionSummary ? 'default' : snapshot.appGroups?.find(app => app.iconKey)?.id ?? snapshot.appGroups?.[0]?.id, selectionSummary: snapshot.selectionSummary } : {}),
       observedAt: observed.observedAt, previewStartAt: now(), expiresAt: now() + 600000,
       issue: kind === 'session' ? issue ?? '' : '', phase: 'draft', requestId: `focus-${id}` };
     validate(selection, selection.minutes);
@@ -135,8 +135,12 @@ export function registerFocusPickers({ server, request, now = Date.now }) {
     if (selection.submission || selection.revision !== revision) throw new Error('selection_changed');
     if (observed.snapshot.sessionID) throw new Error('session_active');
     if (observed.snapshot.maximumMinutes !== selection.currentMaximumMinutes) throw new Error('policy_changed: open a new picker');
-    selection.appGroups = observed.snapshot.appGroups ?? [];
-    if (!selection.appGroups.some(group => group.id === selection.appGroupID)) selection.appGroupID = selection.appGroups.find(app => app.iconKey)?.id ?? selection.appGroups[0]?.id;
+    selection.appGroups = observed.snapshot.selectionSummary ? [] : observed.snapshot.appGroups ?? [];
+    if (observed.snapshot.selectionSummary) {
+      selection.selectionSummary = observed.snapshot.selectionSummary;
+      selection.appGroupID = 'default';
+    }
+    if (!observed.snapshot.selectionSummary && !selection.appGroups.some(group => group.id === selection.appGroupID)) selection.appGroupID = selection.appGroups.find(app => app.iconKey)?.id ?? selection.appGroups[0]?.id;
     selection.modeID = observed.snapshot.modeID;
     selection.startMinute = observed.snapshot.startMinute;
     selection.endMinute = observed.snapshot.endMinute;
@@ -160,6 +164,25 @@ export function registerFocusPickers({ server, request, now = Date.now }) {
       } catch {
         // An ambiguous network result must not be shown as rejected or applied.
         selection.phase = 'unknown';
+      }
+    } else if (selection.kind === 'session') {
+      const revision = selection.revision;
+      const observed = await phone(selection.deviceId);
+      find(selectionId);
+      // Do not overwrite a simultaneous edit or an immutable submitted command.
+      if (!selection.submission && selection.revision === revision && observed.snapshot.selectionSummary) {
+        if (observed.snapshot.sessionID) throw new Error('session_active');
+        const update = { modeID: observed.snapshot.modeID,
+          currentMaximumMinutes: observed.snapshot.maximumMinutes, maxMinutes: observed.snapshot.maximumMinutes,
+          selectionSummary: observed.snapshot.selectionSummary, appGroupID: 'default',
+          startMinute: observed.snapshot.startMinute, endMinute: observed.snapshot.endMinute,
+          timeZone: observed.snapshot.timeZone ?? 'UTC' };
+        if (Object.entries(update).some(([key, value]) => JSON.stringify(selection[key]) !== JSON.stringify(value))) {
+          Object.assign(selection, update);
+          selection.appGroups = observed.snapshot.selectionSummary ? [] : observed.snapshot.appGroups ?? [];
+          selection.revision += 1;
+        }
+        selection.observedAt = observed.observedAt;
       }
     }
     return output(selection);
@@ -187,6 +210,7 @@ export function registerFocusPickers({ server, request, now = Date.now }) {
       if (selection.kind === 'session' && observed.snapshot.sessionID) throw new Error('session_active');
       validate(selection, selection.minutes);
       if (selection.kind === 'session' && selection.appGroupID &&
+        !(selection.appGroupID === 'default' && observed.snapshot.selectionSummary) &&
         !observed.snapshot.appGroups?.some(group => group.id === selection.appGroupID)) throw new Error('app_group_not_approved');
       if (!selection.submission) selection.submission = Object.freeze(selection.kind === 'maximum'
         ? { id: selection.requestId, action: 'set_maximum', modeID: selection.modeID,

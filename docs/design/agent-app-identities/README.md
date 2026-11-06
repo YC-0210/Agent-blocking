@@ -1,5 +1,7 @@
 # App identities beside the chat timeline
 
+Superseded by the owner-approved [pick-only flow](../agent-pick-only/README.md).
+
 Owner-approved change: replace app groups in the UI with the selected app's name
 and icon beside the duration slider. Apple native selection tokens remain private.
 

@@ -88,7 +88,7 @@ struct AgentFocusView: View {
       .onChange(of: runtime.setupRelay) { _, _ in loadInvitation() }
     }
     .sheet(item: $runtime.appReview) { review in
-      AgentAppsView(runtime: runtime, initialGroupID: review.groupID)
+      AgentAppPickerView(runtime: runtime, initialGroupID: review.groupID)
     }
     .preferredColorScheme(.light)
   }
@@ -214,7 +214,7 @@ struct AgentFocusView: View {
           Label(
             focusing
               ? String(localized: "Review this session’s apps", table: "AgentFocus")
-              : String(localized: "Manage apps", table: "AgentFocus"),
+              : String(localized: "Choose apps", table: "AgentFocus"),
             systemImage: "square.grid.2x2"
           )
           .frame(minHeight: 44)
@@ -521,250 +521,113 @@ private struct BoldPrimaryStyle: ButtonStyle {
   }
 }
 
-/// Native labels remain private. Display identities are explicitly confirmed by the person.
-private struct AgentAppsView: View {
+/// Pick-only flow: native choices stay private; Done saves and syncs the count.
+private struct AgentAppPickerView: View {
   @ObservedObject var runtime: AgentFocusRuntime
   let initialGroupID: String?
   @Environment(\.dismiss) private var dismiss
-  @State private var appID: String?
+  @State private var selection = FamilyActivitySelection()
   @State private var draftPairingID = ""
   @State private var draftModeID = ""
-  @State private var name = ""
-  @State private var identity = ""
-  @State private var confirmed = false
-  @State private var selection = FamilyActivitySelection()
-  @State private var picker = false
+  @State private var loaded = false
   @State private var saving = false
   @State private var message = ""
   private var active: Bool {
     runtime.focusStatus?.session != nil || runtime.focusStatus?.applicationPending == true
   }
-  private var known: Bool { runtime.focusStatus != nil }
-  private var singleApp: Bool {
-    selection.applicationTokens.count == 1 && selection.categoryTokens.isEmpty
-      && selection.webDomainTokens.isEmpty
+  private var nonempty: Bool {
+    !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
+      || !selection.webDomainTokens.isEmpty
   }
-  private var validIdentity: Bool { AgentAppIdentity(rawValue: identity) != nil }
 
   var body: some View {
     NavigationStack {
-      Form {
-        overviewSection
-        privateSelectionSection
-        identitySection
-        if !message.isEmpty { Section { Text(message) } }
-        Section {
-          Button(
-            String(localized: "Emergency Unlock", table: "AgentFocus"),
-            action: runtime.emergencyUnlock)
+      Group {
+        if !message.isEmpty {
+          VStack(spacing: 20) {
+            Text(message)
+            Button(String(localized: "Try again", table: "AgentFocus")) { load() }
+          }.padding()
+        } else if active {
+          List {
+            ForEach(Array(selection.applicationTokens), id: \.self) { Label($0) }
+            ForEach(Array(selection.categoryTokens), id: \.self) { Label($0) }
+            ForEach(Array(selection.webDomainTokens), id: \.self) { Label($0) }
+            Text(String(localized: "End this session before changing apps.", table: "AgentFocus"))
+          }
+        } else if loaded {
+          FamilyActivityPicker(selection: $selection).disabled(saving)
+        } else {
+          ProgressView()
         }
       }
-      .navigationTitle(String(localized: "Your apps", table: "AgentFocus"))
+      .navigationTitle(String(localized: "Choose apps", table: "AgentFocus"))
+      .navigationBarTitleDisplayMode(.inline)
       .toolbar {
         ToolbarItem(placement: .cancellationAction) {
+          Button(String(localized: "Cancel", table: "AgentFocus")) { dismiss() }.disabled(saving)
+        }
+        ToolbarItem(placement: .confirmationAction) {
+          Button(
+            saving
+              ? String(localized: "Saving…", table: "AgentFocus")
+              : String(localized: "Done", table: "AgentFocus")
+          ) {
+            if active {
+              dismiss()
+              return
+            }
+            saving = true
+            Task {
+              let saved = await runtime.saveSelection(
+                selection, pairingID: draftPairingID,
+                expectedModeID: draftModeID)
+              saving = false
+              if saved {
+                dismiss()
+              } else {
+                message = String(
+                  localized: "Could not save. Reopen the picker and check Screen Time access.",
+                  table: "AgentFocus")
+              }
+            }
+          }
+          .disabled(
+            saving || !loaded
+              || (!active
+                && (!nonempty || selection.applicationTokens.count > Entitlements.premiumAppLimit))
+          )
+          .accessibilityIdentifier("agent-focus-picker-done")
+        }
+        ToolbarItem(placement: .bottomBar) {
           Button(
             String(localized: "Emergency Unlock", table: "AgentFocus"),
             action: runtime.emergencyUnlock)
         }
-        ToolbarItem(placement: .confirmationAction) {
-          Button(String(localized: "Done", table: "AgentFocus")) { dismiss() }
-        }
       }
-      .familyActivityPicker(isPresented: $picker, selection: $selection)
-      .onAppear { load(runtime.focusStatus?.activeAppGroupID ?? initialGroupID ?? "default") }
-      .onChange(of: runtime.focusStatus?.activeAppGroupID) { _, id in if let id { load(id) } }
-      .onChange(of: identity) { _, key in
-        confirmed = false
-        if let item = AgentAppIdentity(rawValue: key), item != .other {
-          name = item.displayName
-        } else if key.isEmpty {
-          name = ""
-        }
-      }
-      .onChange(of: selection.applicationTokens) { _, _ in confirmed = false }
-      .onChange(of: selection.categoryTokens) { _, _ in confirmed = false }
-      .onChange(of: selection.webDomainTokens) { _, _ in confirmed = false }
-      .onChange(of: name) { _, _ in confirmed = false }
+      .task { load() }
+      .onChange(of: active) { _, _ in load() }
     }
   }
 
-  @ViewBuilder private var overviewSection: some View {
-    Section {
+  private func load() {
+    loaded = false
+    message = ""
+    do {
       if active {
-        Text(
-          runtime.focusStatus?.applicationPending == true
-            ? String(
-              localized: "Applying the session. Blocking is not yet confirmed.",
-              table: "AgentFocus")
-            : String(
-              localized: "These are the apps selected for this session.", table: "AgentFocus"))
-      } else if !known {
-        Text(
-          String(
-            localized:
-              "Status unavailable. Editing is disabled. Emergency Unlock is still available.",
-            table: "AgentFocus"))
+        selection = try runtime.savedAppSelection(
+          groupID: runtime.focusStatus?.activeAppGroupID ?? initialGroupID ?? "default")
       } else {
-        ForEach(runtime.focusStatus?.appGroups ?? []) { app in
-          Button {
-            load(app.id)
-          } label: {
-            HStack {
-              Text(
-                app.iconKey == nil
-                  ? String(localized: "Unlinked selection", table: "AgentFocus") : app.name)
-              Spacer()
-              if appID == app.id { Image(systemName: "checkmark") }
-            }
-          }.disabled(saving)
-        }
-        Button(String(localized: "Add app", table: "AgentFocus")) { prepareNewApp() }
-          .disabled(saving || (runtime.focusStatus?.appGroups.count ?? 8) >= 8)
+        let draft = try runtime.editableSelection()
+        selection = draft.selection
+        draftModeID = draft.modeID
+        draftPairingID = draft.pairingID
       }
-    } header: {
-      Text(
-        active
-          ? String(localized: "This session", table: "AgentFocus")
-          : String(localized: "Your apps", table: "AgentFocus"))
-    }
-  }
-
-  @ViewBuilder private var privateSelectionSection: some View {
-    Section {
-      ForEach(Array(selection.applicationTokens), id: \.self) { Label($0) }
-      ForEach(Array(selection.categoryTokens), id: \.self) { Label($0) }
-      ForEach(Array(selection.webDomainTokens), id: \.self) { Label($0) }
-      if !active {
-        Button(String(localized: "Choose app on this iPhone", table: "AgentFocus")) {
-          picker = true
-        }.disabled(!known || saving)
-        if !singleApp {
-          Text(
-            String(
-              localized: "Choose exactly one app, without categories or websites.",
-              table: "AgentFocus")
-          ).font(.footnote)
-        }
-      }
-    } header: {
-      Text(String(localized: "Private iPhone selection", table: "AgentFocus"))
-    }
-  }
-
-  @ViewBuilder private var identitySection: some View {
-    if !active {
-      Section {
-        Picker(
-          String(localized: "App name and icon", table: "AgentFocus"), selection: $identity
-        ) {
-          Text(String(localized: "Choose an identity", table: "AgentFocus")).tag("")
-          ForEach(AgentAppIdentity.allCases, id: \.rawValue) { item in
-            Text(
-              item == .other
-                ? String(localized: "Other app", table: "AgentFocus") : item.displayName
-            ).tag(item.rawValue)
-          }
-        }.disabled(!known || saving)
-        if identity == "other" {
-          TextField(String(localized: "App name", table: "AgentFocus"), text: $name).disabled(
-            saving)
-        }
-        Text(
-          String(
-            localized:
-              "Choose the name and icon that match the app selected above. Apple does not identify it for chat.",
-            table: "AgentFocus")
-        )
-        .font(.footnote)
-        Toggle(
-          String(
-            localized: "I confirm the selected app matches this name and icon.",
-            table: "AgentFocus"), isOn: $confirmed
-        )
-        .disabled(!known || saving || !singleApp || !validIdentity)
-        Button(
-          saving
-            ? String(localized: "Saving…", table: "AgentFocus")
-            : String(localized: "Save app for chat", table: "AgentFocus")
-        ) { save() }
-        .disabled(
-          !known || saving || !singleApp || !validIdentity || !confirmed
-            || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || name.utf16.count > 40)
-      } header: {
-        Text(String(localized: "Shown in chat", table: "AgentFocus"))
-      } footer: {
-        Text(
-          String(
-            localized:
-              "Only the name and icon you choose here are shared with your agent. The actual selection stays on this iPhone.",
-            table: "AgentFocus"))
-      }
-    } else {
-      Text(String(localized: "End this session before changing apps.", table: "AgentFocus"))
-    }
-  }
-
-  private func load(_ id: String) {
-    do {
-      let context = try runtime.appGroupEditContext()
-      selection = try runtime.savedAppSelection(groupID: id)
-      draftPairingID = context.pairingID
-      draftModeID = context.modeID
-      appID = id
-      let app = runtime.focusStatus?.appGroups.first(where: { $0.id == id })
-      identity = app?.iconKey ?? ""
-      name = app?.name ?? ""
-      confirmed = false
-      message = ""
+      loaded = true
     } catch {
       message = String(
-        localized: "Could not load this app. Refresh the phone status and try again.",
+        localized: "Could not load the selection. End any active session and try again.",
         table: "AgentFocus")
-      draftModeID = ""
-    }
-  }
-
-  private func prepareNewApp() {
-    do {
-      let context = try runtime.appGroupEditContext()
-      draftPairingID = context.pairingID
-      draftModeID = context.modeID
-      appID = nil
-      identity = ""
-      name = ""
-      confirmed = false
-      selection = FamilyActivitySelection()
-      message = ""
-    } catch {
-      message = String(
-        localized: "Could not load this app. Refresh the phone status and try again.",
-        table: "AgentFocus")
-    }
-  }
-
-  private func save() {
-    guard singleApp, confirmed, validIdentity else { return }
-    saving = true
-    Task {
-      do {
-        let id = try await runtime.saveAppGroup(
-          id: appID, name: name, iconKey: identity,
-          selection: selection, pairingID: draftPairingID, expectedModeID: draftModeID)
-        load(id)
-        message =
-          runtime.connectionPending
-          ? String(
-            localized: "Saved on this iPhone. Reconnect to sync, then refresh apps in chat.",
-            table: "AgentFocus")
-          : String(localized: "Saved. Return to chat and refresh apps.", table: "AgentFocus")
-      } catch {
-        message = String(
-          localized:
-            "Could not save. Check your selection and reopen this screen if settings changed.",
-          table: "AgentFocus")
-      }
-      saving = false
     }
   }
 }

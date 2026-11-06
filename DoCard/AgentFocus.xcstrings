@@ -1636,6 +1636,46 @@
           }
         }
       }
+    },
+    "Choose apps": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇 App"
+          }
+        }
+      }
+    },
+    "Try again": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "再試一次"
+          }
+        }
+      }
+    },
+    "Could not save. Reopen the picker and check Screen Time access.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法儲存。請重新開啟選擇器，並確認螢幕使用時間權限。"
+          }
+        }
+      }
+    },
+    "Could not load the selection. End any active session and try again.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法載入選取項目。請先結束進行中的專注，再試一次。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

@@ -75,6 +75,18 @@ test('phone-authored app identities sync only approved local icon keys, never ar
   ]) assert.equal((await request('/v1/device/snapshot', { ...snapshot, appGroups: [invalid] }, phone.deviceToken)).status, 400);
 });
 
+test('selection counts sync without names or tokens and invalid counts cannot replace them', async t => {
+  const { request, pair } = await fixture(t);
+  const phone = await pair();
+  const selectionSummary = { applications: 3, categories: 0, websites: 0 };
+  assert.equal((await request('/v1/device/snapshot', { ...snapshot, selectionSummary }, phone.deviceToken)).status, 200);
+  assert.deepEqual((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.selectionSummary, selectionSummary);
+  for (const value of [{ applications: -1, categories: 0, websites: 0 },
+    { ...selectionSummary, applications: 1.5 }, { ...selectionSummary, tokens: ['private'] }]) {
+    assert.equal((await request('/v1/device/snapshot', { ...snapshot, selectionSummary: value }, phone.deviceToken)).status, 400);
+  }
+});
+
 test('a start without a finite duration is rejected before delivery', async t => {
   const { request, pair } = await fixture(t);
   const phone = await pair();

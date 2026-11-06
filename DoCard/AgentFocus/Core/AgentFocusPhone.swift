@@ -1,6 +1,12 @@
 import Darwin
 import Foundation
 
+struct AgentSelectionSummary: Codable, Equatable, Sendable {
+  let applications: Int
+  let categories: Int
+  let websites: Int
+}
+
 /// Only user-authored aliases and opaque IDs leave the phone; never native selection tokens.
 struct AgentAppGroup: Codable, Equatable, Sendable, Identifiable {
   let id: String
@@ -48,6 +54,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     var applicationPending = false
     var appGroups: [AgentAppGroup] = []
     var activeAppGroupID: String? = nil
+    var selectionSummary: AgentSelectionSummary? = nil
   }
   private struct CompletedCommand: Codable {
     let receipt: FocusReceipt
@@ -80,11 +87,13 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
   private let apply: (AgentFocusSession, Selection) throws -> Void
   private let release: () -> Void
   private let lockTimeout: TimeInterval?
+  private let summarize: (Selection) -> AgentSelectionSummary?
 
   init(
     directory: URL, emergency: AgentEmergencyStorage, now: @escaping () -> Double,
     apply: @escaping (AgentFocusSession, Selection) throws -> Void,
-    release: @escaping () -> Void, lockTimeout: TimeInterval? = nil
+    release: @escaping () -> Void, lockTimeout: TimeInterval? = nil,
+    summarize: @escaping (Selection) -> AgentSelectionSummary? = { _ in nil }
   ) {
     self.directory = directory
     self.emergency = emergency
@@ -92,6 +101,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     self.apply = apply
     self.release = release
     self.lockTimeout = lockTimeout
+    self.summarize = summarize
   }
 
   func approve(policy: AgentFocusPolicy, selection: Selection, pairingID: String) throws {
@@ -373,7 +383,10 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
         requiresRenewalApproval: record.state.requiresRenewalApproval,
         applicationPending: record.pendingCommand != nil,
         appGroups: groups(in: record).map(\.summary),
-        activeAppGroupID: record.state.session == nil ? nil : record.activeAppGroupID ?? "default")
+        activeAppGroupID: record.state.session == nil ? nil : record.activeAppGroupID ?? "default",
+        selectionSummary: (record.state.session == nil
+          ? groups(in: record).first(where: { $0.summary.id == "default" })?.selection
+          : record.selection).flatMap(summarize))
     }
   }
 

@@ -1,4 +1,3 @@
-import { appIcon } from './app-icons.mjs';
 import { resolveLocale, translate, errorMessage, rejectionMessage } from './focus-i18n.mjs';
 import { App } from '@modelcontextprotocol/ext-apps';
 
@@ -15,17 +14,10 @@ function localize() {
   el('timeline').setAttribute('aria-label', t('Drag to choose duration'));
   el('confirm').textContent = t('Confirm');
   el('groups').setAttribute('aria-label', t('Apps for this session'));
-  el('app-options').setAttribute('aria-label', t('Choose an app'));
-  for (const [id, copy] of Object.entries({
-    'app-empty': 'Choose an app on iPhone',
-    'refresh-groups': 'Refresh apps',
-    'review-summary': 'Open from another device',
-    'review-help': 'Open this address on your paired iPhone. If your chat app cannot open it, open DO Card and tap Manage apps.',
-  })) el(id).textContent = t(copy);
+  el('selection-review').setAttribute('aria-label', t('Change selected apps'));
   render();
   if (lastFailure && !el('error').hidden) failure(lastFailure);
 }
-let appRenderKey;
 let selection, minutes, editRevision, dirty = false, working = false, timer, saving, expiryTimer, lastContext;
 const terminal = new Set(['applied', 'rejected', 'expired']);
 const submitted = () => selection && selection.phase !== 'draft';
@@ -46,11 +38,16 @@ function accept(result) {
   if (result.isError) throw new Error(result.content?.find(part => part.type === 'text')?.text ?? 'Could not update this selection.');
   const next = result.structuredContent?.selection;
   if (!next || (selection && selection.id !== next.id)) return;
+  const previous = selection;
   selection = next;
   if (!dirty) { minutes = next.minutes; editRevision = next.revision; }
+  else if (previous?.minutes === next.minutes && next.phase === 'draft') {
+    // Metadata-only refresh: keep the local duration and rebase it on the new settings.
+    editRevision = next.revision;
+  }
   render();
   const context = JSON.stringify({ selectionId: next.id, kind: next.kind, minutes: next.minutes,
-    commandStatus: next.phase, requestId: next.requestId, appGroupID: next.appGroupID });
+    commandStatus: next.phase, requestId: next.requestId, selectionSummary: next.selectionSummary });
   if (context !== lastContext) {
     lastContext = context;
     // Model context is supplementary; a host that does not support it must not make a successful command look failed.
@@ -76,28 +73,14 @@ function render() {
   const axisMax = selection.maxMinutes;
   el('picker').hidden = false;
   el('groups').hidden = maximum;
-  el('app-management').hidden = maximum;
-  const identities = (selection.appGroups ?? []).filter(app => ['instagram', 'tiktok', 'youtube', 'facebook', 'reddit', 'x', 'other'].includes(app.iconKey));
-  const chosenApp = identities.find(app => app.id === selection.appGroupID);
-  if (!maximum) {
-    const nextAppKey = JSON.stringify([selection.id, identities, selection.appGroupID, blocked]);
-    if (nextAppKey !== appRenderKey) {
-    appRenderKey = nextAppKey;
-    el('app-options').replaceChildren(...identities.map(app => {
-      const button = document.createElement('button');
-      button.type = 'button'; button.className = 'app-chip'; button.disabled = blocked;
-      button.setAttribute('aria-pressed', String(app.id === selection.appGroupID));
-      const icon = document.createElement('span'); icon.className = `app-icon ${app.iconKey}`;
-      icon.setAttribute('aria-hidden', 'true'); icon.innerHTML = appIcon(app.iconKey);
-      const name = document.createElement('span'); name.textContent = app.name;
-      button.append(icon, name); button.onclick = () => chooseApp(app.id);
-      return button;
-    }));
-    }
-    el('app-empty').hidden = Boolean(chosenApp);
-    el('refresh-groups').disabled = blocked;
-    el('review-url').textContent = selection.reviewURL ?? '';
-  }
+  const summary = selection.selectionSummary;
+  const hasSelection = summary && summary.applications + summary.categories + summary.websites > 0;
+  const parts = [];
+  if (summary?.applications) parts.push(summary.applications === 1 ? t('1 selected app') : t('{count} selected apps', { count: summary.applications }));
+  if (summary?.categories) parts.push(summary.categories === 1 ? t('1 selected category') : t('{count} selected categories', { count: summary.categories }));
+  if (summary?.websites) parts.push(summary.websites === 1 ? t('1 selected website') : t('{count} selected websites', { count: summary.websites }));
+  el('selection-label').textContent = parts.join(' · ') || t('Choose apps on iPhone');
+  el('selection-review').disabled = working || Boolean(saving);
   document.querySelector('main').setAttribute('aria-busy', String(working));
   el('minutes').min = selection.minMinutes;
   el('minutes').max = selection.maxMinutes;
@@ -114,10 +97,10 @@ function render() {
   const formattedEnd = Number.isFinite(endAt) ? clock(endAt, selection.timeZone) : '—';
   const windowEnded = selection.phase === 'applied' && !maximum && Date.now() >= endAt;
   const confirm = el('confirm');
-  confirm.textContent = !maximum && !chosenApp && !submitted() ? t('Choose an app on iPhone') : working ? t('Sending…') : selection.phase === 'unknown' ? t('Retry the same request') : submitted()
+  confirm.textContent = !maximum && !hasSelection && !submitted() ? t('Choose apps on iPhone') : working ? t('Sending…') : selection.phase === 'unknown' ? t('Retry the same request') : submitted()
     ? selection.phase === 'applied' ? maximum ? t('Maximum saved') : windowEnded ? t('Session window ended') : t('Blocking active') : selection.phase === 'pending' ? t('Waiting for phone…') : t('Request ended')
     : !valid() ? t('Choose a valid duration') : maximum ? t('Save maximum') : t('Start focus');
-  confirm.disabled = (!maximum && !chosenApp) || working || Boolean(saving) || !valid() || (submitted() && selection.phase !== 'unknown') ||
+  confirm.disabled = (!maximum && !hasSelection) || working || Boolean(saving) || !valid() || (submitted() && selection.phase !== 'unknown') ||
     (!submitted() && maximum && minutes === selection.currentMaximumMinutes);
   const messages = {
     pending: t('Request sent. Waiting for the phone to acknowledge it. Pending does not mean applied.'),
@@ -146,8 +129,9 @@ async function saveDraft() {
     selectionId: selection.id, minutes: target, expectedRevision: editRevision,
   } });
   if (result.isError) {
-    dirty = false;
     await call('focus_selection_status', { selectionId: selection.id });
+    // Preserve the typed time. A subsequent explicit retry uses the refreshed revision.
+    editRevision = selection.revision;
     throw new Error(result.content?.[0]?.text ?? 'The proposal changed. Review it again.');
   }
   dirty = false; accept(result);
@@ -163,25 +147,12 @@ el('timeline').oninput = event => edit(event.target.value);
 el('timeline').onchange = () => flush().catch(failure);
 el('minutes').oninput = event => edit(event.target.value);
 el('minutes').onchange = () => flush().catch(failure);
-async function chooseApp(appGroupID) {
-  if (!selection || submitted() || working || saving) return;
+el('selection-review').onclick = async () => {
   try {
-    working = true; el('error').hidden = true; render();
-    await flush();
-    await call('revise_focus_selection', { selectionId: selection.id, appGroupID, expectedRevision: selection.revision });
-  } catch (error) {
-    try { await call('focus_selection_status', { selectionId: selection.id }); } catch {}
-    failure(error);
-  } finally { working = false; render(); }
-};
-el('refresh-groups').onclick = async () => {
-  if (!selection || submitted() || working || saving) return;
-  try {
-    working = true; el('error').hidden = true; render();
-    await flush();
-    await call('refresh_focus_app_groups', { selectionId: selection.id });
-  } catch (error) { failure(error); }
-  finally { working = false; render(); }
+    if (!selection?.reviewURL) return;
+    const result = await app.openLink({ url: selection.reviewURL });
+    if (result.isError) throw new Error('link_denied');
+  } catch { failure({ copy: 'Open DO Card on your paired iPhone and choose apps. This chat will update after saving.' }); }
 };
 el('confirm').onclick = async () => {
   if (working || !selection || !valid() || el('confirm').disabled) return;

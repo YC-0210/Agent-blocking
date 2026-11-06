@@ -40,38 +40,8 @@ final class AgentFocusRuntime: ObservableObject {
       groupID: groupID, pairingID: pairing.deviceId)
   }
 
-  func appGroupEditContext() throws -> (pairingID: String, modeID: String) {
-    let pairing = try AgentFocusPairingStore.load()
-    guard
-      let status = try AgentFocusDevice.phone(lockTimeout: 0.2).status(pairingID: pairing.deviceId)
-    else { throw Failure.missingPairing }
-    return (pairing.deviceId, status.policy.modeID)
-  }
-
-  func saveAppGroup(
-    id: String?, name: String, iconKey: String, selection: FamilyActivitySelection,
-    pairingID: String, expectedModeID: String
-  ) async throws
-    -> String
-  {
-    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
-      throw AgentFocusDevice.Failure.unauthorized
-    }
-    guard
-      selection.applicationTokens.count == 1,
-      selection.categoryTokens.isEmpty, selection.webDomainTokens.isEmpty,
-      AgentAppIdentity(rawValue: iconKey) != nil
-    else { throw AgentFocusDevice.Failure.emptySelection }
-    let pairing = try AgentFocusPairingStore.load()
-    guard pairing.deviceId == pairingID else { throw Failure.missingPairing }
-    let group = try AgentFocusDevice.phone(lockTimeout: 0.2).saveAppGroup(
-      id: id, name: name, selection: selection, pairingID: pairing.deviceId, iconKey: iconKey,
-      expectedModeID: expectedModeID)
-    refreshFocusStatus(pairingID: pairing.deviceId)
-    await sync()
-    return group.id
-  }
   private var syncing = false
+  private var syncWaiters: [CheckedContinuation<Void, Never>] = []
   private var pushToken: String?
   private let redirectPolicy = AgentFocusRedirectPolicy()
   private lazy var transport = URLSession(
@@ -198,21 +168,27 @@ final class AgentFocusRuntime: ObservableObject {
     }
   }
 
-  func editableSelection() throws -> (selection: FamilyActivitySelection, modeID: String) {
+  func editableSelection() throws -> (
+    selection: FamilyActivitySelection, modeID: String, pairingID: String
+  ) {
     let pairing = try AgentFocusPairingStore.load()
-    return try AgentFocusDevice.phone(lockTimeout: 0.2).editableSelection(
+    let draft = try AgentFocusDevice.phone(lockTimeout: 0.2).editableSelection(
       pairingID: pairing.deviceId)
+    return (draft.selection, draft.modeID, pairing.deviceId)
   }
 
-  func saveSelection(_ selection: FamilyActivitySelection, expectedModeID: String) -> Bool {
+  func saveSelection(
+    _ selection: FamilyActivitySelection, pairingID: String, expectedModeID: String
+  ) async -> Bool {
     do {
       let pairing = try AgentFocusPairingStore.load()
+      guard pairing.deviceId == pairingID else { throw Failure.missingPairing }
       try AgentFocusDevice.updateSelection(
         selection, pairingID: pairing.deviceId,
         expectedModeID: expectedModeID)
       refreshFocusStatus(pairingID: pairing.deviceId)
       message = String(localized: "App selection saved for future sessions.", table: "AgentFocus")
-      Task { await sync() }
+      await sync()
       return true
     } catch {
       refreshFocusStatus()
@@ -241,9 +217,28 @@ final class AgentFocusRuntime: ObservableObject {
   }
 
   func sync() async {
-    guard enabled, configured, !syncing else { return }
-    syncing = true
-    defer { syncing = false }
+    guard enabled, configured else { return }
+    await withCheckedContinuation { continuation in
+      syncWaiters.append(continuation)
+      guard !syncing else { return }
+      syncing = true
+      Task { await drainSyncs() }
+    }
+  }
+
+  private func drainSyncs() async {
+    // Each caller waits for a pass begun after its request. A save that overlaps
+    // an old snapshot upload therefore gets a fresh pass, without starving waiters.
+    while !syncWaiters.isEmpty {
+      let batch = syncWaiters
+      syncWaiters.removeAll()
+      if enabled && configured { await performSync() }
+      for waiter in batch { waiter.resume() }
+    }
+    syncing = false
+  }
+
+  private func performSync() async {
     do {
       try AgentFocusDevice.reconcile()
       let pairing = try AgentFocusPairingStore.load()

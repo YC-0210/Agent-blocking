@@ -62,6 +62,25 @@ function rejected(result, reason) {
   assert.equal(result.isError, true); if (reason) assert.match(result.content[0].text, reason);
 }
 
+test('an open time draft automatically adopts a saved multi-app selection without sending a command', async t => {
+  const f = await fixture(t);
+  await f.snapshot({ selectionSummary: { applications: 1, categories: 0, websites: 0 } });
+  const draft = await f.open('session', 17);
+  assert.equal(draft.selectionSummary.applications, 1);
+  await f.snapshot({ modeID: 'new-private-selection', selectionSummary: { applications: 3, categories: 0, websites: 0 } });
+  const result = await f.call('focus_selection_status', { selectionId: draft.id });
+  const refreshed = result.structuredContent.selection;
+  assert.equal(refreshed.selectionSummary.applications, 3);
+  assert.equal(refreshed.minutes, 17);
+  assert.equal(refreshed.modeID, 'new-private-selection');
+  assert.equal(refreshed.appGroupID, 'default');
+  assert.ok(refreshed.revision > draft.revision);
+  assert.deepEqual(await f.queue(), []);
+  rejected(await f.confirm(draft), /selection_changed/);
+  assert.notEqual((await f.confirm(refreshed)).isError, true);
+  assert.equal((await f.queue())[0].appGroupID, 'default');
+});
+
 for (const minutes of [15, 1440]) test(`maximum boundary ${minutes} queues only a maximum policy command`, async t => {
   const f = await fixture(t); const d = await f.open('maximum', minutes);
   assert.equal((await f.confirm(d)).structuredContent.selection.phase, 'pending');

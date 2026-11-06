@@ -125,7 +125,12 @@ enum AgentFocusDevice {
         try install($0, selection: $1, authorization: authorization)
       },
       release: clearShields,
-      lockTimeout: lockTimeout)
+      lockTimeout: lockTimeout,
+      summarize: {
+        .init(
+          applications: $0.applicationTokens.count, categories: $0.categoryTokens.count,
+          websites: $0.webDomainTokens.count)
+      })
   }
 
   private static var emergencyQuery: [String: Any] {

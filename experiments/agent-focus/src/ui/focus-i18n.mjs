@@ -1,5 +1,10 @@
 // Product copy only. Protocol names, receipts and approval semantics stay language-neutral.
 const traditional = {
+  'Change selected apps': '變更選取的 App', 'Choose apps on iPhone': '請在 iPhone 選擇 App',
+  '1 selected app': '已選取 1 個 App', '{count} selected apps': '已選取 {count} 個 App',
+  '1 selected category': '已選取 1 個類別', '{count} selected categories': '已選取 {count} 個類別',
+  '1 selected website': '已選取 1 個網站', '{count} selected websites': '已選取 {count} 個網站',
+  'Open DO Card on your paired iPhone and choose apps. This chat will update after saving.': '請在已配對的 iPhone 開啟 DO Card 並選擇 App。儲存後，聊天室會自動更新。',
   'Choose an app': '選擇 App', 'Choose an app on iPhone': '請在 iPhone 設定 App',
   'Refresh apps': '重新整理 App',
   'Open this address on your paired iPhone. If your chat app cannot open it, open DO Card and tap Manage apps.': '請在已配對的 iPhone 開啟此連結。若聊天工具無法開啟，請在 DO Card 點選「管理 App」。',

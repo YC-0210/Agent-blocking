@@ -5,7 +5,7 @@ import XCTest
 
 final class AgentFocusDeliveryTests: XCTestCase {
   func testGroupSnapshotContainsOnlyAuthoredAliasAndIDNeverPrivateSelection() async throws {
-    let fixture = try DeliveryFixture()
+    let fixture = try DeliveryFixture(summary: .init(applications: 3, categories: 0, websites: 0))
     defer { fixture.cleanup() }
     try fixture.phone.saveAppGroup(
       name: "Instagram", selection: "SECRET-SELECTION-TOKEN", pairingID: "device",
@@ -21,6 +21,8 @@ final class AgentFocusDeliveryTests: XCTestCase {
     XCTAssertEqual(groups[1]["iconKey"] as? String, "instagram")
     XCTAssertEqual(Set(groups[1].keys), Set(["id", "name", "iconKey"]))
     XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("SECRET-SELECTION-TOKEN"))
+    let counts = try XCTUnwrap(snapshot["selectionSummary"] as? [String: Int])
+    XCTAssertEqual(counts, ["applications": 3, "categories": 0, "websites": 0])
   }
 
   func testExpiryNotificationCannotExecuteAPendingStart() async throws {
@@ -171,6 +173,7 @@ private final class DeliveryFixture: @unchecked Sendable {
   var failReceiptUploads = false
   var failAllRequests = false
   var snapshots: [Data] = []
+  var summary: AgentSelectionSummary?
   var shielded = false
   var receipts: [FocusReceipt] = []
   var command = FocusCommand(
@@ -180,7 +183,8 @@ private final class DeliveryFixture: @unchecked Sendable {
   lazy var phone = AgentFocusPhone<String>(
     directory: directory,
     emergency: .init(read: { nil }, write: { _ in }), now: { self.clock },
-    apply: { _, _ in self.shielded = true }, release: { self.shielded = false })
+    apply: { _, _ in self.shielded = true }, release: { self.shielded = false },
+    summarize: { _ in self.summary })
   lazy var worker: AgentFocusDelivery<String> = {
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [DeliveryURLProtocol.self]
@@ -190,7 +194,8 @@ private final class DeliveryFixture: @unchecked Sendable {
         relay: URL(string: "https://relay.example")!,
         deviceId: "device", deviceToken: "private-device-token"), configuration: configuration)
   }()
-  init() throws {
+  init(summary: AgentSelectionSummary? = nil) throws {
+    self.summary = summary
     try phone.approve(
       policy: .init(
         modeID: "work", maximumMinutes: 45,

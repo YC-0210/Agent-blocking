@@ -4,6 +4,30 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusPhoneTests: XCTestCase {
+  func testSelectionCountsFollowTheSavedDefaultWithoutIdentifyingTheApps() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let phone = AgentFocusPhone<String>(
+      directory: directory,
+      emergency: .init(read: { nil }, write: { _ in }), now: { 1_793_836_800_000 },
+      apply: { _, _ in }, release: {},
+      summarize: { selection in
+        .init(applications: selection == "three-private-tokens" ? 3 : 2, categories: 0, websites: 0)
+      })
+    try phone.approve(
+      policy: .init(
+        modeID: "approved", maximumMinutes: 45,
+        startMinute: 0, endMinute: 1440, timeZone: "Asia/Taipei"), selection: "two-private-tokens",
+      pairingID: "phone")
+    XCTAssertEqual(try phone.status()?.selectionSummary?.applications, 2)
+    try phone.updateSelection(
+      "three-private-tokens", pairingID: "phone", expectedModeID: "approved")
+    XCTAssertEqual(
+      try phone.status()?.selectionSummary, .init(applications: 3, categories: 0, websites: 0))
+    XCTAssertNil(try phone.status()?.session)
+    XCTAssertEqual(try phone.status()?.policy.maximumMinutes, 45)
+  }
+
   func testSelectionEditPersistsAndInvalidatesOldCommandsWithoutChangingLimits() throws {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
