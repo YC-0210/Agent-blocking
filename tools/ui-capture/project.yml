@@ -6,7 +6,9 @@ targets:
   Preview:
     type: application
     platform: iOS
-    sources: [App]
+    sources:
+      - path: App
+      - path: ../../DoCard/AgentFocus.xcstrings
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: online.do.agent.ui.capture

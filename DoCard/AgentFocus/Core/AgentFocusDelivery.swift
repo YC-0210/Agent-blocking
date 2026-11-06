@@ -10,11 +10,18 @@ enum AgentFocusDeliveryOutcome: Equatable {
   case applied, rejected, pending, synced, expired, expiryChecked
   var notificationBody: String {
     switch self {
-    case .expired: "Your expired focus session was released."
-    case .expiryChecked: "Focus expiry checked."
-    case .applied: "Your focus request was applied."
-    case .rejected: "Your phone rejected the focus request. Open DO Card to check your settings."
-    case .pending, .synced: "A focus request is waiting. Open DO Card if it does not apply."
+    case .expired:
+      String(localized: "Your expired focus session was released.", table: "AgentFocus")
+    case .expiryChecked: String(localized: "Focus expiry checked.", table: "AgentFocus")
+    case .applied: String(localized: "Your focus request was applied.", table: "AgentFocus")
+    case .rejected:
+      String(
+        localized: "Your phone rejected the focus request. Open DO Card to check your settings.",
+        table: "AgentFocus")
+    case .pending, .synced:
+      String(
+        localized: "A focus request is waiting. Open DO Card if it does not apply.",
+        table: "AgentFocus")
     }
   }
 }

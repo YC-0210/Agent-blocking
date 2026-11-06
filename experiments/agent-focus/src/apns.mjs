@@ -11,7 +11,9 @@ export function createApnsPush({ privateKey, teamId, keyId, topic, sandbox = tru
     const signature = sign('sha256', Buffer.from(signingInput), { key: privateKey, dsaEncoding: 'ieee-p1363' }).toString('base64url');
     const aps = kind === 'background' ? { 'content-available': 1 } : {
       'mutable-content': 1, alert: { title: 'DO Card', body: purpose === 'expiry'
-        ? 'Checking an expired focus session.' : 'A focus request is waiting. Open DO Card if it does not apply.' }, sound: 'default',
+        ? 'Checking an expired focus session.' : 'A focus request is waiting. Open DO Card if it does not apply.',
+        'loc-key': purpose === 'expiry' ? 'Checking an expired focus session.'
+          : 'A focus request is waiting. Open DO Card if it does not apply.' }, sound: 'default',
     };
     return new Promise((resolve, reject) => {
       const connection = connect(origin);

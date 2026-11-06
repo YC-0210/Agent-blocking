@@ -29,19 +29,30 @@ enum ThemeManager { static let accentColor = Color(red: 1, green: 107.0 / 255, b
       || args.contains("unlock-failed")
     if args.contains("pending") {
       message =
-        "Waiting to sync with your agent. Emergency Unlock works here."
+        String(
+          localized: "Waiting to sync with your agent. Emergency Unlock works here.",
+          table: "AgentFocus")
     } else if args.contains("ended") {
-      message = "Agent session ended. Your agent remains connected."
+      message = String(
+        localized: "Agent session ended. Your agent remains connected.", table: "AgentFocus")
     } else if args.contains("unlock-failed") {
-      message = "Agent shields cleared. Could not save the session ending; reopen DO Card to retry."
+      message = String(
+        localized:
+          "Agent shields cleared. Could not save the session ending; reopen DO Card to retry.",
+        table: "AgentFocus")
     } else if args.contains("push-failed") {
       configured = true
-      message = "Push registration failed. Open DO Card to receive pending commands."
+      message = String(
+        localized: "Push registration failed. Open DO Card to receive pending commands.",
+        table: "AgentFocus")
     } else if args.contains("setup-error") {
       message =
         "Setup failed: The operation couldn’t be completed. Check access, app selection, relay and pairing code."
     } else {
-      message = configured ? "Connected. Return to your agent to manage focus." : ""
+      message =
+        configured
+        ? String(localized: "Connected. Return to your agent to manage focus.", table: "AgentFocus")
+        : ""
     }
     if configured {
       focusStatus = Status(
@@ -67,7 +78,8 @@ enum ThemeManager { static let accentColor = Color(red: 1, green: 107.0 / 255, b
   ) async {}
   func emergencyUnlock() {
     focusStatus = Status(session: nil)
-    message = "Agent session ended. Your agent remains connected."
+    message = String(
+      localized: "Agent session ended. Your agent remains connected.", table: "AgentFocus")
   }
 }
 @main struct CaptureApp: App {
@@ -77,10 +89,16 @@ enum ThemeManager { static let accentColor = Color(red: 1, green: 107.0 / 255, b
   var body: some Scene {
     WindowGroup {
       AgentFocusView(runtime: runtime).environmentObject(authorizer)
-        .alert("Agent setup unavailable", isPresented: $showSetupAlert) {
+        .alert(
+          String(localized: "Agent setup unavailable", table: "AgentFocus"),
+          isPresented: $showSetupAlert
+        ) {
           Button("OK", role: .cancel) {}
         } message: {
-          Text("End existing sessions and disable scheduled modes before agent setup.")
+          Text(
+            String(
+              localized: "End existing sessions and disable scheduled modes before agent setup.",
+              table: "AgentFocus"))
         }
         .preferredColorScheme(.light)
     }

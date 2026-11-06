@@ -1,0 +1,1062 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "MEET YOUR\nAGENT.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MEET YOUR\nAGENT."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "連結你的\nAI 助理"
+          }
+        }
+      }
+    },
+    "YOUR APPS.\nYOUR CALL.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOUR APPS.\nYOUR CALL."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇讓你\n分心的 App"
+          }
+        }
+      }
+    },
+    "SET THE\nBOUNDARY.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "SET THE\nBOUNDARY."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定\n時間上限"
+          }
+        }
+      }
+    },
+    "Paste the address and one-time code your agent gave you.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Paste the address and one-time code your agent gave you."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "貼上 AI 助理提供的伺服器網址與一次性配對碼。"
+          }
+        }
+      }
+    },
+    "Choose which apps and websites your agent can pause.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose which apps and websites your agent can pause."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇專注期間要暫停使用的 App 與網站。"
+          }
+        }
+      }
+    },
+    "Sessions must fit inside these hours. Change the maximum separately with your agent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sessions must fit inside these hours. Change the maximum separately with your agent."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次專注都必須在允許的時段內結束。之後可請 AI 助理另外調整時間上限。"
+          }
+        }
+      }
+    },
+    "Connection pending": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connection pending"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待連線中"
+          }
+        }
+      }
+    },
+    "Agent paired": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent paired"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已與 AI 助理配對"
+          }
+        }
+      }
+    },
+    "One-time setup": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time setup"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "首次設定"
+          }
+        }
+      }
+    },
+    "CHECKING\nSTATUS.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CHECKING\nSTATUS."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在確認\n狀態"
+          }
+        }
+      }
+    },
+    "FOCUS\nIS ON.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "FOCUS\nIS ON."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "專注中"
+          }
+        }
+      }
+    },
+    "MAKE\nROOM.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "MAKE\nROOM."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把時間留給\n重要的事"
+          }
+        }
+      }
+    },
+    "Your session status is being checked. Emergency Unlock is available below.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your session status is being checked. Emergency Unlock is available below."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在確認專注狀態。如需立即結束，請點選下方的「緊急解鎖」。"
+          }
+        }
+      }
+    },
+    "A boundary you chose.\nSpace to get it done.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A boundary you chose.\nSpace to get it done."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "暫時放下干擾，\n專心完成眼前的事。"
+          }
+        }
+      }
+    },
+    "Your agent is ready.\nBegin your next session in chat.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your agent is ready.\nBegin your next session in chat."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已完成設定。\n回到聊天室，請 AI 助理開始專注。"
+          }
+        }
+      }
+    },
+    "PHONE STATUS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PHONE STATUS"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手機狀態"
+          }
+        }
+      }
+    },
+    "IN PROGRESS": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "IN PROGRESS"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "進行中"
+          }
+        }
+      }
+    },
+    "YOUR NEXT CHAPTER": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "YOUR NEXT CHAPTER"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "準備開始"
+          }
+        }
+      }
+    },
+    "Applying your request.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Applying your request."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在套用設定…"
+          }
+        }
+      }
+    },
+    "Waiting for a current status.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting for a current status."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待手機狀態更新…"
+          }
+        }
+      }
+    },
+    "Space for what matters.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Space for what matters."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "把心思放在重要的事。"
+          }
+        }
+      }
+    },
+    "Start with your agent.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start with your agent."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "從聊天室開始。"
+          }
+        }
+      }
+    },
+    "Scheduled end": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scheduled end"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "預計結束時間"
+          }
+        }
+      }
+    },
+    "No active session.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No active session."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有進行中的專注。"
+          }
+        }
+      }
+    },
+    "Ends this session. Your agent stays paired.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ends this session. Your agent stays paired."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "立即結束本次專注，並保留與 AI 助理的配對。"
+          }
+        }
+      }
+    },
+    "Step %lld of 3": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Step %lld of 3"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "第 %lld 步，共 3 步"
+          }
+        }
+      }
+    },
+    "Connecting…": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting…"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在連線…"
+          }
+        }
+      }
+    },
+    "Approve and connect": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Approve and connect"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "確認設定並連線"
+          }
+        }
+      }
+    },
+    "Continue": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Continue"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續"
+          }
+        }
+      }
+    },
+    "Back": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "返回"
+          }
+        }
+      }
+    },
+    "One-time setup. Your agent handles the everyday.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time setup. Your agent handles the everyday."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只需設定一次，之後交給 AI 助理操作。"
+          }
+        }
+      }
+    },
+    "Emergency Unlock is always available here.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency Unlock is always available here."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "隨時都能在此緊急解鎖。"
+          }
+        }
+      }
+    },
+    "Relay address": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Relay address"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "伺服器網址"
+          }
+        }
+      }
+    },
+    "One-time pairing code": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "One-time pairing code"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一次性配對碼"
+          }
+        }
+      }
+    },
+    "Code from your agent": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Code from your agent"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "輸入 AI 助理提供的配對碼"
+          }
+        }
+      }
+    },
+    "Only connect to an agent you asked to pair.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Only connect to an agent you asked to pair."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "只與你主動要求配對的 AI 助理連線。"
+          }
+        }
+      }
+    },
+    "Screen Time access": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Time access"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "螢幕使用時間權限"
+          }
+        }
+      }
+    },
+    "Screen Time authorized": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Time authorized"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已允許存取「螢幕使用時間」"
+          }
+        }
+      }
+    },
+    "Allow Screen Time access": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allow Screen Time access"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "允許存取「螢幕使用時間」"
+          }
+        }
+      }
+    },
+    "Choose apps and websites": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose apps and websites"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "選擇 App 與網站"
+          }
+        }
+      }
+    },
+    "%lld apps, %lld categories, %lld websites selected": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%lld apps, %lld categories, %lld websites selected"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已選擇 %lld 個 App、%lld 個類別、%lld 個網站"
+          }
+        }
+      }
+    },
+    "Choose at least one app, category or website to continue.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose at least one app, category or website to continue."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請至少選擇一個 App、類別或網站，再繼續設定。"
+          }
+        }
+      }
+    },
+    "Maximum session: %lld minutes": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maximum session: %lld minutes"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "每次專注時間上限：%lld 分鐘"
+          }
+        }
+      }
+    },
+    "Allowed from: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allowed from: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可啟用時段：從 %@"
+          }
+        }
+      }
+    },
+    "Allowed until: %@": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Allowed until: %@"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "可啟用時段：至 %@"
+          }
+        }
+      }
+    },
+    "Hours use %@. Sessions must finish within these hours.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hours use %@. Sessions must finish within these hours."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "時區為 %@。每次專注都必須在此時段內結束。"
+          }
+        }
+      }
+    },
+    "Choose a closing time after the opening time.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choose a closing time after the opening time."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "結束時間必須晚於開始時間。"
+          }
+        }
+      }
+    },
+    "Screen Time access is required. Go back to allow access.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Screen Time access is required. Go back to allow access."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "需要「螢幕使用時間」權限，請返回上一步允許存取。"
+          }
+        }
+      }
+    },
+    "Emergency Unlock ends the current session. Your agent can request another within your approved limits.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency Unlock ends the current session. Your agent can request another within your approved limits."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "緊急解鎖會結束本次專注。AI 助理仍可在你允許的範圍內，請你確認開始另一次專注。"
+          }
+        }
+      }
+    },
+    "Emergency Unlock": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Emergency Unlock"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "緊急解鎖"
+          }
+        }
+      }
+    },
+    "End existing sessions and disable scheduled modes before agent setup.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End existing sessions and disable scheduled modes before agent setup."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先結束目前的專注並關閉排程，再設定 AI 助理。"
+          }
+        }
+      }
+    },
+    "End the current session before changing agent setup.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End the current session before changing agent setup."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先結束本次專注，再變更 AI 助理設定。"
+          }
+        }
+      }
+    },
+    "Connected. Return to your agent to manage focus.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connected. Return to your agent to manage focus."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已連線，請回到聊天室，讓 AI 助理協助設定專注。"
+          }
+        }
+      }
+    },
+    "Agent session ended. Your agent remains connected.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent session ended. Your agent remains connected."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已結束本次專注，並保留與 AI 助理的配對。"
+          }
+        }
+      }
+    },
+    "Agent shields cleared. Could not save the session ending; reopen DO Card to retry.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent shields cleared. Could not save the session ending; reopen DO Card to retry."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已解除 App 使用限制，但無法儲存結束狀態。請重新開啟 DO Card 再試一次。"
+          }
+        }
+      }
+    },
+    "Waiting to sync with your agent. Emergency Unlock works here.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Waiting to sync with your agent. Emergency Unlock works here."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "等待與 AI 助理同步中。你仍可在此緊急解鎖。"
+          }
+        }
+      }
+    },
+    "Push registration failed. Open DO Card to receive pending commands.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Push registration failed. Open DO Card to receive pending commands."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法啟用推播通知。請開啟 DO Card 接收尚未完成的要求。"
+          }
+        }
+      }
+    },
+    "Setup failed. Check Screen Time access, app selection, relay address and pairing code, then try again.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Setup failed. Check Screen Time access, app selection, relay address and pairing code, then try again."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "設定失敗。請確認「螢幕使用時間」權限、已選取的 App、伺服器網址與配對碼，再試一次。"
+          }
+        }
+      }
+    },
+    "Your expired focus session was released.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your expired focus session was released."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "專注時間已到，已解除 App 使用限制。"
+          }
+        }
+      }
+    },
+    "Focus expiry checked.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus expiry checked."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已確認專注結束狀態。"
+          }
+        }
+      }
+    },
+    "Your focus request was applied.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your focus request was applied."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已套用你的專注設定。"
+          }
+        }
+      }
+    },
+    "Your phone rejected the focus request. Open DO Card to check your settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your phone rejected the focus request. Open DO Card to check your settings."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手機未接受這次設定，請開啟 DO Card 檢查。"
+          }
+        }
+      }
+    },
+    "A focus request is waiting. Open DO Card if it does not apply.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A focus request is waiting. Open DO Card if it does not apply."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一項專注設定等待處理。如未生效，請開啟 DO Card。"
+          }
+        }
+      }
+    },
+    "Expiry check could not complete. Open DO Card if apps remain blocked.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expiry check could not complete. Open DO Card if apps remain blocked."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法確認專注是否已結束。如 App 仍無法使用，請開啟 DO Card。"
+          }
+        }
+      }
+    },
+    "Checking an expired focus session.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking an expired focus session."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在確認專注結束狀態。"
+          }
+        }
+      }
+    },
+    "Agent setup unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Agent setup unavailable"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前無法設定 AI 助理"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

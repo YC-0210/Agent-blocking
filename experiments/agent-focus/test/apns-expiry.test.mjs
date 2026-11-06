@@ -55,6 +55,7 @@ test('expiry recovery is a visible mutable alert with an expiry marker and the o
   assert.equal(headers['apns-priority'], '10');
   assert.equal(headers['apns-expiration'], '1793923320');
   assert.equal(body.aps['mutable-content'], 1);
+  assert.equal(body.aps.alert['loc-key'], 'Checking an expired focus session.');
   assert.equal(typeof body.aps.alert.title, 'string');
   assert.ok(body.aps.alert.title.length > 0);
   assert.equal(typeof body.aps.alert.body, 'string');
@@ -95,7 +96,8 @@ test('ordinary alert and background pushes keep their existing payloads without 
   assert.equal(alert.headers['apns-priority'], '10');
   assert.deepEqual(alert.body.aps, {
     'mutable-content': 1,
-    alert: { title: 'DO Card', body: 'A focus request is waiting. Open DO Card if it does not apply.' },
+    alert: { title: 'DO Card', body: 'A focus request is waiting. Open DO Card if it does not apply.',
+      'loc-key': 'A focus request is waiting. Open DO Card if it does not apply.' },
     sound: 'default',
   });
   assert.equal(background.headers['apns-push-type'], 'background');

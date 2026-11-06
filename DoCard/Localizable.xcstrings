@@ -14775,6 +14775,40 @@
           }
         }
       }
+    },
+    "Checking an expired focus session.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking an expired focus session."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在確認專注結束狀態。"
+          }
+        }
+      }
+    },
+    "A focus request is waiting. Open DO Card if it does not apply.": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A focus request is waiting. Open DO Card if it does not apply."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一項專注設定等待處理。如未生效，請開啟 DO Card。"
+          }
+        }
+      }
     }
   },
   "version" : "1.1"

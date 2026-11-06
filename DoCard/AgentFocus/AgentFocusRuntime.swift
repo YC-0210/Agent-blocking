@@ -66,13 +66,16 @@ final class AgentFocusRuntime: ObservableObject {
       }
       )
     else {
-      message = "End existing sessions and disable scheduled modes before agent setup."
+      message = String(
+        localized: "End existing sessions and disable scheduled modes before agent setup.",
+        table: "AgentFocus")
       return false
     }
     let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
     if configured {
       if (try? AgentFocusDevice.status()?.session) != nil {
-        message = "End the current session before changing agent setup."
+        message = String(
+          localized: "End the current session before changing agent setup.", table: "AgentFocus")
         return true
       }
       configured = false
@@ -105,7 +108,8 @@ final class AgentFocusRuntime: ObservableObject {
       try AgentFocusPairingStore.save(
         Pairing(relay: url, deviceId: redeemed.deviceId, deviceToken: redeemed.deviceToken))
       configured = true
-      message = "Connected. Return to your agent to manage focus."
+      message = String(
+        localized: "Connected. Return to your agent to manage focus.", table: "AgentFocus")
       _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [
         .alert, .sound,
       ])
@@ -113,16 +117,23 @@ final class AgentFocusRuntime: ObservableObject {
       await sync()
     } catch {
       message =
-        "Setup failed: \(error.localizedDescription). Check access, app selection, relay and pairing code."
+        String(
+          localized:
+            "Setup failed. Check Screen Time access, app selection, relay address and pairing code, then try again.",
+          table: "AgentFocus")
     }
   }
 
   func emergencyUnlock() {
     do {
       try AgentFocusDevice.emergencyUnlock()
-      message = "Agent session ended. Your agent remains connected."
+      message = String(
+        localized: "Agent session ended. Your agent remains connected.", table: "AgentFocus")
     } catch {
-      message = "Agent shields cleared. Could not save the session ending; reopen DO Card to retry."
+      message = String(
+        localized:
+          "Agent shields cleared. Could not save the session ending; reopen DO Card to retry.",
+        table: "AgentFocus")
     }
     refreshFocusStatus()
     Task { await sync() }
@@ -152,13 +163,17 @@ final class AgentFocusRuntime: ObservableObject {
       } else {
         connectionPending = true
         message =
-          "Waiting to sync with your agent. Emergency Unlock works here."
+          String(
+            localized: "Waiting to sync with your agent. Emergency Unlock works here.",
+            table: "AgentFocus")
       }
     } catch {
       connectionPending = true
       refreshFocusStatus()
       message =
-        "Waiting to sync with your agent. Emergency Unlock works here."
+        String(
+          localized: "Waiting to sync with your agent. Emergency Unlock works here.",
+          table: "AgentFocus")
     }
   }
 
@@ -202,7 +217,9 @@ final class AgentFocusAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
   ) {
     Task { @MainActor in
       AgentFocusRuntime.shared.message =
-        "Push registration failed. Open DO Card to receive pending commands."
+        String(
+          localized: "Push registration failed. Open DO Card to receive pending commands.",
+          table: "AgentFocus")
     }
   }
   func application(

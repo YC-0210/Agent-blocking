@@ -5,6 +5,7 @@ import SwiftUI
 struct AgentFocusView: View {
   @ObservedObject var runtime: AgentFocusRuntime
   @EnvironmentObject private var authorizer: RequestAuthorizer
+  @Environment(\.locale) private var locale
   @Environment(\.dynamicTypeSize) private var dynamicTypeSize
   @ScaledMetric(relativeTo: .largeTitle) private var headlineSize = 64
   @ScaledMetric(relativeTo: .largeTitle) private var setupHeadlineSize = 52
@@ -20,19 +21,27 @@ struct AgentFocusView: View {
 
   private enum SetupStep: Int, CaseIterable {
     case connection, apps, limits
-    var title: LocalizedStringKey {
+    var title: String {
       switch self {
-      case .connection: "MEET YOUR\nAGENT."
-      case .apps: "YOUR APPS.\nYOUR CALL."
-      case .limits: "SET THE\nBOUNDARY."
+      case .connection: String(localized: "MEET YOUR\nAGENT.", table: "AgentFocus")
+      case .apps: String(localized: "YOUR APPS.\nYOUR CALL.", table: "AgentFocus")
+      case .limits: String(localized: "SET THE\nBOUNDARY.", table: "AgentFocus")
       }
     }
-    var description: LocalizedStringKey {
+    var description: String {
       switch self {
-      case .connection: "Paste the address and one-time code your agent gave you."
-      case .apps: "Choose which apps and websites your agent can pause."
+      case .connection:
+        String(
+          localized: "Paste the address and one-time code your agent gave you.", table: "AgentFocus"
+        )
+      case .apps:
+        String(
+          localized: "Choose which apps and websites your agent can pause.", table: "AgentFocus")
       case .limits:
-        "Sessions must fit inside these hours. Change the maximum separately with your agent."
+        String(
+          localized:
+            "Sessions must fit inside these hours. Change the maximum separately with your agent.",
+          table: "AgentFocus")
       }
     }
   }
@@ -108,8 +117,10 @@ struct AgentFocusView: View {
   private var connectionLabel: some View {
     Label(
       runtime.configured
-        ? runtime.connectionPending ? "Connection pending" : "Agent paired"
-        : "One-time setup",
+        ? runtime.connectionPending
+          ? String(localized: "Connection pending", table: "AgentFocus")
+          : String(localized: "Agent paired", table: "AgentFocus")
+        : String(localized: "One-time setup", table: "AgentFocus"),
       systemImage: runtime.connectionPending ? "wifi.exclamationmark" : "circle.fill"
     )
     .font(.caption)
@@ -123,14 +134,26 @@ struct AgentFocusView: View {
     let focusing = end != nil && !uncertain
     return VStack(alignment: .leading, spacing: 0) {
       VStack(alignment: .leading, spacing: 24) {
-        headline(uncertain ? "CHECKING\nSTATUS." : focusing ? "FOCUS\nIS ON." : "MAKE\nROOM.")
-          .accessibilityIdentifier("agent-focus-heading")
+        headline(
+          uncertain
+            ? String(localized: "CHECKING\nSTATUS.", table: "AgentFocus")
+            : focusing
+              ? String(localized: "FOCUS\nIS ON.", table: "AgentFocus")
+              : String(localized: "MAKE\nROOM.", table: "AgentFocus")
+        )
+        .accessibilityIdentifier("agent-focus-heading")
         Text(
           uncertain
-            ? "Your session status is being checked. Emergency Unlock is available below."
+            ? String(
+              localized:
+                "Your session status is being checked. Emergency Unlock is available below.",
+              table: "AgentFocus")
             : focusing
-              ? "A boundary you chose.\nSpace to get it done."
-              : "Your agent is ready.\nBegin your next session in chat."
+              ? String(
+                localized: "A boundary you chose.\nSpace to get it done.", table: "AgentFocus")
+              : String(
+                localized: "Your agent is ready.\nBegin your next session in chat.",
+                table: "AgentFocus")
         )
         .font(.subheadline).lineSpacing(4)
         .fixedSize(horizontal: false, vertical: true)
@@ -146,33 +169,44 @@ struct AgentFocusView: View {
       .clipped()
       Spacer(minLength: 24)
       VStack(alignment: .leading, spacing: 18) {
-        Text(uncertain ? "PHONE STATUS" : focusing ? "IN PROGRESS" : "YOUR NEXT CHAPTER")
-          .font(.caption.monospaced()).tracking(1.5).foregroundStyle(Palette.muted)
         Text(
           uncertain
-            ? applying ? "Applying your request." : "Waiting for a current status."
-            : focusing ? "Space for what matters." : "Start with your agent."
+            ? String(localized: "PHONE STATUS", table: "AgentFocus")
+            : focusing
+              ? String(localized: "IN PROGRESS", table: "AgentFocus")
+              : String(localized: "YOUR NEXT CHAPTER", table: "AgentFocus")
+        )
+        .font(.caption.monospaced()).tracking(1.5).foregroundStyle(Palette.muted)
+        Text(
+          uncertain
+            ? applying
+              ? String(localized: "Applying your request.", table: "AgentFocus")
+              : String(localized: "Waiting for a current status.", table: "AgentFocus")
+            : focusing
+              ? String(localized: "Space for what matters.", table: "AgentFocus")
+              : String(localized: "Start with your agent.", table: "AgentFocus")
         )
         .font(.title3.weight(.semibold))
         if let end {
           if dynamicTypeSize.isAccessibilitySize {
             VStack(alignment: .leading, spacing: 8) {
-              Text("Scheduled end")
+              Text(String(localized: "Scheduled end", table: "AgentFocus"))
               Text(end, format: .dateTime.hour().minute()).monospacedDigit()
             }
             .font(.subheadline).foregroundStyle(Palette.muted)
           } else {
-            LabeledContent("Scheduled end") {
+            LabeledContent(String(localized: "Scheduled end", table: "AgentFocus")) {
               Text(end, format: .dateTime.hour().minute()).monospacedDigit()
             }
             .font(.subheadline).foregroundStyle(Palette.muted)
           }
         } else if !uncertain {
-          Text("No active session.").font(.subheadline).foregroundStyle(Palette.muted)
+          Text(String(localized: "No active session.", table: "AgentFocus")).font(.subheadline)
+            .foregroundStyle(Palette.muted)
         }
         Rectangle().fill(Palette.rule).frame(height: 1).accessibilityHidden(true)
         emergencyButton
-        Text("Ends this session. Your agent stays paired.")
+        Text(String(localized: "Ends this session. Your agent stays paired.", table: "AgentFocus"))
           .font(.footnote).foregroundStyle(Palette.muted)
         runtimeMessage
       }
@@ -192,7 +226,8 @@ struct AgentFocusView: View {
             .frame(width: 30, height: 3)
         }
         Spacer()
-        Text("Step \(step.rawValue + 1) of 3").font(.caption)
+        Text(String(localized: "Step \(step.rawValue + 1) of 3", table: "AgentFocus")).font(
+          .caption)
       }.accessibilityElement(children: .combine)
       headline(step.title, isSetup: true)
       Text(step.description).font(.subheadline).lineSpacing(4)
@@ -205,7 +240,10 @@ struct AgentFocusView: View {
         if step == .limits {
           Button(action: approve) {
             HStack {
-              Text(approving ? "Connecting…" : "Approve and connect")
+              Text(
+                approving
+                  ? String(localized: "Connecting…", table: "AgentFocus")
+                  : String(localized: "Approve and connect", table: "AgentFocus"))
               Spacer()
               if approving {
                 ProgressView().tint(Palette.paper)
@@ -222,7 +260,7 @@ struct AgentFocusView: View {
             if let next = SetupStep(rawValue: step.rawValue + 1) { step = next }
           } label: {
             HStack {
-              Text("Continue")
+              Text(String(localized: "Continue", table: "AgentFocus"))
               Spacer()
               Image(systemName: "arrow.right")
             }
@@ -235,7 +273,7 @@ struct AgentFocusView: View {
           Button {
             if let previous = SetupStep(rawValue: step.rawValue - 1) { step = previous }
           } label: {
-            Label("Back", systemImage: "arrow.left")
+            Label(String(localized: "Back", table: "AgentFocus"), systemImage: "arrow.left")
           }
           .font(.subheadline).disabled(approving)
           .accessibilityIdentifier("agent-focus-back")
@@ -243,40 +281,49 @@ struct AgentFocusView: View {
         runtimeMessage
       }
       .padding(24).background(Palette.paper, in: RoundedRectangle(cornerRadius: 22))
-      Text("One-time setup. Your agent handles the everyday.")
-        .font(.footnote).lineSpacing(3)
+      Text(
+        String(localized: "One-time setup. Your agent handles the everyday.", table: "AgentFocus")
+      )
+      .font(.footnote).lineSpacing(3)
       emergencyButton
-      Text("Emergency Unlock is always available here.").font(.footnote)
+      Text(String(localized: "Emergency Unlock is always available here.", table: "AgentFocus"))
+        .font(.footnote)
     }
     .padding(.horizontal, 26).padding(.bottom, 36)
   }
 
   private var connectionFields: some View {
     VStack(alignment: .leading, spacing: 12) {
-      Text("Relay address").font(.subheadline.weight(.medium))
+      Text(String(localized: "Relay address", table: "AgentFocus")).font(
+        .subheadline.weight(.medium))
       TextField("https://…", text: $relay)
         .keyboardType(.URL).textContentType(.URL)
         .textInputAutocapitalization(.never).autocorrectionDisabled()
         .submitLabel(.next).accessibilityIdentifier("agent-focus-relay")
       Divider().overlay(Palette.rule)
-      Text("One-time pairing code").font(.subheadline.weight(.medium)).padding(.top, 8)
-      SecureField("Code from your agent", text: $code)
+      Text(String(localized: "One-time pairing code", table: "AgentFocus")).font(
+        .subheadline.weight(.medium)
+      ).padding(.top, 8)
+      SecureField(String(localized: "Code from your agent", table: "AgentFocus"), text: $code)
         .textInputAutocapitalization(.never).autocorrectionDisabled()
         .submitLabel(.done).accessibilityIdentifier("agent-focus-code")
       Divider().overlay(Palette.rule)
-      Text("Only connect to an agent you asked to pair.")
+      Text(String(localized: "Only connect to an agent you asked to pair.", table: "AgentFocus"))
         .font(.footnote).foregroundStyle(Palette.muted).padding(.top, 8)
     }
   }
 
   private var appFields: some View {
     VStack(alignment: .leading, spacing: 20) {
-      Text("Screen Time access").font(.subheadline.weight(.medium))
+      Text(String(localized: "Screen Time access", table: "AgentFocus")).font(
+        .subheadline.weight(.medium))
       Button {
         authorizer.requestAuthorization()
       } label: {
         Label(
-          authorizer.isAuthorized ? "Screen Time authorized" : "Allow Screen Time access",
+          authorizer.isAuthorized
+            ? String(localized: "Screen Time authorized", table: "AgentFocus")
+            : String(localized: "Allow Screen Time access", table: "AgentFocus"),
           systemImage: authorizer.isAuthorized ? "checkmark.circle" : "lock.shield"
         )
         .frame(minHeight: 44, alignment: .leading)
@@ -288,7 +335,7 @@ struct AgentFocusView: View {
         showPicker = true
       } label: {
         HStack {
-          Text("Choose apps and websites")
+          Text(String(localized: "Choose apps and websites", table: "AgentFocus"))
           Spacer()
           Image(systemName: "arrow.up.right")
         }
@@ -296,12 +343,19 @@ struct AgentFocusView: View {
       }
       .accessibilityIdentifier("agent-focus-choose-apps")
       Text(
-        "\(selection.applicationTokens.count) apps, \(selection.categoryTokens.count) categories, \(selection.webDomainTokens.count) websites selected"
+        String(
+          localized:
+            "\(selection.applicationTokens.count) apps, \(selection.categoryTokens.count) categories, \(selection.webDomainTokens.count) websites selected",
+          table: "AgentFocus")
       )
       .font(.footnote).foregroundStyle(Palette.muted)
       if authorizer.isAuthorized && !hasSelection {
-        Text("Choose at least one app, category or website to continue.")
-          .font(.footnote).foregroundStyle(Palette.muted)
+        Text(
+          String(
+            localized: "Choose at least one app, category or website to continue.",
+            table: "AgentFocus")
+        )
+        .font(.footnote).foregroundStyle(Palette.muted)
       }
     }
     .font(.subheadline)
@@ -310,27 +364,44 @@ struct AgentFocusView: View {
   private var limitFields: some View {
     VStack(alignment: .leading, spacing: 20) {
       Stepper(
-        "Maximum session: \(maximumMinutes) minutes", value: $maximumMinutes,
+        String(localized: "Maximum session: \(maximumMinutes) minutes", table: "AgentFocus"),
+        value: $maximumMinutes,
         in: 15...1440, step: 15)
       Divider().overlay(Palette.rule)
       Stepper(
-        "Allowed from: \(time(startMinute))", value: $startMinute,
+        String(localized: "Allowed from: \(time(startMinute))", table: "AgentFocus"),
+        value: $startMinute,
         in: 0...1425, step: 15)
       Stepper(
-        "Allowed until: \(time(endMinute))", value: $endMinute,
+        String(localized: "Allowed until: \(time(endMinute))", table: "AgentFocus"),
+        value: $endMinute,
         in: 15...1440, step: 15)
-      Text("Hours use \(TimeZone.current.identifier). Sessions must finish within these hours.")
-        .font(.footnote).foregroundStyle(Palette.muted)
+      Text(
+        String(
+          localized:
+            "Hours use \(TimeZone.current.identifier). Sessions must finish within these hours.",
+          table: "AgentFocus")
+      )
+      .font(.footnote).foregroundStyle(Palette.muted)
       if startMinute >= endMinute {
-        Text("Choose a closing time after the opening time.")
-          .font(.footnote).foregroundStyle(Palette.ink)
+        Text(
+          String(localized: "Choose a closing time after the opening time.", table: "AgentFocus")
+        )
+        .font(.footnote).foregroundStyle(Palette.ink)
       }
       if !authorizer.isAuthorized {
-        Text("Screen Time access is required. Go back to allow access.")
-          .font(.footnote).foregroundStyle(Palette.ink)
+        Text(
+          String(
+            localized: "Screen Time access is required. Go back to allow access.",
+            table: "AgentFocus")
+        )
+        .font(.footnote).foregroundStyle(Palette.ink)
       }
       Text(
-        "Emergency Unlock ends the current session. Your agent can request another within your approved limits."
+        String(
+          localized:
+            "Emergency Unlock ends the current session. Your agent can request another within your approved limits.",
+          table: "AgentFocus")
       )
       .font(.footnote).foregroundStyle(Palette.muted)
     }
@@ -350,13 +421,15 @@ struct AgentFocusView: View {
       if dynamicTypeSize.isAccessibilitySize {
         VStack(alignment: .leading, spacing: 10) {
           Image(systemName: "lock.open").accessibilityHidden(true)
-          Text("Emergency Unlock").font(.footnote.weight(.semibold))
-            .fixedSize(horizontal: false, vertical: true)
+          Text(String(localized: "Emergency Unlock", table: "AgentFocus")).font(
+            .footnote.weight(.semibold)
+          )
+          .fixedSize(horizontal: false, vertical: true)
         }
       } else {
         HStack(spacing: 12) {
           Image(systemName: "lock.open")
-          Text("Emergency Unlock").fontWeight(.medium)
+          Text(String(localized: "Emergency Unlock", table: "AgentFocus")).fontWeight(.medium)
           Spacer(minLength: 4)
           Image(systemName: "arrow.up.right")
         }
@@ -366,14 +439,15 @@ struct AgentFocusView: View {
     .accessibilityIdentifier("agent-focus-emergency-unlock")
   }
 
-  private func headline(_ text: LocalizedStringKey, isSetup: Bool = false) -> some View {
+  private func headline(_ text: String, isSetup: Bool = false) -> some View {
     Text(text)
       .font(
         dynamicTypeSize.isAccessibilitySize
           ? .system(.largeTitle, weight: .black)
           : .system(size: isSetup ? setupHeadlineSize : headlineSize, weight: .black)
       )
-      .tracking(-3).lineSpacing(-4)
+      .tracking(locale.language.languageCode?.identifier == "zh" ? 0 : -3)
+      .lineSpacing(locale.language.languageCode?.identifier == "zh" ? 4 : -4)
       .fixedSize(horizontal: false, vertical: true)
       .accessibilityAddTraits(.isHeader)
   }
