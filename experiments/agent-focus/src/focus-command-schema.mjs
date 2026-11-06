@@ -9,14 +9,16 @@ export const commandSchema = z.object({
   maximumMinutes: z.number().int().min(15).max(1440).optional(),
   expectedMaximumMinutes: z.number().int().min(15).max(1440).optional(),
   userConfirmed: z.literal(true).optional(),
+  appGroupID: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/).optional(),
 }).strict().superRefine((command, context) => {
   const maximum = command.action === 'set_maximum';
   const valid = maximum
     ? command.maximumMinutes !== undefined && command.expectedMaximumMinutes !== undefined &&
       command.userConfirmed === true && command.sessionID === undefined &&
-      command.durationMinutes === undefined && command.renewalConfirmed === undefined
+      command.durationMinutes === undefined && command.renewalConfirmed === undefined && command.appGroupID === undefined
     : command.sessionID !== undefined && (command.action !== 'start' || command.durationMinutes !== undefined) &&
       command.maximumMinutes === undefined &&
-      command.expectedMaximumMinutes === undefined && command.userConfirmed === undefined;
+      command.expectedMaximumMinutes === undefined && command.userConfirmed === undefined &&
+      (command.action === 'start' || command.appGroupID === undefined);
   if (!valid) context.addIssue({ code: 'custom', message: 'Session and maximum changes must be separate' });
 });

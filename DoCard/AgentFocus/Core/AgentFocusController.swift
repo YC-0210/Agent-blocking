@@ -25,6 +25,7 @@ struct FocusCommand: Codable, Equatable, Sendable {
   var maximumMinutes: Int? = nil
   var expectedMaximumMinutes: Int? = nil
   var userConfirmed: Bool? = nil
+  var appGroupID: String? = nil
 }
 
 struct AgentFocusSession: Codable, Equatable, Sendable {
@@ -154,6 +155,9 @@ final class AgentFocusController {
     }
     guard command.modeID == policy.modeID else {
       return FocusReceipt(id: command.id, status: "rejected", reason: "mode_not_approved")
+    }
+    if command.action != .start, command.appGroupID != nil {
+      return FocusReceipt(id: command.id, status: "rejected", reason: "mixed_command")
     }
     if command.action != .setMaximum,
       command.maximumMinutes != nil || command.expectedMaximumMinutes != nil

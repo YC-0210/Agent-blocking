@@ -7,10 +7,14 @@ import { resolveLocale, translate, errorMessage, rejectionMessage } from '../src
 async function picker(locale, languages = ['en-US']) {
   const elements = new Map();
   const element = id => {
-    if (!elements.has(id)) elements.set(id, { hidden: true, style: {}, setAttribute(name, value) { this[name] = value; } });
+    if (!elements.has(id)) elements.set(id, { hidden: true, style: {}, children: [],
+      replaceChildren(...children) { this.children = children; },
+      append(child) { this.children.push(child); },
+      setAttribute(name, value) { this[name] = value; } });
     return elements.get(id);
   };
-  const document = { documentElement: {}, getElementById: element, querySelector: element };
+  const document = { documentElement: {}, getElementById: element, querySelector: element,
+    createElement: () => ({}) };
   let host;
   const calls = [];
   class App {
@@ -94,4 +98,16 @@ test('host locale changes retranslate the current picker without resetting draft
   assert.equal(ui.element('confirm').textContent, 'Start focus');
   assert.equal(ui.element('timeline')['aria-valuetext'], '20 minutes');
   assert.deepEqual(ui.calls, []);
+});
+
+test('Chinese app-group controls retain authored aliases and never send a command on render', async () => {
+  const ui = await picker('zh-TW');
+  ui.show({ appGroups: [{ id: 'work', name: 'My work' }], appGroupID: 'work' });
+  assert.equal(ui.element('review-apps').textContent, '在 iPhone 檢視或變更');
+  assert.equal(ui.element('refresh-groups').textContent, '重新整理群組');
+  assert.equal(ui.element('app-group').children[0].textContent, 'My work');
+  assert.equal(ui.element('app-group').value, 'work');
+  assert.deepEqual(ui.calls, []);
+  ui.show({ kind: 'maximum', minutes: 45, minMinutes: 15, maxMinutes: 1440 });
+  assert.equal(ui.element('groups').hidden, true);
 });

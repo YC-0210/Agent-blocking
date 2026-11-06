@@ -13,6 +13,14 @@ function localize() {
   el('minutes').setAttribute('aria-label', t('Duration in minutes'));
   el('timeline').setAttribute('aria-label', t('Drag to choose duration'));
   el('confirm').textContent = t('Confirm');
+  el('groups').setAttribute('aria-label', t('Apps for this session'));
+  for (const [id, copy] of Object.entries({
+    'group-label': 'App group',
+    'group-note': 'Choose a group saved on your iPhone. Actual app names and icons stay on the phone.',
+    'review-apps': 'Review / change on iPhone', 'refresh-groups': 'Refresh groups',
+    'review-summary': 'Open from another device',
+    'review-help': 'Open this address on your paired iPhone. If your chat app cannot open it, open DO Card and tap Review app groups.',
+  })) el(id).textContent = t(copy);
   render();
   if (lastFailure && !el('error').hidden) failure(lastFailure);
 }
@@ -40,7 +48,7 @@ function accept(result) {
   if (!dirty) { minutes = next.minutes; editRevision = next.revision; }
   render();
   const context = JSON.stringify({ selectionId: next.id, kind: next.kind, minutes: next.minutes,
-    commandStatus: next.phase, requestId: next.requestId });
+    commandStatus: next.phase, requestId: next.requestId, appGroupID: next.appGroupID });
   if (context !== lastContext) {
     lastContext = context;
     // Model context is supplementary; a host that does not support it must not make a successful command look failed.
@@ -65,6 +73,25 @@ function render() {
   const safeMinutes = Number.isFinite(minutes) ? minutes : selection.minMinutes;
   const axisMax = selection.maxMinutes;
   el('picker').hidden = false;
+  el('groups').hidden = maximum;
+  if (!maximum) {
+    const groups = selection.appGroups ?? [];
+    const select = el('app-group');
+    select.replaceChildren(...groups.map(group => {
+      const option = document.createElement('option');
+      option.value = group.id; option.textContent = group.name;
+      return option;
+    }));
+    if (!groups.length) {
+      const option = document.createElement('option'); option.textContent = t('Saved apps — review on iPhone'); select.append(option);
+    }
+    if (groups.length) select.value = selection.appGroupID ?? groups[0].id;
+    else select.selectedIndex = 0;
+    select.disabled = blocked || !groups.length;
+    el('refresh-groups').disabled = blocked;
+    el('review-apps').disabled = working || Boolean(saving);
+    el('review-url').textContent = selection.reviewURL ?? '';
+  }
   document.querySelector('main').setAttribute('aria-busy', String(working));
   el('minutes').min = selection.minMinutes;
   el('minutes').max = selection.maxMinutes;
@@ -130,6 +157,36 @@ el('timeline').oninput = event => edit(event.target.value);
 el('timeline').onchange = () => flush().catch(failure);
 el('minutes').oninput = event => edit(event.target.value);
 el('minutes').onchange = () => flush().catch(failure);
+el('app-group').onchange = async event => {
+  const appGroupID = event.target.value;
+  if (!selection || submitted() || working || saving) return;
+  try {
+    working = true; el('error').hidden = true; render();
+    await flush();
+    await call('revise_focus_selection', { selectionId: selection.id, appGroupID, expectedRevision: selection.revision });
+  } catch (error) {
+    try { await call('focus_selection_status', { selectionId: selection.id }); } catch {}
+    failure(error);
+  } finally { working = false; render(); }
+};
+el('refresh-groups').onclick = async () => {
+  if (!selection || submitted() || working || saving) return;
+  try {
+    working = true; el('error').hidden = true; render();
+    await flush();
+    await call('refresh_focus_app_groups', { selectionId: selection.id });
+  } catch (error) { failure(error); }
+  finally { working = false; render(); }
+};
+el('review-apps').onclick = async () => {
+  try {
+    if (!selection?.reviewURL) return;
+    const result = await app.openLink({ url: selection.reviewURL });
+    if (result.isError) throw new Error('link_denied');
+  } catch {
+    failure({ copy: 'This chat host could not open the iPhone link. Open DO Card on your paired iPhone and tap Review app groups.' });
+  }
+};
 el('confirm').onclick = async () => {
   if (working || !selection || !valid()) return;
   try {

@@ -10,7 +10,11 @@ const snapshotSchema = z.object({ modeID: z.string().min(1).max(80),
   sessionID: z.string().max(80).nullable().optional().default(null), endAt: z.number().finite().nullable().optional().default(null),
   requiresRenewalApproval: z.boolean(), maximumMinutes: z.number().int().optional(),
   startMinute: z.number().int().optional(), endMinute: z.number().int().optional(),
-  timeZone: z.string().max(100).optional() }).strict();
+  timeZone: z.string().max(100).optional(),
+  appGroups: z.array(z.object({ id: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/),
+    name: z.string().trim().min(1).max(40).regex(/^[^\x00-\x1f\x7f]+$/) }).strict()).max(8)
+    .refine(groups => new Set(groups.map(group => group.id)).size === groups.length).optional(),
+  activeAppGroupID: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/).nullable().optional() }).strict();
 const hash = value => createHash('sha256').update(value).digest('hex');
 function matches(a, b) {
   const x = Buffer.from(a ?? ''), y = Buffer.from(b ?? '');

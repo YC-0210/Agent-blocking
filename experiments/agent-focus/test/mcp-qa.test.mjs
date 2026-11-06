@@ -243,3 +243,58 @@ test('maximum stays pending until an applied phone receipt and a fresh snapshot 
   rejected(await f.call('select_focus_session', { deviceId: f.phone.deviceId, suggestedMinutes: 61 }), /duration_exceeds_approval/);
   assert.deepEqual(await f.queue(), []);
 });
+
+test('chat chooses a saved group in the draft and submits only its opaque ID after confirmation', async t => {
+  const f = await fixture(t);
+  await f.snapshot({ appGroups: [{ id: 'default', name: 'Saved apps' }, { id: 'deep-work', name: 'Deep Work' }] });
+  const d = await f.open('session', 20);
+  assert.equal(d.appGroupID, 'default');
+  assert.deepEqual(d.appGroups.map(g => g.name), ['Saved apps', 'Deep Work']);
+  const edited = await f.call('revise_focus_selection', { selectionId: d.id, appGroupID: 'deep-work', expectedRevision: d.revision });
+  assert.notEqual(edited.isError, true, edited.content?.[0]?.text);
+  const next = edited.structuredContent.selection;
+  assert.equal(next.minutes, 20);
+  assert.deepEqual(await f.queue(), []);
+  await f.confirm(next);
+  const [command] = await f.queue();
+  assert.equal(command.appGroupID, 'deep-work');
+  assert.equal(JSON.stringify(command).includes('Deep Work'), false);
+});
+
+test('group edits invalidate old confirmation and explicit refresh requires a new click', async t => {
+  const f = await fixture(t);
+  await f.snapshot({ appGroups: [{ id: 'default', name: 'Saved apps' }] });
+  const draft = await f.open('session', 2);
+  await f.snapshot({ modeID: 'groups-edited', appGroups: [{ id: 'default', name: 'Saved apps' }, { id: 'work', name: 'Work' }] });
+  rejected(await f.confirm(draft), /policy_changed/);
+  const refreshed = (await f.call('refresh_focus_app_groups', { selectionId: draft.id })).structuredContent.selection;
+  assert.equal(refreshed.modeID, 'groups-edited');
+  assert.equal(refreshed.revision, 2);
+  assert.deepEqual(await f.queue(), []);
+  rejected(await f.confirm(draft), /selection_changed/);
+  await f.confirm(refreshed);
+  assert.equal((await f.queue()).length, 1);
+});
+
+test('unknown groups and maximum-picker group edits cannot queue a command', async t => {
+  const f = await fixture(t);
+  await f.snapshot({ appGroups: [{ id: 'default', name: 'Saved apps' }] });
+  for (const kind of ['session', 'maximum']) {
+    const draft = await f.open(kind, 30);
+    rejected(await f.call('revise_focus_selection', { selectionId: draft.id, appGroupID: 'unknown' }), /app_group_not_approved/);
+  }
+  assert.deepEqual(await f.queue(), []);
+});
+
+test('review tool reports aliases and a session-specific iPhone link without queuing commands', async t => {
+  const f = await fixture(t);
+  await f.snapshot({ sessionID: 'active', activeAppGroupID: 'work', appGroups: [{ id: 'work', name: 'Deep Work' }] });
+  const result = await f.call('review_focus_apps', { deviceId: f.phone.deviceId });
+  const data = JSON.parse(result.content[0].text);
+  const link = new URL(data.reviewURL);
+  assert.equal(link.protocol, 'docard-agent:'); assert.equal(link.host, 'apps');
+  assert.equal(link.searchParams.get('deviceId'), f.phone.deviceId);
+  assert.equal(link.searchParams.get('sessionId'), 'active');
+  assert.equal(link.searchParams.get('groupId'), 'work');
+  assert.deepEqual(await f.queue(), []);
+});

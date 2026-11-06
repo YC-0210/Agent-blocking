@@ -308,3 +308,21 @@ test('malformed JSON and oversized command bodies do not enqueue work or break s
   assert.equal(valid.status, 202);
   assert.equal(valid.body.command.sequence, 1);
 });
+
+test('group metadata accepts aliases but rejects selection tokens, duplicate IDs and mixed commands', async t => {
+  const { request, pair } = await fixture(t); const phone = await pair();
+  const good = { ...snapshot, appGroups: [{ id: 'default', name: 'Saved apps' }] };
+  assert.equal((await request('/v1/device/snapshot', good, phone.deviceToken)).status, 200);
+  for (const appGroups of [
+    [{ id: 'default', name: 'Saved apps', applicationTokens: ['PRIVATE'] }],
+    [{ id: 'same', name: 'One' }, { id: 'same', name: 'Two' }],
+    [{ id: 'bad/id', name: 'One' }], [{ id: 'default', name: 'a\nb' }],
+  ]) assert.equal((await request('/v1/device/snapshot', { ...snapshot, appGroups }, phone.deviceToken)).status, 400);
+  const observed = await request(`/v1/devices/${phone.deviceId}`);
+  assert.deepEqual(observed.body.snapshot.appGroups, good.appGroups);
+  for (const action of ['stop', 'set_maximum']) {
+    const command = action === 'stop' ? { id: 'stop', action, modeID: 'approved-mode', sessionID: 'session-1', appGroupID: 'default' }
+      : { id: 'max', action, modeID: 'approved-mode', maximumMinutes: 60, expectedMaximumMinutes: 45, userConfirmed: true, appGroupID: 'default' };
+    assert.equal((await request(`/v1/devices/${phone.deviceId}/commands`, command)).status, 400);
+  }
+});

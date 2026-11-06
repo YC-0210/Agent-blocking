@@ -1136,6 +1136,276 @@
           }
         }
       }
+    },
+    "Review this session’s apps": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檢視本次專注的 App"
+          }
+        }
+      }
+    },
+    "Review app groups": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "檢視 App 群組"
+          }
+        }
+      }
+    },
+    "Group name": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "群組名稱"
+          }
+        }
+      }
+    },
+    "Saving shares the group name you type with your paired agent and relay. Actual app names, icons and selection tokens stay on this iPhone. Use a generic name such as Deep Work.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存後，你輸入的群組名稱會分享給已配對的 AI 助理與轉送服務。實際 App 名稱、圖示與選取資料只會留在此 iPhone。建議使用「工作」等通用名稱。"
+          }
+        }
+      }
+    },
+    "Saving…": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在儲存…"
+          }
+        }
+      }
+    },
+    "Save group and share name": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存群組並分享名稱"
+          }
+        }
+      }
+    },
+    "Saved on this phone. Reopen DO Card online to sync, then refresh groups in chat.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已儲存在此手機。連線後重新開啟 DO Card 同步，再回到聊天室重新整理群組。"
+          }
+        }
+      }
+    },
+    "Saved. Return to chat and refresh groups before starting.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已儲存。開始前，請回到聊天室重新整理群組。"
+          }
+        }
+      }
+    },
+    "Could not save. Check the name, selection and that no session is active.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法儲存。請檢查名稱、選取的 App，並確認目前沒有專注進行中。"
+          }
+        }
+      }
+    },
+    "Chat name": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "聊天室顯示名稱"
+          }
+        }
+      }
+    },
+    "App groups cannot change during a session. End this session before editing future groups.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "專注期間無法變更 App 群組。請先結束本次專注，再編輯下次使用的群組。"
+          }
+        }
+      }
+    },
+    "Session apps": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "專注 App"
+          }
+        }
+      }
+    },
+    "Done": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成"
+          }
+        }
+      }
+    },
+    "Applying the session. These are the requested apps; blocking is not yet confirmed.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在套用專注設定。這是要求限制使用的 App，尚未確認是否生效。"
+          }
+        }
+      }
+    },
+    "These are the apps selected for this session.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "這是本次專注選取的 App。"
+          }
+        }
+      }
+    },
+    "The session deadline has passed. Checking release status.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已到預計結束時間，正在確認是否已解除限制。"
+          }
+        }
+      }
+    },
+    "No active session. Choose a saved group to review or edit.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前沒有專注進行中。選擇已儲存的群組以檢視或編輯。"
+          }
+        }
+      }
+    },
+    "Status unavailable. Editing is disabled. Emergency Unlock is still available.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前無法取得狀態，暫時無法編輯。你仍可使用緊急解鎖。"
+          }
+        }
+      }
+    },
+    "Create app group": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "建立 App 群組"
+          }
+        }
+      }
+    },
+    "This session": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "本次專注"
+          }
+        }
+      }
+    },
+    "Saved groups": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已儲存的群組"
+          }
+        }
+      }
+    },
+    "No selection loaded.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "尚未載入選取的 App。"
+          }
+        }
+      }
+    },
+    "Apps, categories and websites": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App、類別與網站"
+          }
+        }
+      }
+    },
+    "Names and icons are displayed privately by iOS. Selecting a category can include more apps than those listed individually.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "名稱與圖示由 iOS 在此手機私下顯示。選取類別可能包含個別列出的 App 以外的其他 App。"
+          }
+        }
+      }
+    },
+    "This group is unavailable. Refresh the phone status and try again.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法取得此群組。請重新整理手機狀態後再試。"
+          }
+        }
+      }
+    },
+    "That session has ended or changed. Showing current app groups.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "該次專注已結束或變更，現在顯示目前的 App 群組。"
+          }
+        }
+      }
+    },
+    "Cannot review this phone’s apps right now. Open DO Card and try again.": {
+      "localizations": {
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前無法檢視此手機的 App。請開啟 DO Card 後再試。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

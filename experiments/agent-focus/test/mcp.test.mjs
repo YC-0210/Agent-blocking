@@ -98,7 +98,7 @@ test('Codex can discover tools through the real stdio process', async t => {
   t.after(() => client.close());
   await client.connect(transport);
   const { tools } = await client.listTools();
-  assert.deepEqual(tools.map(tool => tool.name).sort(), ['command_status', 'confirm_focus_selection', 'focus_selection_status', 'focus_status', 'pair_phone', 'revise_focus_selection', 'select_focus_maximum', 'select_focus_session', 'start_focus', 'stop_focus']);
+  assert.deepEqual(tools.map(tool => tool.name).sort(), ['command_status', 'confirm_focus_selection', 'focus_selection_status', 'focus_status', 'pair_phone', 'refresh_focus_app_groups', 'review_focus_apps', 'revise_focus_selection', 'select_focus_maximum', 'select_focus_session', 'start_focus', 'stop_focus']);
 });
 
 
