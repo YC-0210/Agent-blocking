@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { resolveLocale, translate, errorMessage, rejectionMessage } from '../src/ui/focus-i18n.mjs';
 
-async function picker(locale, languages = ['en-US'], toolHandler) {
+async function picker(locale, languages = ['en-US'], toolHandler, demoLanguage = '') {
   const elements = new Map();
   const element = id => {
     if (!elements.has(id)) elements.set(id, { hidden: true, style: {}, children: [],
@@ -28,7 +28,7 @@ async function picker(locale, languages = ['en-US'], toolHandler) {
   const source = readFileSync(new URL('../src/ui/focus-picker.mjs', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '');
   vm.runInNewContext(source, { App, resolveLocale, translate, errorMessage, rejectionMessage,
-    document, navigator: { languages }, Intl, Date, iconImages: Object.fromEntries(['instagram', 'brawl-stars'].map(key => [key, 'data:image/png;base64,' + readFileSync(new URL(`../src/ui/icons/${key}.png`, import.meta.url)).toString('base64')])), setInterval: () => 1, clearInterval() {},
+    document, navigator: { languages }, Intl, Date, __DO_CARD_DEMO_LANGUAGE__: demoLanguage, iconImages: Object.fromEntries(['instagram', 'brawl-stars'].map(key => [key, 'data:image/png;base64,' + readFileSync(new URL(`../src/ui/icons/${key}.png`, import.meta.url)).toString('base64')])), setInterval: () => 1, clearInterval() {},
     setTimeout: () => 1, clearTimeout() {} });
   await new Promise(resolve => setImmediate(resolve));
   return { host, calls, document, element, show(selection) {
@@ -157,4 +157,16 @@ test('selected app icons accompany the slider, unknown apps fall back, and updat
   ui.show({ selectedApps: [] });
   assert.equal(ui.element('selection-icons').children.length, 0);
   assert.deepEqual(ui.calls, []);
+});
+
+test('English demo override wins while normal builds keep automatic language selection', async () => {
+  assert.equal(resolveLocale('zh-TW', ['zh-TW'], 'en'), 'en');
+  assert.equal(resolveLocale('zh-TW', ['zh-TW']), 'zh-Hant');
+  const ui = await picker('zh-TW', ['zh-TW'], undefined, 'en');
+  ui.show({});
+  assert.equal(ui.element('selection-label').textContent, '3 selected apps');
+  assert.equal(ui.element('confirm').textContent, 'Start focus');
+  ui.host.onhostcontextchanged({ locale: 'zh-TW' });
+  assert.equal(ui.document.documentElement.lang, 'en');
+  assert.equal(ui.element('confirm').textContent, 'Start focus');
 });

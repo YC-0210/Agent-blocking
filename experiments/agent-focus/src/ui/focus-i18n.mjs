@@ -68,7 +68,8 @@ const traditional = {
   'Please check the session and try again.': '請確認目前的專注狀態後再試一次。',
 };
 
-export function resolveLocale(preferred, fallbacks = []) {
+export function resolveLocale(preferred, fallbacks = [], demoLanguage) {
+  if (demoLanguage === 'en') return 'en';
   for (const locale of [preferred, ...fallbacks]) {
     if (typeof locale !== 'string') continue;
     const normalized = locale.toLowerCase().replaceAll('_', '-');

@@ -4,7 +4,8 @@ import { iconImages } from './icon-images.mjs';
 
 const app = new App({ name: 'DO Card focus timeline', version: '0.2.0' }, {}, { autoResize: true });
 const el = id => document.getElementById(id);
-let locale = resolveLocale(undefined, navigator.languages ?? [navigator.language]);
+const demoLanguage = typeof __DO_CARD_DEMO_LANGUAGE__ === 'string' ? __DO_CARD_DEMO_LANGUAGE__ : '';
+let locale = resolveLocale(undefined, navigator.languages ?? [navigator.language], demoLanguage);
 let lastFailure;
 const t = (message, values) => translate(locale, message, values);
 function localize() {
@@ -178,12 +179,12 @@ el('confirm').onclick = async () => {
 app.ontoolresult = result => { try { accept(result); } catch (error) { failure(error); } };
 app.onteardown = async () => { clearInterval(timer); clearTimeout(expiryTimer); return {}; };
 app.onhostcontextchanged = context => {
-  if (context.locale) locale = resolveLocale(context.locale, navigator.languages ?? [navigator.language]);
+  if (context.locale) locale = resolveLocale(context.locale, navigator.languages ?? [navigator.language], demoLanguage);
   localize();
 };
 localize();
 app.connect().then(() => {
-  locale = resolveLocale(app.getHostContext()?.locale, navigator.languages ?? [navigator.language]);
+  locale = resolveLocale(app.getHostContext()?.locale, navigator.languages ?? [navigator.language], demoLanguage);
   localize();
   timer = setInterval(async () => {
     if (!selection || working || saving || dirty || terminal.has(selection.phase)) return;

@@ -145,3 +145,36 @@ MCP configuration are not changed by the isolated UI development host.
 For the test host, run `npm run dev:ui` and open http://127.0.0.1:8792 . It has a clearly
 labelled in-memory test phone and no access to the real phone. Full protocol/trust and
 merge instructions: `docs/experiments/agent-timeline-tools.md`.
+
+## Demo language
+
+Normal picker builds follow the chat host's language, with browser/device language
+fallback and English for unsupported languages. The native app follows its iOS
+app/device language. For the current English demo, build the picker with:
+
+```sh
+DO_CARD_DEMO_LANGUAGE=en npm run build:ui
+```
+
+This explicit demo override survives host locale updates. To restore automatic
+selection, run `npm run build:ui` without the variable. Open a fresh chat picker
+to load the rebuilt resource. Existing open pickers retain their loaded code.
+
+Launch the installed phone app in English temporarily, without changing device
+or persisted app-language preferences:
+
+```sh
+xcrun devicectl device process launch --device IPHONE_HARDWARE_UDID \
+  --terminate-existing online.do.card.app -- -AppleLanguages '(en)' -AppleLocale en_US
+```
+
+These are Apple's documented language-testing launch arguments. A normal app
+relaunch without them returns to its app/device language. No phone rebuild is
+needed for this temporary demo setting.
+
+
+Validation: 100 Node tests pass, including automatic language selection and the
+English demo override under a Traditional Chinese host. An isolated browser with
+`zh-TW` locale verified English session and maximum controls. The demo resource
+was rebuilt with `DO_CARD_DEMO_LANGUAGE=en`; the paired iPhone was relaunched
+with English arguments and a fresh live chat picker opened.
