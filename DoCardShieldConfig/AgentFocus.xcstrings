@@ -1,0 +1,102 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "This app": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This app"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此 App"
+          }
+        }
+      }
+    },
+    "This website": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "This website"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "此網站"
+          }
+        }
+      }
+    },
+    "NOT RIGHT NOW.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "NOT RIGHT NOW."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先把這段時間\n留給自己。"
+          }
+        }
+      }
+    },
+    "%@ can wait. You chose this time to focus.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ can wait. You chose this time to focus."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "你已暫停使用 %@，讓自己專心完成眼前的事。"
+          }
+        }
+      }
+    },
+    "Need to end the session? Open DO Card for Emergency Unlock.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Need to end the session? Open DO Card for Emergency Unlock."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "如需提前結束，請開啟 DO Card，點選「緊急解鎖」。"
+          }
+        }
+      }
+    },
+    "Back to what matters": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back to what matters"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "繼續專注"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

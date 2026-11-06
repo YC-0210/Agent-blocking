@@ -1,0 +1,118 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Your expired focus session was released.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your expired focus session was released."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "專注時間已到，已解除 App 使用限制。"
+          }
+        }
+      }
+    },
+    "Focus expiry checked.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Focus expiry checked."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已確認專注結束狀態。"
+          }
+        }
+      }
+    },
+    "Your focus request was applied.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your focus request was applied."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已套用你的專注設定。"
+          }
+        }
+      }
+    },
+    "Your phone rejected the focus request. Open DO Card to check your settings.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your phone rejected the focus request. Open DO Card to check your settings."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "手機未接受這次設定，請開啟 DO Card 檢查。"
+          }
+        }
+      }
+    },
+    "A focus request is waiting. Open DO Card if it does not apply.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "A focus request is waiting. Open DO Card if it does not apply."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "有一項專注設定等待處理。如未生效，請開啟 DO Card。"
+          }
+        }
+      }
+    },
+    "Expiry check could not complete. Open DO Card if apps remain blocked.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expiry check could not complete. Open DO Card if apps remain blocked."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "無法確認專注是否已結束。如 App 仍無法使用，請開啟 DO Card。"
+          }
+        }
+      }
+    },
+    "Checking an expired focus session.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Checking an expired focus session."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在確認專注結束狀態。"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

@@ -69,7 +69,10 @@ struct DoCardApp: App {
         .onOpenURL { url in
           if url.scheme == "docard-agent", !agentFocus.openSetup(url) { agentSetupError = true }
         }
-        .alert("Agent setup unavailable", isPresented: $agentSetupError) {
+        .alert(
+          String(localized: "Agent setup unavailable", table: "AgentFocus"),
+          isPresented: $agentSetupError
+        ) {
           Button("OK", role: .cancel) {}
         } message: {
           Text(agentFocus.message)

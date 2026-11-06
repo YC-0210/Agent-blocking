@@ -1,14 +1,35 @@
+import { resolveLocale, translate, errorMessage, rejectionMessage } from './focus-i18n.mjs';
 import { App } from '@modelcontextprotocol/ext-apps';
 
 const app = new App({ name: 'DO Card focus timeline', version: '0.2.0' }, {}, { autoResize: true });
 const el = id => document.getElementById(id);
+let locale = resolveLocale(undefined, navigator.languages ?? [navigator.language]);
+let lastFailure;
+const t = (message, values) => translate(locale, message, values);
+function localize() {
+  document.documentElement.lang = locale;
+  document.title = t('DO · Focus timeline');
+  document.querySelector('label[for=minutes]').textContent = t('minutes');
+  el('minutes').setAttribute('aria-label', t('Duration in minutes'));
+  el('timeline').setAttribute('aria-label', t('Drag to choose duration'));
+  el('confirm').textContent = t('Confirm');
+  render();
+  if (lastFailure && !el('error').hidden) failure(lastFailure);
+}
 let selection, minutes, editRevision, dirty = false, working = false, timer, saving, expiryTimer, lastContext;
 const terminal = new Set(['applied', 'rejected', 'expired']);
 const submitted = () => selection && selection.phase !== 'draft';
 const valid = () => Number.isInteger(minutes) && minutes >= selection.minMinutes && minutes <= selection.maxMinutes;
-const clock = (at, zone) => new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit', timeZone: zone }).format(at);
+const clock = (at, zone) => new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit', timeZone: zone }).format(at);
 function failure(error) {
-  el('error').textContent = error instanceof Error ? error.message : String(error);
+  if (error?.copy) {
+    lastFailure = error;
+    el('error').textContent = t(error.copy, error.values);
+    el('error').hidden = false;
+    return;
+  }
+  lastFailure = error;
+  el('error').textContent = t(errorMessage(error));
   el('error').hidden = false;
 }
 function accept(result) {
@@ -49,34 +70,34 @@ function render() {
   el('minutes').max = selection.maxMinutes;
   el('minutes').value = Number.isFinite(minutes) ? String(minutes) : '';
   el('minutes').disabled = blocked;
-  el('minutes').setAttribute('aria-label', maximum ? 'Maximum lock time in minutes' : 'Session duration in minutes');
+  el('minutes').setAttribute('aria-label', maximum ? t('Maximum lock time in minutes') : t('Session duration in minutes'));
   const range = el('timeline');
   range.min = selection.minMinutes; range.max = axisMax; range.step = '1'; range.value = safeMinutes;
   range.disabled = blocked;
-  range.setAttribute('aria-label', maximum ? 'Drag maximum lock time' : 'Drag session duration');
-  range.setAttribute('aria-valuetext', Number.isFinite(minutes) ? `${minutes} minutes` : 'Choose a duration');
+  range.setAttribute('aria-label', maximum ? t('Drag maximum lock time') : t('Drag session duration'));
+  range.setAttribute('aria-valuetext', Number.isFinite(minutes) ? t('{minutes} minutes', { minutes }) : t('Choose a duration'));
   el('fill').style.width = `${Math.max(0, Math.min(100, (safeMinutes - selection.minMinutes) / (axisMax - selection.minMinutes) * 100))}%`;
   const endAt = selection.command?.issuedAt ? selection.command.issuedAt + minutes * 60000 : Date.now() + minutes * 60000;
   const formattedEnd = Number.isFinite(endAt) ? clock(endAt, selection.timeZone) : '—';
   const windowEnded = selection.phase === 'applied' && !maximum && Date.now() >= endAt;
   const confirm = el('confirm');
-  confirm.textContent = working ? 'Sending…' : selection.phase === 'unknown' ? 'Retry the same request' : submitted()
-    ? selection.phase === 'applied' ? maximum ? 'Maximum saved' : windowEnded ? 'Session window ended' : 'Blocking active' : selection.phase === 'pending' ? 'Waiting for phone…' : 'Request ended'
-    : !valid() ? 'Choose a valid duration' : maximum ? 'Save maximum' : 'Start focus';
+  confirm.textContent = working ? t('Sending…') : selection.phase === 'unknown' ? t('Retry the same request') : submitted()
+    ? selection.phase === 'applied' ? maximum ? t('Maximum saved') : windowEnded ? t('Session window ended') : t('Blocking active') : selection.phase === 'pending' ? t('Waiting for phone…') : t('Request ended')
+    : !valid() ? t('Choose a valid duration') : maximum ? t('Save maximum') : t('Start focus');
   confirm.disabled = working || Boolean(saving) || !valid() || (submitted() && selection.phase !== 'unknown') ||
     (!submitted() && maximum && minutes === selection.currentMaximumMinutes);
   const messages = {
-    pending: 'Request sent. Waiting for the phone to acknowledge it. Pending does not mean applied.',
-    unknown: 'Delivery status is unknown. Retry uses the same request; it will not create a second command.',
-    applied: maximum ? `The phone confirmed the ${selection.minutes}-minute maximum is saved. Existing sessions are unchanged.` : windowEnded ? 'The scheduled end has passed. Check the phone or ask your agent for current status; this receipt confirms the earlier start.' : `The phone confirmed blocking was applied. Scheduled end: ${formattedEnd}.`,
+    pending: t('Request sent. Waiting for the phone to acknowledge it. Pending does not mean applied.'),
+    unknown: t('Delivery status is unknown. Retry uses the same request; it will not create a second command.'),
+    applied: maximum ? t('The phone confirmed the {minutes}-minute maximum is saved. Existing sessions are unchanged.', { minutes: selection.minutes }) : windowEnded ? t('The scheduled end has passed. Check the phone or ask your agent for current status; this receipt confirms the earlier start.') : t('The phone confirmed blocking was applied. Scheduled end: {end}.', { end: formattedEnd }),
     rejected: selection.reason === 'mode_not_approved'
-      ? 'Your phone’s approved settings changed since this picker opened. Nothing was changed. Ask your agent for a fresh picker.'
-      : `The phone rejected this request (${selection.reason ?? 'unknown reason'}). Ask your agent to open a new picker.`,
-    expired: 'The command expired before phone acknowledgement. Ask your agent for a new picker.',
+      ? t('Your phone’s approved settings changed since this picker opened. Nothing was changed. Ask your agent for a fresh picker.')
+      : t('The phone rejected this request. {reason} Ask your agent to open a new picker.', { reason: t(rejectionMessage(selection.reason)) }),
+    expired: t('The command expired before phone acknowledgement. Ask your agent for a new picker.'),
   };
   el('status').hidden = !messages[selection.phase]; el('status').textContent = messages[selection.phase] ?? '';
 
-  if (!valid()) failure(maximum ? `Choose ${selection.minMinutes}–${selection.maxMinutes} minutes for your maximum.` : `Choose ${selection.minMinutes}–${selection.maxMinutes} minutes. To change your maximum, ask your agent separately.`);
+  if (!valid()) failure({ copy: maximum ? 'Choose {min}–{max} minutes for your maximum.' : 'Choose {min}–{max} minutes. To change your maximum, ask your agent separately.', values: { min: selection.minMinutes, max: selection.maxMinutes } });
 }
 function edit(value) {
   if (submitted() || working || saving) return;
@@ -120,9 +141,16 @@ el('confirm').onclick = async () => {
 };
 app.ontoolresult = result => { try { accept(result); } catch (error) { failure(error); } };
 app.onteardown = async () => { clearInterval(timer); clearTimeout(expiryTimer); return {}; };
+app.onhostcontextchanged = context => {
+  if (context.locale) locale = resolveLocale(context.locale, navigator.languages ?? [navigator.language]);
+  localize();
+};
+localize();
 app.connect().then(() => {
+  locale = resolveLocale(app.getHostContext()?.locale, navigator.languages ?? [navigator.language]);
+  localize();
   timer = setInterval(async () => {
     if (!selection || working || saving || dirty || terminal.has(selection.phase)) return;
     try { await call('focus_selection_status', { selectionId: selection.id }); } catch (error) { failure(error); }
   }, 3000);
-}).catch(() => failure('Open this timeline from your agent’s focus selection tool in an MCP Apps-compatible client.'));
+}).catch(() => failure({ copy: 'Open this timeline from your agent’s focus selection tool in an MCP Apps-compatible client.' }));

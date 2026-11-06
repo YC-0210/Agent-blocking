@@ -44,7 +44,9 @@ final class NotificationService: UNNotificationServiceExtension, @unchecked Send
       } catch { /* Keep the generic fallback; the main app can retry. */  }
       let body =
         expiryCheck && outcome == .pending
-        ? "Expiry check could not complete. Open DO Card if apps remain blocked."
+        ? String(
+          localized: "Expiry check could not complete. Open DO Card if apps remain blocked.",
+          table: "AgentFocus")
         : outcome.notificationBody
       self?.finish(body: body)
     }
