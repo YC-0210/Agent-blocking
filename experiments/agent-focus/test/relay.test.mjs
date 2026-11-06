@@ -217,3 +217,25 @@ test('a device can inspect its command result without using the agent credential
   assert.equal(result.body.status, 'applied');
   assert.equal(result.body.command.id, 'request-1');
 });
+
+test('phone can publish bounded selected app identities but not tokens or arbitrary icon URLs', async t => {
+  const { request } = await fixture(t); const phone = await pair(request);
+  const snapshot = { modeID: 'work', requiresRenewalApproval: false, maximumMinutes: 45,
+    selectionSummary: { applications: 2, categories: 0, websites: 0 },
+    selectedAppIDs: ['com.burbn.instagram', 'com.supercell.laser'] };
+  assert.equal((await request('/v1/device/snapshot', snapshot, phone.deviceToken)).status, 200);
+  assert.deepEqual((await request(`/v1/devices/${phone.deviceId}`)).body.snapshot.selectedAppIDs, snapshot.selectedAppIDs);
+  for (const invalid of [['private token'], ['https://evil.example/icon.png'], Array(51).fill('com.example.app'),
+    ['com.burbn.instagram', 'com.burbn.instagram']]) {
+    assert.equal((await request('/v1/device/snapshot', { ...snapshot, selectedAppIDs: invalid }, phone.deviceToken)).status, 400);
+  }
+  assert.equal((await request('/v1/device/snapshot', { ...snapshot, selectedAppIDs: ['com.a.app','com.b.app','com.c.app'] }, phone.deviceToken)).status, 400);
+});
+
+test('snapshot accepts fifty long valid bundle identifiers within its bounded payload', async t => {
+  const { request } = await fixture(t); const phone = await pair(request);
+  const ids = Array.from({ length: 50 }, (_, i) => `com.example.${String(i).padStart(3, '0')}${'a'.repeat(230)}`);
+  const result = await request('/v1/device/snapshot', { modeID: 'work', requiresRenewalApproval: false,
+    maximumMinutes: 45, selectionSummary: { applications: 50, categories: 0, websites: 0 }, selectedAppIDs: ids }, phone.deviceToken);
+  assert.equal(result.status, 200);
+});

@@ -1,5 +1,6 @@
 import { resolveLocale, translate, errorMessage, rejectionMessage } from './focus-i18n.mjs';
 import { App } from '@modelcontextprotocol/ext-apps';
+import { iconImages } from './icon-images.mjs';
 
 const app = new App({ name: 'DO Card focus timeline', version: '0.2.0' }, {}, { autoResize: true });
 const el = id => document.getElementById(id);
@@ -80,6 +81,17 @@ function render() {
   if (summary?.categories) parts.push(summary.categories === 1 ? t('1 selected category') : t('{count} selected categories', { count: summary.categories }));
   if (summary?.websites) parts.push(summary.websites === 1 ? t('1 selected website') : t('{count} selected websites', { count: summary.websites }));
   el('selection-label').textContent = parts.join(' · ') || t('Choose apps on iPhone');
+  const icons = (selection.selectedApps ?? []).map(selected => {
+    const source = Object.hasOwn(iconImages, selected.iconKey) ? iconImages[selected.iconKey] : undefined;
+    const icon = document.createElement(source ? 'img' : 'span');
+    icon.className = 'selected-app-icon';
+    icon.title = selected.name;
+    if (source) { icon.src = source; icon.alt = selected.name; }
+    else { icon.textContent = '?'; icon.setAttribute('aria-label', selected.name); }
+    return icon;
+  });
+  el('selection-icons').replaceChildren(...icons);
+  el('selection-generic').style.display = icons.length > 0 ? 'none' : '';
   el('selection-review').disabled = working || Boolean(saving);
   document.querySelector('main').setAttribute('aria-busy', String(working));
   el('minutes').min = selection.minMinutes;

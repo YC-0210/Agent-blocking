@@ -12,6 +12,7 @@ const port = Number(process.env.FOCUS_UI_PORT ?? 8792);
 const origin = `http://127.0.0.1:${port}`;
 const appGroups = [{ id: 'default', name: 'Saved apps' }];
 const selectionSummary = { applications: 3, categories: 0, websites: 0 };
+let selectedAppIDs = ['com.burbn.instagram', 'com.supercell.laser', 'com.example.unknown'];
 const token = randomBytes(32).toString('hex');
 const relay = createRelay({ agentToken: token, database: ':memory:' });
 await new Promise(resolve => relay.server.listen(0, '127.0.0.1', resolve));
@@ -25,7 +26,7 @@ async function phoneRequest(path, body, credential = token) {
 const invite = await phoneRequest('/v1/pairings', {});
 const fixture = await phoneRequest('/v1/pairings/redeem', { code: invite.code });
 await phoneRequest('/v1/device/snapshot', { modeID: 'development-mode', maximumMinutes: 45,
-  requiresRenewalApproval: false, startMinute: 0, endMinute: 1440, timeZone: 'Asia/Taipei', appGroups, selectionSummary }, fixture.deviceToken);
+  requiresRenewalApproval: false, startMinute: 0, endMinute: 1440, timeZone: 'Asia/Taipei', appGroups, selectionSummary, selectedAppIDs }, fixture.deviceToken);
 const server = createFocusMcp({ relayURL, agentToken: token });
 const client = new Client({ name: 'DO development host', version: '0.2.0' });
 const [a, b] = InMemoryTransport.createLinkedPair();
@@ -57,8 +58,9 @@ const host = createServer(async (req, res) => {
       const input = JSON.parse(raw);
       if (!Number.isInteger(input.applications) || input.applications < 1 || input.applications > 50) throw new Error('invalid_fixture_selection');
       selectionSummary.applications = input.applications;
+      selectedAppIDs = input.selectedAppIDs ?? [];
       await phoneRequest('/v1/device/snapshot', { modeID: `development-selection-${Date.now()}`, maximumMinutes: 45,
-        requiresRenewalApproval: false, startMinute: 0, endMinute: 1440, timeZone: 'Asia/Taipei', appGroups, selectionSummary }, fixture.deviceToken);
+        requiresRenewalApproval: false, startMinute: 0, endMinute: 1440, timeZone: 'Asia/Taipei', appGroups, selectionSummary, selectedAppIDs }, fixture.deviceToken);
       res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ selectionSummary })); return;
     }
     if (req.method === 'POST' && url.pathname === '/ack') {
@@ -67,7 +69,7 @@ const host = createServer(async (req, res) => {
         await phoneRequest('/v1/device/receipts', { id: command.id, status: 'applied' }, fixture.deviceToken);
         if (command.action === 'set_maximum') await phoneRequest('/v1/device/snapshot', {
           modeID: `development-${command.id}`, maximumMinutes: command.maximumMinutes,
-          requiresRenewalApproval: false, startMinute: 0, endMinute: 1440, timeZone: 'Asia/Taipei', appGroups, selectionSummary,
+          requiresRenewalApproval: false, startMinute: 0, endMinute: 1440, timeZone: 'Asia/Taipei', appGroups, selectionSummary, selectedAppIDs,
         }, fixture.deviceToken);
       }
       res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ acknowledged: commands.length })); return;

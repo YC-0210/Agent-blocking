@@ -48,6 +48,7 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
     let appGroups: [AgentAppGroup]
     let activeAppGroupID: String?
     let selectionSummary: AgentSelectionSummary?
+    let selectedAppIDs: [String]?
   }
   private final class RedirectPolicy: NSObject, URLSessionTaskDelegate {
     func urlSession(
@@ -59,13 +60,16 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
   private let phone: AgentFocusPhone<Selection>
   private let pairing: AgentFocusPairing
   private let transport: URLSession
+  private let allowIdentities: () -> Bool
 
   init(
     phone: AgentFocusPhone<Selection>, pairing: AgentFocusPairing,
-    configuration: URLSessionConfiguration = .ephemeral
+    configuration: URLSessionConfiguration = .ephemeral,
+    allowIdentities: @escaping () -> Bool = { false }
   ) {
     self.phone = phone
     self.pairing = pairing
+    self.allowIdentities = allowIdentities
     configuration.timeoutIntervalForRequest = 5
     configuration.timeoutIntervalForResource = 18
     transport = URLSession(
@@ -82,7 +86,9 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
       do {
         try await Task.sleep(for: .seconds(18))
         transport.invalidateAndCancel()
-      } catch { /* Normal completion cancels the deadline task. */  }
+      } catch {
+        // Normal completion cancels the deadline task.
+      }
     }
     defer { timeout.cancel() }
     var localReceipt: FocusReceipt?
@@ -95,7 +101,7 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
         let outcome: Outcome = try phone.expire(retryFor: 1) ? .expired : .expiryChecked
         expiryOutcome = outcome
         try? await uploadReceipts(deadline: deadline)
-        try await publishSnapshot(deadline: deadline)
+        try await publishSnapshot(deadline: deadline, sharingIdentities: false)
         return outcome
       }
       if let pushToken {
@@ -141,7 +147,9 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
     }
   }
 
-  private func publishSnapshot(deadline: ContinuousClock.Instant) async throws {
+  private func publishSnapshot(deadline: ContinuousClock.Instant, sharingIdentities: Bool = true)
+    async throws
+  {
     if let status = try phone.status(pairingID: pairing.deviceId) {
       let snapshot = Snapshot(
         modeID: status.policy.modeID, sessionID: status.session?.id,
@@ -149,7 +157,8 @@ final class AgentFocusDelivery<Selection: Codable>: @unchecked Sendable {
         maximumMinutes: status.policy.maximumMinutes, startMinute: status.policy.startMinute,
         endMinute: status.policy.endMinute, timeZone: status.policy.timeZone,
         appGroups: status.appGroups, activeAppGroupID: status.activeAppGroupID,
-        selectionSummary: status.selectionSummary)
+        selectionSummary: status.selectionSummary,
+        selectedAppIDs: sharingIdentities && allowIdentities() ? status.selectedAppIDs : nil)
       _ = try await request(
         "v1/device/snapshot", body: JSONEncoder().encode(snapshot), deadline: deadline)
     }

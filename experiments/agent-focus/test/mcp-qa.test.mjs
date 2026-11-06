@@ -317,3 +317,20 @@ test('review tool reports aliases and a session-specific iPhone link without que
   assert.equal(link.searchParams.get('groupId'), 'work');
   assert.deepEqual(await f.queue(), []);
 });
+
+test('session picker follows selected identities and clears stale icons while maximum stays separate', async t => {
+  const f = await fixture(t);
+  await f.snapshot({ selectionSummary: { applications: 2, categories: 0, websites: 0 }, selectedAppIDs: ['com.burbn.instagram','com.supercell.laser'] });
+  const draft = await f.open('session', 17);
+  assert.deepEqual(draft.selectedApps.map(app => app.name), ['Instagram','Brawl Stars']);
+  assert.equal((await f.open('maximum', 60)).selectedApps, undefined);
+  await f.snapshot({ selectionSummary: { applications: 1, categories: 0, websites: 0 }, selectedAppIDs: ['com.example.unknown'] });
+  const refreshed = (await f.call('focus_selection_status', { selectionId: draft.id })).structuredContent.selection;
+  assert.deepEqual(refreshed.selectedApps, [{ id: 'com.example.unknown', name: 'com.example.unknown' }]);
+  assert.equal(refreshed.minutes, 17);
+  assert.ok(refreshed.revision > draft.revision);
+  await f.snapshot({ selectionSummary: { applications: 1, categories: 0, websites: 0 } });
+  const noPermission = (await f.call('focus_selection_status', { selectionId: draft.id })).structuredContent.selection;
+  assert.deepEqual(noPermission.selectedApps, []);
+  assert.deepEqual(await f.queue(), []);
+});

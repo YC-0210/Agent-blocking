@@ -4,6 +4,29 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusDeliveryTests: XCTestCase {
+  func testRevokedIdentitySharingCannotLeakCachedIDsAfterNetworkWait() async throws {
+    let fixture = try DeliveryFixture(summary: .init(applications: 1, categories: 0, websites: 0))
+    defer { fixture.cleanup() }
+    fixture.selectedAppIDs = ["com.burbn.instagram"]
+    fixture.revokeIdentitiesOnCommandFetch = true
+    _ = await fixture.worker.run()
+    let data = try XCTUnwrap(fixture.snapshots.last)
+    let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    XCTAssertNil(snapshot["selectedAppIDs"])
+  }
+
+  func testSnapshotExportsOnlyResolvedSelectedAppIDsWithoutOpaqueSelection() async throws {
+    let fixture = try DeliveryFixture(summary: .init(applications: 2, categories: 0, websites: 0))
+    defer { fixture.cleanup() }
+    fixture.selectedAppIDs = ["com.burbn.instagram", "com.supercell.laser"]
+    _ = await fixture.worker.run()
+    let data = try XCTUnwrap(fixture.snapshots.last)
+    let snapshot = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+    XCTAssertEqual(
+      snapshot["selectedAppIDs"] as? [String], ["com.burbn.instagram", "com.supercell.laser"])
+    XCTAssertFalse(String(decoding: data, as: UTF8.self).contains("opaque-on-phone"))
+  }
+
   func testGroupSnapshotContainsOnlyAuthoredAliasAndIDNeverPrivateSelection() async throws {
     let fixture = try DeliveryFixture(summary: .init(applications: 3, categories: 0, websites: 0))
     defer { fixture.cleanup() }
@@ -174,6 +197,9 @@ private final class DeliveryFixture: @unchecked Sendable {
   var failAllRequests = false
   var snapshots: [Data] = []
   var summary: AgentSelectionSummary?
+  var selectedAppIDs: [String]?
+  var allowIdentities = true
+  var revokeIdentitiesOnCommandFetch = false
   var shielded = false
   var receipts: [FocusReceipt] = []
   var command = FocusCommand(
@@ -184,7 +210,7 @@ private final class DeliveryFixture: @unchecked Sendable {
     directory: directory,
     emergency: .init(read: { nil }, write: { _ in }), now: { self.clock },
     apply: { _, _ in self.shielded = true }, release: { self.shielded = false },
-    summarize: { _ in self.summary })
+    summarize: { _ in self.summary }, identify: { _ in self.selectedAppIDs })
   lazy var worker: AgentFocusDelivery<String> = {
     let configuration = URLSessionConfiguration.ephemeral
     configuration.protocolClasses = [DeliveryURLProtocol.self]
@@ -192,7 +218,8 @@ private final class DeliveryFixture: @unchecked Sendable {
       phone: phone,
       pairing: .init(
         relay: URL(string: "https://relay.example")!,
-        deviceId: "device", deviceToken: "private-device-token"), configuration: configuration)
+        deviceId: "device", deviceToken: "private-device-token"), configuration: configuration,
+      allowIdentities: { self.allowIdentities })
   }()
   init(summary: AgentSelectionSummary? = nil) throws {
     self.summary = summary
@@ -230,6 +257,7 @@ private final class DeliveryFixture: @unchecked Sendable {
     switch request.url!.path {
     case "/v1/device/commands":
       commandFetchRequested = true
+      if revokeIdentitiesOnCommandFetch { allowIdentities = false }
       struct Commands: Encodable { let commands: [FocusCommand] }
       return (200, try JSONEncoder().encode(Commands(commands: queueEmpty ? [] : [command])))
     case "/v1/device/receipts":

@@ -28,7 +28,7 @@ async function picker(locale, languages = ['en-US'], toolHandler) {
   const source = readFileSync(new URL('../src/ui/focus-picker.mjs', import.meta.url), 'utf8')
     .replace(/^import .*;\n/gm, '');
   vm.runInNewContext(source, { App, resolveLocale, translate, errorMessage, rejectionMessage,
-    document, navigator: { languages }, Intl, Date, setInterval: () => 1, clearInterval() {},
+    document, navigator: { languages }, Intl, Date, iconImages: Object.fromEntries(['instagram', 'brawl-stars'].map(key => [key, 'data:image/png;base64,' + readFileSync(new URL(`../src/ui/icons/${key}.png`, import.meta.url)).toString('base64')])), setInterval: () => 1, clearInterval() {},
     setTimeout: () => 1, clearTimeout() {} });
   await new Promise(resolve => setImmediate(resolve));
   return { host, calls, document, element, show(selection) {
@@ -142,4 +142,19 @@ test('a count refresh arriving during a time edit preserves that time and rebase
   assert.equal(ui.element('selection-label').textContent, '5 selected apps');
   assert.equal(ui.calls[0].arguments.expectedRevision, 2);
   assert.equal(ui.calls.some(call => call.name === 'confirm_focus_selection'), false);
+});
+
+test('selected app icons accompany the slider, unknown apps fall back, and updates remove stale icons', async () => {
+  const ui = await picker('en-US');
+  ui.show({ selectedApps: [{ id: 'com.burbn.instagram', name: 'Instagram', iconKey: 'instagram' },
+    { id: 'com.supercell.laser', name: 'Brawl Stars', iconKey: 'brawl-stars' }] });
+  assert.equal(ui.element('selection-icons').children.length, 2);
+  assert.equal(ui.element('selection-icons').children[0].alt, 'Instagram');
+  assert.match(ui.element('selection-icons').children[0].src, /^data:image\/png;base64,/);
+  ui.show({ selectedApps: [{ id: 'com.example.unknown', name: 'com.example.unknown' }] });
+  assert.equal(ui.element('selection-icons').children.length, 1);
+  assert.equal(ui.element('selection-icons').children[0].title, 'com.example.unknown');
+  ui.show({ selectedApps: [] });
+  assert.equal(ui.element('selection-icons').children.length, 0);
+  assert.deepEqual(ui.calls, []);
 });

@@ -13,11 +13,14 @@ const snapshotSchema = z.object({ modeID: z.string().min(1).max(80),
   timeZone: z.string().max(100).optional(),
   selectionSummary: z.object({ applications: z.number().int().min(0).max(10000),
     categories: z.number().int().min(0).max(10000), websites: z.number().int().min(0).max(10000) }).strict().optional(),
+  selectedAppIDs: z.array(z.string().max(255).regex(/^[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/)).max(50)
+    .refine(ids => new Set(ids).size === ids.length).optional(),
   appGroups: z.array(z.object({ id: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/),
     name: z.string().trim().min(1).max(40).regex(/^[^\x00-\x1f\x7f]+$/),
     iconKey: z.enum(['instagram', 'tiktok', 'youtube', 'facebook', 'reddit', 'x', 'other']).optional() }).strict()).max(8)
     .refine(groups => new Set(groups.map(group => group.id)).size === groups.length).optional(),
-  activeAppGroupID: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/).nullable().optional() }).strict();
+  activeAppGroupID: z.string().regex(/^[a-zA-Z0-9-]{1,80}$/).nullable().optional() }).strict()
+  .refine(snapshot => !snapshot.selectedAppIDs || (snapshot.selectionSummary && snapshot.selectedAppIDs.length <= snapshot.selectionSummary.applications));
 const hash = value => createHash('sha256').update(value).digest('hex');
 function matches(a, b) {
   const x = Buffer.from(a ?? ''), y = Buffer.from(b ?? '');
@@ -26,9 +29,10 @@ function matches(a, b) {
 function fail(status, message) { throw Object.assign(new Error(message), { status }); }
 async function readBody(req) {
   let body = '';
+  const limit = req.url === '/v1/device/snapshot' ? 32768 : 8192;
   for await (const chunk of req) {
     body += chunk;
-    if (Buffer.byteLength(body) > 8192) fail(413, 'body_too_large');
+    if (Buffer.byteLength(body) > limit) fail(413, 'body_too_large');
   }
   try { return JSON.parse(body || '{}'); } catch { fail(400, 'invalid_json'); }
 }

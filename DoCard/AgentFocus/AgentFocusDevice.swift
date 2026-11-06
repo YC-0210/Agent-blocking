@@ -1,3 +1,4 @@
+import CryptoKit
 import DeviceActivity
 import FamilyControls
 import Foundation
@@ -131,7 +132,23 @@ enum AgentFocusDevice {
         .init(
           applications: $0.applicationTokens.count, categories: $0.categoryTokens.count,
           websites: $0.webDomainTokens.count)
-      })
+      },
+      identify: AgentSelectedAppMetadata.identifiers)
+  }
+
+  static func permitsSelectedAppSharing() -> Bool {
+    let read = { () -> Bool in
+      #if DO_CARD_APP_DATA_ACCESS_PROBE
+        if #available(iOS 26.4, *) {
+          switch AuthorizationCenter.shared.authorizationStatus {
+          case .approvedWithDataAccess: return true
+          default: return false
+          }
+        }
+      #endif
+      return false
+    }
+    return Thread.isMainThread ? read() : DispatchQueue.main.sync(execute: read)
   }
 
   private static var emergencyQuery: [String: Any] {
@@ -228,6 +245,83 @@ extension AuthorizationStatus {
     if self == .approved { return true }
     #if DO_CARD_APP_DATA_ACCESS_PROBE
       if #available(iOS 26.4, *), self == .approvedWithDataAccess { return true }
+    #endif
+    return false
+  }
+}
+
+/// Cache contains selected identities only, bound to the exact local application tokens.
+/// This lets background delivery describe the same selection without enumerating installed apps.
+enum AgentSelectedAppMetadata {
+  private struct Entry: Codable {
+    let fingerprint: String
+    let identifiers: [String]
+  }
+
+  private static var file: URL? {
+    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.DO.version3")?
+      .appendingPathComponent("agent-selected-app-identities.json")
+  }
+
+  private static func fingerprint(_ selection: FamilyActivitySelection) throws -> String {
+    let encoder = JSONEncoder()
+    encoder.outputFormatting = .sortedKeys
+    let tokens = try selection.applicationTokens.map {
+      try encoder.encode($0).base64EncodedString()
+    }.sorted()
+    return SHA256.hash(data: try JSONEncoder().encode(tokens)).map { String(format: "%02x", $0) }
+      .joined()
+  }
+
+  static func identifiers(for selection: FamilyActivitySelection) -> [String]? {
+    guard let file, let data = try? Data(contentsOf: file),
+      let entry = try? JSONDecoder().decode(Entry.self, from: data),
+      entry.fingerprint == (try? fingerprint(selection))
+    else { return nil }
+    return entry.identifiers
+  }
+
+  private static func clear(_ file: URL) -> Bool {
+    guard FileManager.default.fileExists(atPath: file.path) else { return false }
+    do {
+      try FileManager.default.removeItem(at: file)
+      return true
+    } catch { return false }
+  }
+
+  @MainActor
+  static func refresh(_ selection: FamilyActivitySelection) async -> Bool {
+    #if DO_CARD_APP_DATA_ACCESS_PROBE
+      guard #available(iOS 26.4, *), let file else { return false }
+      guard AuthorizationCenter.shared.authorizationStatus == .approvedWithDataAccess else {
+        return clear(file)
+      }
+      if identifiers(for: selection) != nil { return false }
+      do {
+        let applications = try await FamilyActivityData.shared.installedApplications
+        let ids = Set(
+          applications.compactMap { application -> String? in
+            guard let token = application.token, selection.applicationTokens.contains(token),
+              let identifier = application.bundleIdentifier,
+              identifier.range(
+                of: "^[a-zA-Z0-9-]+(?:\\.[a-zA-Z0-9-]+)+$", options: .regularExpression) != nil,
+              identifier.utf8.count <= 255
+            else { return nil }
+            return identifier
+          }
+        ).sorted()
+        guard ids.count <= 50 else { return false }
+        // Recheck after the asynchronous API call; permission may have changed.
+        guard AuthorizationCenter.shared.authorizationStatus == .approvedWithDataAccess else {
+          return clear(file)
+        }
+        let entry = Entry(fingerprint: try fingerprint(selection), identifiers: ids)
+        try JSONEncoder().encode(entry).write(
+          to: file, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        return true
+      } catch {
+        // A failed refresh cannot publish a partial or unverified installed-app list.
+      }
     #endif
     return false
   }

@@ -40,6 +40,7 @@ final class AgentFocusRuntime: ObservableObject {
       groupID: groupID, pairingID: pairing.deviceId)
   }
 
+  private var identityRefresh: Task<Void, Never>?
   private var syncing = false
   private var syncWaiters: [CheckedContinuation<Void, Never>] = []
   private var pushToken: String?
@@ -245,7 +246,18 @@ final class AgentFocusRuntime: ObservableObject {
       // Show reconciled local state before the relay's network wait.
       refreshFocusStatus(pairingID: pairing.deviceId)
       defer { refreshFocusStatus(pairingID: pairing.deviceId) }
-      let worker = AgentFocusDelivery(phone: try AgentFocusDevice.phone(), pairing: pairing)
+      let phone = try AgentFocusDevice.phone()
+      if identityRefresh == nil,
+        let selection = try? phone.editableSelection(pairingID: pairing.deviceId).selection
+      {
+        identityRefresh = Task {
+          let changed = await AgentSelectedAppMetadata.refresh(selection)
+          identityRefresh = nil
+          if changed { await sync() }
+        }
+      }
+      let worker = AgentFocusDelivery(
+        phone: phone, pairing: pairing, allowIdentities: AgentFocusDevice.permitsSelectedAppSharing)
       let result = await worker.run(pushToken: pushToken)
       if result == .synced {
         if connectionPending { message = "" }
