@@ -61,11 +61,20 @@ struct DoCardApp: App {
   @StateObject private var requestAuthorizer = RequestAuthorizer()
   @Environment(\.scenePhase) private var scenePhase
   @State private var agentSetupError = false
+  #if DEBUG
+    @State private var showIconProbe = ProcessInfo.processInfo.arguments.contains(
+      "--selected-app-icon-probe")
+  #endif
 
   var body: some Scene {
     WindowGroup {
       AgentFocusView(runtime: agentFocus)
         .environmentObject(requestAuthorizer)
+        #if DEBUG
+          .sheet(isPresented: $showIconProbe) {
+            AgentSelectedAppIconProbe(runtime: agentFocus)
+          }
+        #endif
         .onOpenURL { url in
           if url.scheme == "docard-agent", !agentFocus.openSetup(url) { agentSetupError = true }
         }
