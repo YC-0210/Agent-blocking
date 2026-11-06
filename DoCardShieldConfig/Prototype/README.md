@@ -2,7 +2,10 @@
 
 Question: which minimal English interruption should replace the current translated,
 paragraph-heavy shield? Three directions on one route: A Quiet, B Hard stop,
-C One button. Verdict: pending user comparison.
+C One button. Decision: user chose A’s minimal layout and requested the existing app palette.
+Revised A uses orange `#f25b36`, ink `#2d281f`, and cream `#fff5e6`, matching
+`AgentFocusView.Palette`. Layout and English copy are unchanged. Prototype only;
+no production shield has been modified.
 
 Run from the worktree root:
 
