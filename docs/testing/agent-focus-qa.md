@@ -390,3 +390,25 @@ received no applied receipt, so no expiry job was created. It expired. A diagnos
 build added fixed registration-entered/returned traces for the two native monitor
 calls. Both calls returned during the successful retry above. The intermittent
 start stall is not resolved or causally explained by that retry.
+
+## Bold UI: Wi-Fi start and Emergency Unlock pass (2026-11-06)
+
+Installed integrated build `bafd12b` on the paired iPhone13. For request
+`focus-437bc367-d9bc-44b7-aba5-45540c79bb09` (sequence7), the phone acknowledged
+a two-minute start issued at `1793934294629`, original deadline `1793934414629`.
+The owner followed the background-start, selected-app block, then new-UI Emergency
+Unlock walkthrough and reported the test passed. The subsequent phone snapshot
+at `1793934319327` reports no session and a rotated mode
+`021059DB-28EC-426E-B641-034F909C19D9`, before the original deadline. Maximum45,
+approved hours and timezone are retained. This establishes one online start/unlock
+cycle with the Bold UI, not repeated-start reliability or offline unlock coverage.
+
+Second consecutive background-start cycle: request
+`focus-395dd91e-3dec-4921-ad53-5994b63f76d5` (sequence8) acknowledged applied,
+issued at `1793934362512`, deadline `1793934482512`. The owner reported pass.
+The next phone snapshot at `1793934484395` has no session, unchanged mode and
+requiresRenewalApproval=true, consistent with automatic expiry. This establishes
+a second successful start, but does not independently establish another Emergency
+Unlock: that would normally rotate the mode. The first cycle's early Emergency
+Unlock remains the confirmed new-UI unlock pass. Two starts are smoke coverage,
+not proof the earlier intermittent pending-start defect is resolved.
