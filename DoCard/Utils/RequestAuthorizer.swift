@@ -14,7 +14,7 @@ class RequestAuthorizer: ObservableObject {
 
   init() {
     // Set initial state from current authorization status
-    isAuthorized = AuthorizationCenter.shared.authorizationStatus == .approved
+    isAuthorized = AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess
     SharedData.recordRetentionAuthorization(approved: isAuthorized)
 
     // Observe authorization changes (e.g. user revokes Screen Time access)
@@ -26,14 +26,14 @@ class RequestAuthorizer: ObservableObject {
       do {
         try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
         raLog.debug("Individual authorization successful")
-        self.isAuthorized = true
+        self.isAuthorized = AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess
         SharedData.recordRetentionAuthorization(
-          approved: AuthorizationCenter.shared.authorizationStatus == .approved)
+          approved: AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess)
       } catch {
         raLog.error("Error requesting authorization: \(error)")
         self.isAuthorized = false
         SharedData.recordRetentionAuthorization(
-          approved: AuthorizationCenter.shared.authorizationStatus == .approved)
+          approved: AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess)
       }
     }
   }
@@ -49,10 +49,10 @@ class RequestAuthorizer: ObservableObject {
       .receive(on: DispatchQueue.main)
       .sink { [weak self] status in
         let wasAuthorized = self?.isAuthorized ?? false
-        self?.isAuthorized = (status == .approved)
-        SharedData.recordRetentionAuthorization(approved: status == .approved)
+        self?.isAuthorized = status.grantsScreenTimeAccess
+        SharedData.recordRetentionAuthorization(approved: status.grantsScreenTimeAccess)
 
-        if wasAuthorized && status != .approved {
+        if wasAuthorized && !status.grantsScreenTimeAccess {
           raLog.warning("⚠️ Family Controls authorization was revoked. Clearing restrictions.")
           // Clear any active restrictions since we no longer have permission
           let blocker = AppBlockerUtil()

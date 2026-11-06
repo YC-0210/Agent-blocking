@@ -6,7 +6,7 @@ extension AgentFocusDevice {
   static func approve(
     policy: AgentFocusPolicy, selection: FamilyActivitySelection, pairingID: String
   ) throws {
-    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+    guard AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess else {
       throw Failure.unauthorized
     }
     guard
@@ -26,7 +26,7 @@ extension AgentFocusDevice {
   static func updateSelection(
     _ selection: FamilyActivitySelection, pairingID: String, expectedModeID: String
   ) throws {
-    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+    guard AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess else {
       throw Failure.unauthorized
     }
     guard

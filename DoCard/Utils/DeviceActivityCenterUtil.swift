@@ -11,7 +11,7 @@ class DeviceActivityCenterUtil {
   /// Checks Family Controls authorization before starting monitoring.
   /// Returns false and logs an error if not authorized.
   private static func requireAuthorization(context: String) -> Bool {
-    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+    guard AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess else {
       dacLog.error("\(context): Family Controls authorization is NOT approved (status: \(String(describing: AuthorizationCenter.shared.authorizationStatus))) — startMonitoring will not be called")
       return false
     }

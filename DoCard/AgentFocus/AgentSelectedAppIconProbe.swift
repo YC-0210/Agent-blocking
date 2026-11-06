@@ -49,6 +49,10 @@
               .disabled(selection.applicationTokens.isEmpty)
             Button("Check automatic identification") { Task { await identify() } }
               .disabled(selection.applicationTokens.isEmpty)
+            #if DO_CARD_APP_DATA_ACCESS_PROBE
+              Button("Allow local app identification") { Task { await requestDataAccess() } }
+                .disabled(selection.applicationTokens.isEmpty)
+            #endif
             Text(message).font(.footnote)
           }
         }
@@ -108,5 +112,20 @@
           "Automatic identification is disabled in this build. A newer SDK and an Apple development profile with Family Controls App And Website Usage are required."
       #endif
     }
+
+    #if DO_CARD_APP_DATA_ACCESS_PROBE
+      private func requestDataAccess() async {
+        // The ordinary picker and all live sessions remain untouched. Refuse the
+        // authorization transition unless the persisted phone permits idle editing.
+        do {
+          _ = try runtime.editableSelection()
+          try await AuthorizationCenter.shared.requestAuthorization(for: .individual)
+          await identify()
+        } catch {
+          message =
+            "Identification access was not granted, or the phone is not idle. No identities were uploaded."
+        }
+      }
+    #endif
   }
 #endif

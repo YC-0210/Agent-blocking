@@ -8,7 +8,7 @@ struct AuthorizationCallout: View {
   let onAuthorizationHandler: () -> Void
 
   private var isAuthorized: Bool {
-    authorizationStatus == .approved
+    authorizationStatus.grantsScreenTimeAccess
   }
 
   var body: some View {

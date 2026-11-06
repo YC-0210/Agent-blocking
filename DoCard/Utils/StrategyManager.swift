@@ -303,7 +303,7 @@ class StrategyManager: ObservableObject {
             let profile = BlockedProfiles.getSnapshot(for: session.blockedProfile)
             RetentionCapture.started(
               session.toSnapshot(),
-              eligible: AuthorizationCenter.shared.authorizationStatus == .approved
+              eligible: AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess
                 && SharedData.effectiveSubscriptionTier == .premium
                 && appBlocker.wouldShieldAnything(for: profile),
               diagnosticContext: "foreground scheduled reapply")
@@ -959,7 +959,7 @@ class StrategyManager: ObservableObject {
           do {
             guard let context = session.modelContext else { return }
             try context.save()
-            let eligible = AuthorizationCenter.shared.authorizationStatus == .approved
+            let eligible = AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess
               && SharedData.effectiveSubscriptionTier == .premium
               && self.appBlocker.wouldShieldAnything(for: BlockedProfiles.getSnapshot(for: session.blockedProfile))
             RetentionCapture.started(session.toSnapshot(), eligible: eligible)
@@ -1380,7 +1380,7 @@ class StrategyManager: ObservableObject {
     )
     appBlocker.activateRestrictions(for: profile)
     if let snapshot = SharedData.getActiveScheduleSharedSession() {
-      RetentionCapture.started(snapshot, eligible: AuthorizationCenter.shared.authorizationStatus == .approved
+      RetentionCapture.started(snapshot, eligible: AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess
         && SharedData.effectiveSubscriptionTier == .premium && appBlocker.wouldShieldAnything(for: profile))
     }
   }

@@ -39,7 +39,7 @@ enum DistractionMonitor {
       stop()
       return
     }
-    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+    guard AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess else {
       dmLog.error("DistractionMonitor.start: Family Controls not approved — skipping")
       return
     }

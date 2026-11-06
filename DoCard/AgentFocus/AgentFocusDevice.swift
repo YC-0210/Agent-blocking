@@ -43,6 +43,7 @@ enum AgentFocusDevice {
   // Only an explicit denial invalidates the persisted phone approval.
   private static var authorizationDecision: Bool? {
     let read = { () -> Bool? in
+      if AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess { return true }
       switch AuthorizationCenter.shared.authorizationStatus {
       case .approved: return true
       case .denied: return false
@@ -218,5 +219,16 @@ enum AgentFocusDevice {
     store.shield.webDomains = selection.webDomainTokens.isEmpty ? nil : selection.webDomainTokens
     store.shield.webDomainCategories =
       selection.categoryTokens.isEmpty ? nil : .specific(selection.categoryTokens)
+  }
+}
+
+extension AuthorizationStatus {
+  /// Data access is an additional approval, not revocation of Screen Time access.
+  var grantsScreenTimeAccess: Bool {
+    if self == .approved { return true }
+    #if DO_CARD_APP_DATA_ACCESS_PROBE
+      if #available(iOS 26.4, *), self == .approvedWithDataAccess { return true }
+    #endif
+    return false
   }
 }

@@ -45,12 +45,14 @@ development target and regenerate its profile. Only then consider adding
 The corresponding entitlement is
 `com.apple.developer.family-controls.app-and-website-usage`.
 
-The probe intentionally **does not request or upgrade authorization**. The main
-experiment's ordinary authorization flow is unchanged. Before requesting data
-access, adapt all authorization consumers to recognize the new approved status;
-do not enable the capability casually on the live phone build. The gated code
-requires `.approvedWithDataAccess` and matches only selected application tokens.
-Unselected applications are discarded without logging or persistence.
+When compiled with that flag, the probe has an explicit **Allow local app
+identification** button. It checks that the phone is idle, then opens Apple's
+individual authorization prompt. Nothing requests additional access automatically.
+The shared authorization checks recognize `.approvedWithDataAccess` in this gated
+build so the extra permission is not mistaken for revocation. The normal build
+continues to use ordinary approval. The identification code requires the new
+status and matches only selected application tokens. Unselected applications are
+discarded without logging or persistence.
 
 ## Completion criteria and remaining work
 
@@ -79,3 +81,14 @@ and unresolved policy questions. No claim of end-to-end icon delivery is made.
 - Native image correctness awaits visual inspection on the physical phone.
   No automated test can substitute for this evidence; no new internal testing seam
   was introduced for the diagnostic screen.
+
+The subsequent physical screenshot showed real native Instagram and Brawl Stars
+icons on the left and generic prohibition placeholders on the right. Therefore
+the rendering route **failed on this device**. Returning two images was not a
+successful icon capture. Automatic identification remains a separate experiment.
+
+Authorization preparation: the ordinary signed Debug build succeeds and all 85
+existing core tests pass. These checks do not validate the gated new SDK symbols
+or the data-access permission transition; those require the pending Xcode update
+and a qualifying development profile. The prepared build has not been installed
+over the local rendering experiment.
