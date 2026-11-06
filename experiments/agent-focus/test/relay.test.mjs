@@ -239,3 +239,16 @@ test('snapshot accepts fifty long valid bundle identifiers within its bounded pa
     maximumMinutes: 45, selectionSummary: { applications: 50, categories: 0, websites: 0 }, selectedAppIDs: ids }, phone.deviceToken);
   assert.equal(result.status, 200);
 });
+
+test('paired phone discovery is agent-only, excludes invitations and never exposes credentials', async t => {
+  const { request } = await fixture(t);
+  assert.equal((await request('/v1/devices', undefined, null)).status, 401);
+  const phone = await pair(request);
+  await request('/v1/pairings', {});
+  assert.equal((await request('/v1/devices', undefined, phone.deviceToken)).status, 401);
+  const response = await request('/v1/devices');
+  assert.equal(response.status, 200);
+  assert.deepEqual(response.body.devices, [{ deviceId: phone.deviceId, observedAt: null }]);
+  assert.equal(JSON.stringify(response.body).includes(phone.deviceToken), false);
+  assert.equal(JSON.stringify(response.body).includes('tokenHash'), false);
+});

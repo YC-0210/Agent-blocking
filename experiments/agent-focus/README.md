@@ -80,8 +80,14 @@ Use Codex's MCP configuration UI or your existing configuration workflow; reload
 
 Tools:
 
-- `pair_phone`: one-use invitation, expires in 10 minutes; includes the relay address, pairing code and phone setup link. Treat the code as private.
-- `focus_status`: last phone-observed policy/session, with `observedAt`; it may be stale.
+- `select_focus_session`: the first action for “I need to focus.” Omit `deviceId` to
+  reuse the paired phone across workspaces. Opens a suggested 30-minute draft,
+  capped by the approved maximum; the user can adjust and must press Start focus.
+- `pair_phone`: reuses an existing pairing by default. Creates a private, one-use
+  10-minute invitation only if no phone exists, or with `newPhone: true` after an
+  explicit request to connect an additional phone. A new chat is not a new pairing.
+- `focus_status`: last phone-observed policy/session, with `observedAt`; it may be
+  stale. Omit `deviceId` to resolve the same shared phone and return its ID.
 - `start_focus`: supports sessions from 2 minutes up to the phone-approved maximum.
   Native monitoring uses an earlier window start to satisfy Apple's 15-minute monitoring
   minimum without extending the approved blocking deadline. Use the approved `modeID`, duration, fresh session ID, and stable request ID. Refresh focus_status before each start; Emergency Unlock rotates the handle. Reuse the same request ID on retries.
@@ -95,7 +101,10 @@ Confirmation flags represent what the user said in chat. The MCP server cannot i
 
 1. Install this branch's Debug build on a physical iPhone via Xcode. Agent mode in this experiment does not require a subscription. Screen Time authorization and phone-approved limits are still required.
 2. End existing card/manual sessions and disable schedules first. Prefer a dedicated test phone. This experiment never clears a legacy shield store.
-3. Ask Codex to call `pair_phone`. Open its `docard-agent://setup?...` link on the iPhone. If the client cannot render the custom link, enter it into Safari or use a QR code. The invitation also returns the plain relay URL and code.
+3. For first-time setup, ask Codex to call `pair_phone`. For an additional phone,
+   explicitly request it (`newPhone: true`). Existing pairings are reused. Open
+   a newly issued `docard-agent://setup?...` link on the iPhone. The invitation
+   also returns the plain relay URL and code.
 4. On the phone, approve Screen Time, choose apps/websites with Apple's picker, and approve hours and maximum session length. The agent can help you choose a plan in chat; the native picker is the actual app-selection authority. The prototype defaults to 45 minutes and full-day hours until you approve different values. Hours currently describe one daily, same-day interval.
 5. Tap **Approve and connect** and allow notifications. The normal screen becomes agent instructions plus **Emergency Unlock**.
 6. Ask Codex for `focus_status`, which provides the phone-approved `modeID`. Then use the Linear focus prompt or say: “Help me tackle this Linear issue. Block distractions until we finish.”

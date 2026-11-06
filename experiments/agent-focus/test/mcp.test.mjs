@@ -5,12 +5,12 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createFocusMcp } from '../src/mcp.mjs';
 import { createRelay } from '../src/relay.mjs';
 
-async function fixture(t) {
+async function fixture(t, { defaultDeviceId, paired = true } = {}) {
   const token = 'test-agent-secret-at-least-32-characters';
   const relay = createRelay({ agentToken: token, database: ':memory:' });
   await new Promise(resolve => relay.server.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${relay.server.address().port}`;
-  const server = createFocusMcp({ relayURL: url, agentToken: token });
+  const server = createFocusMcp({ relayURL: url, agentToken: token, defaultDeviceId });
   const client = new Client({ name: 'test-codex', version: '1.0.0' });
   const [a, b] = InMemoryTransport.createLinkedPair();
   await server.connect(b);
@@ -22,8 +22,11 @@ async function fixture(t) {
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
     return response.json();
   }
-  const invite = await request('/v1/pairings', {});
-  const phone = await request('/v1/pairings/redeem', { code: invite.code });
+  let phone = null;
+  if (paired) {
+    const invite = await request('/v1/pairings', {});
+    phone = await request('/v1/pairings/redeem', { code: invite.code });
+  }
   return { client, request, phone, url, token };
 }
 const input = { requestId: 'command-1', modeID: 'work', durationMinutes: 30, sessionID: 'session-1' };
@@ -56,9 +59,9 @@ test('Codex receives the actual phone rejection rather than a success message', 
   assert.equal(response.reason, 'duration_exceeds_approval');
 });
 
-test('Codex can produce a one-time phone setup link without exposing its agent credential', async t => {
+test('an explicit additional-phone request creates a setup link without exposing its agent credential', async t => {
   const { client } = await fixture(t);
-  const invite = value(await client.callTool({ name: 'pair_phone', arguments: {} }));
+  const invite = value(await client.callTool({ name: 'pair_phone', arguments: { newPhone: true } }));
   assert.equal(new URL(invite.setupURL).protocol, 'docard-agent:');
   assert.equal(new URL(invite.setupURL).searchParams.get('code'), invite.code);
   assert.equal(JSON.stringify(invite).includes('test-agent-secret'), false);
@@ -235,4 +238,83 @@ test('confirmation cannot cross a concurrent chat revision or proposal expiry du
   const expired = await blockedConfirmation(expiring, async () => { clock += 600001; });
   assert.match(expired.content[0].text, /selection_expired/);
   assert.equal((await request('/v1/device/commands', undefined, phone.deviceToken)).commands.length, 0);
+});
+
+
+test('a fresh chat can open a suggested picker without knowing its paired phone ID', async t => {
+  const { client, request, phone } = await fixture(t);
+  await request('/v1/device/snapshot', { modeID: 'approved', maximumMinutes: 45,
+    requiresRenewalApproval: false, selectionSummary: { applications: 2, categories: 0, websites: 0 } }, phone.deviceToken);
+  const response = await client.callTool({ name: 'select_focus_session', arguments: {} });
+  assert.notEqual(response.isError, true, response.content?.[0]?.text);
+  assert.equal(response.structuredContent.selection.deviceId, phone.deviceId);
+  assert.equal(response.structuredContent.selection.minutes, 30);
+  assert.equal(response.structuredContent.selection.phase, 'draft');
+  const status = value(await client.callTool({ name: 'focus_status', arguments: {} }));
+  assert.equal(status.deviceId, phone.deviceId);
+  const reused = value(await client.callTool({ name: 'pair_phone', arguments: {} }));
+  assert.equal(reused.status, 'already_paired');
+  assert.equal(reused.setupURL, undefined);
+  assert.deepEqual((await request('/v1/device/commands', undefined, phone.deviceToken)).commands, []);
+});
+
+
+async function anotherChat(t, f, defaultDeviceId) {
+  const server = createFocusMcp({ relayURL: f.url, agentToken: f.token, defaultDeviceId });
+  const client = new Client({ name: 'unrelated-workspace', version: '1.0.0' });
+  const [a,b] = InMemoryTransport.createLinkedPair();
+  await server.connect(b); await client.connect(a);
+  t.after(async () => { await client.close(); await server.close(); });
+  return client;
+}
+
+test('an unrelated workspace reuses the configured phone when several pairings exist', async t => {
+  const f = await fixture(t);
+  const invitation = await f.request('/v1/pairings', {});
+  const second = await f.request('/v1/pairings/redeem', { code: invitation.code });
+  await f.request('/v1/device/snapshot', { modeID: 'approved', maximumMinutes: 20,
+    requiresRenewalApproval: false }, f.phone.deviceToken);
+  await f.request('/v1/device/snapshot', { modeID: 'other-phone', maximumMinutes: 60,
+    requiresRenewalApproval: false }, second.deviceToken);
+  const fresh = await anotherChat(t, f, f.phone.deviceId);
+  const opened = await fresh.callTool({ name: 'select_focus_session', arguments: {} });
+  assert.equal(opened.structuredContent.selection.deviceId, f.phone.deviceId);
+  assert.equal(opened.structuredContent.selection.minutes, 20);
+  const reused = value(await fresh.callTool({ name: 'pair_phone', arguments: {} }));
+  assert.equal(reused.defaultDeviceId, f.phone.deviceId);
+  assert.equal(reused.setupURL, undefined);
+  assert.equal((await f.request('/v1/devices')).devices.length, 2);
+  for (const phone of [f.phone, second]) assert.deepEqual((await f.request('/v1/device/commands', undefined, phone.deviceToken)).commands, []);
+});
+
+test('multiple phones without a configured choice never silently target a phone or repair', async t => {
+  const f = await fixture(t);
+  const invitation = await f.request('/v1/pairings', {});
+  await f.request('/v1/pairings/redeem', { code: invitation.code });
+  const response = await f.client.callTool({ name: 'select_focus_session', arguments: {} });
+  assert.equal(response.isError, true);
+  assert.match(response.content[0].text, /phone_selection_required/);
+  const reused = value(await f.client.callTool({ name: 'pair_phone', arguments: {} }));
+  assert.equal(reused.status, 'already_paired'); assert.equal(reused.setupURL, undefined);
+});
+
+test('a missing configured phone never falls back to controlling another paired phone', async t => {
+  const f = await fixture(t);
+  const fresh = await anotherChat(t, f, '11111111-1111-4111-8111-111111111111');
+  const response = await fresh.callTool({ name: 'select_focus_session', arguments: {} });
+  assert.equal(response.isError, true);
+  assert.deepEqual((await f.request('/v1/device/commands', undefined, f.phone.deviceToken)).commands, []);
+});
+
+
+test('an actually unpaired relay still offers first-phone setup only when pairing is requested', async t => {
+  const f = await fixture(t, { paired: false });
+  const opened = await f.client.callTool({ name: 'select_focus_session', arguments: {} });
+  assert.equal(opened.isError, true);
+  assert.match(opened.content[0].text, /phone_not_paired/);
+  assert.deepEqual((await f.request('/v1/devices')).devices, []);
+  const invitation = value(await f.client.callTool({ name: 'pair_phone', arguments: {} }));
+  assert.equal(new URL(invitation.setupURL).protocol, 'docard-agent:');
+  const paired = await f.request('/v1/pairings/redeem', { code: invitation.code });
+  assert.equal(paired.deviceId, invitation.deviceId);
 });

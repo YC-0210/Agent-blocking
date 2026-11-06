@@ -178,6 +178,11 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
         fail(404, 'not_found');
       }
       if (!isAgent) fail(401, 'unauthorized');
+      if (req.method === 'GET' && path === '/v1/devices') {
+        const devices = db.prepare('SELECT id, observedAt FROM devices ORDER BY id').all()
+          .map(row => ({ deviceId: row.id, observedAt: row.observedAt ?? null }));
+        return send(200, { devices });
+      }
       const statusRoute = path.match(/^\/v1\/devices\/([a-f0-9-]+)$/);
       if (req.method === 'GET' && statusRoute) {
         const target = db.prepare('SELECT * FROM devices WHERE id = ?').get(statusRoute[1]);
