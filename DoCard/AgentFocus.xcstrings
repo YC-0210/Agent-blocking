@@ -1056,6 +1056,86 @@
           }
         }
       }
+    },
+    "Cancel": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "取消"
+          }
+        }
+      }
+    },
+    "Save": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Save"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "儲存"
+          }
+        }
+      }
+    },
+    "App selection saved for future sessions.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App selection saved for future sessions."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已儲存 App 選擇，之後的專注將使用新設定。"
+          }
+        }
+      }
+    },
+    "App selection unavailable": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App selection unavailable"
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "目前無法變更 App 選擇"
+          }
+        }
+      }
+    },
+    "End any active session and reopen the app selector. Check Screen Time access and choose at least one app, category or website.": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End any active session and reopen the app selector. Check Screen Time access and choose at least one app, category or website."
+          }
+        },
+        "zh-Hant": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "請先結束進行中的專注，再重新開啟 App 選擇器。確認已允許螢幕使用時間，並至少選擇一個 App、類別或網站。"
+          }
+        }
+      }
     }
   },
   "version": "1.0"

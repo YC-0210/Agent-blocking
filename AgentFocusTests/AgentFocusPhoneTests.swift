@@ -4,6 +4,52 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusPhoneTests: XCTestCase {
+  func testSelectionEditPersistsAndInvalidatesOldCommandsWithoutChangingLimits() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let emergency = TestEmergencyStorage()
+    let now = 1_793_836_800_000.0
+    var installed: [String] = []
+    func makePhone() -> AgentFocusPhone<String> {
+      AgentFocusPhone(
+        directory: directory, emergency: emergency.storage, now: { now },
+        apply: { _, selection in installed.append(selection) }, release: {})
+    }
+    let phone = makePhone()
+    try phone.approve(
+      policy: .init(
+        modeID: "old", maximumMinutes: 170, startMinute: 0,
+        endMinute: 1440, timeZone: "Asia/Taipei"), selection: "original", pairingID: "phone")
+    XCTAssertEqual(try phone.editableSelection(pairingID: "phone").selection, "original")
+    try phone.updateSelection("revised", pairingID: "phone", expectedModeID: "old")
+    let reopened = makePhone()
+    let status = try XCTUnwrap(reopened.status(pairingID: "phone"))
+    XCTAssertEqual(status.policy.maximumMinutes, 170)
+    XCTAssertEqual(status.policy.startMinute, 0)
+    XCTAssertEqual(status.policy.endMinute, 1440)
+    XCTAssertEqual(status.policy.timeZone, "Asia/Taipei")
+    XCTAssertNotEqual(status.policy.modeID, "old")
+    XCTAssertTrue(installed.isEmpty)
+    XCTAssertThrowsError(
+      try reopened.updateSelection("stale", pairingID: "phone", expectedModeID: "old"))
+    XCTAssertThrowsError(try reopened.editableSelection(pairingID: "other"))
+    let stale = FocusCommand(
+      id: "stale", sequence: 1, action: .start, modeID: "old",
+      durationMinutes: 2, sessionID: "stale", issuedAt: now, expiresAt: now + 60_000)
+    XCTAssertEqual(try reopened.receive(stale, pairingID: "phone").reason, "mode_not_approved")
+    let start = FocusCommand(
+      id: "start", sequence: 2, action: .start, modeID: status.policy.modeID,
+      durationMinutes: 2, sessionID: "active", issuedAt: now, expiresAt: now + 60_000)
+    XCTAssertEqual(try reopened.receive(start, pairingID: "phone").status, "applied")
+    XCTAssertEqual(installed, ["revised"])
+    XCTAssertThrowsError(try reopened.editableSelection(pairingID: "phone"))
+    XCTAssertThrowsError(
+      try reopened.updateSelection(
+        "during-session", pairingID: "phone",
+        expectedModeID: status.policy.modeID))
+    XCTAssertEqual(try reopened.status()?.session?.id, "active")
+  }
+
   func testUndeterminedAuthorizationPreservesApprovalForMaximumDelivery() throws {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }
