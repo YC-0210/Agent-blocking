@@ -17,6 +17,10 @@ struct AgentFocusView: View {
   @State private var relay = ""
   @State private var code = ""
   @State private var approving = false
+  @State private var editSelection = FamilyActivitySelection()
+  @State private var editModeID = ""
+  @State private var showSelectionEditor = false
+  @State private var selectionError = false
   @State private var step = SetupStep.connection
 
   private enum SetupStep: Int, CaseIterable {
@@ -83,6 +87,60 @@ struct AgentFocusView: View {
       .tint(Palette.ink)
       .toolbar(.hidden, for: .navigationBar)
       .familyActivityPicker(isPresented: $showPicker, selection: $selection)
+      .sheet(isPresented: $showSelectionEditor) {
+        NavigationStack {
+          FamilyActivityPicker(selection: $editSelection)
+            .navigationTitle(String(localized: "Choose apps and websites", table: "AgentFocus"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+              ToolbarItem(placement: .cancellationAction) {
+                Button(String(localized: "Cancel", table: "AgentFocus")) {
+                  showSelectionEditor = false
+                }
+              }
+              ToolbarItem(placement: .confirmationAction) {
+                Button(String(localized: "Save", table: "AgentFocus")) {
+                  if runtime.saveSelection(editSelection, expectedModeID: editModeID) {
+                    showSelectionEditor = false
+                  } else {
+                    selectionError = true
+                  }
+                }
+                .disabled(
+                  editSelection.applicationTokens.isEmpty
+                    && editSelection.categoryTokens.isEmpty && editSelection.webDomainTokens.isEmpty
+                )
+                .accessibilityIdentifier("agent-focus-save-apps")
+              }
+            }
+            .alert(
+              String(localized: "App selection unavailable", table: "AgentFocus"),
+              isPresented: $selectionError
+            ) {
+              Button("OK", role: .cancel) {}
+            } message: {
+              Text(
+                String(
+                  localized:
+                    "End any active session and reopen the app selector. Check Screen Time access and choose at least one app, category or website.",
+                  table: "AgentFocus"))
+            }
+        }
+      }
+      .alert(
+        String(localized: "App selection unavailable", table: "AgentFocus"),
+        isPresented: Binding(
+          get: { selectionError && !showSelectionEditor },
+          set: { selectionError = $0 })
+      ) {
+        Button("OK", role: .cancel) {}
+      } message: {
+        Text(
+          String(
+            localized:
+              "End any active session and reopen the app selector. Check Screen Time access and choose at least one app, category or website.",
+            table: "AgentFocus"))
+      }
       .onAppear { loadInvitation() }
       .onChange(of: runtime.setupCode) { _, _ in loadInvitation() }
       .onChange(of: runtime.setupRelay) { _, _ in loadInvitation() }
@@ -203,6 +261,26 @@ struct AgentFocusView: View {
         } else if !uncertain {
           Text(String(localized: "No active session.", table: "AgentFocus")).font(.subheadline)
             .foregroundStyle(Palette.muted)
+        }
+        if !uncertain && !focusing {
+          Button {
+            do {
+              let saved = try runtime.editableSelection()
+              editSelection = saved.selection
+              editModeID = saved.modeID
+              selectionError = false
+              showSelectionEditor = true
+            } catch {
+              selectionError = true
+            }
+          } label: {
+            Label(
+              String(localized: "Choose apps and websites", table: "AgentFocus"),
+              systemImage: "apps.iphone"
+            )
+            .frame(minHeight: 44)
+          }
+          .accessibilityIdentifier("agent-focus-edit-apps")
         }
         Rectangle().fill(Palette.rule).frame(height: 1).accessibilityHidden(true)
         emergencyButton

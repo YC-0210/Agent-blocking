@@ -23,4 +23,19 @@ extension AgentFocusDevice {
     try phone().approve(policy: policy, selection: selection, pairingID: pairingID)
   }
 
+  static func updateSelection(
+    _ selection: FamilyActivitySelection, pairingID: String, expectedModeID: String
+  ) throws {
+    guard AuthorizationCenter.shared.authorizationStatus == .approved else {
+      throw Failure.unauthorized
+    }
+    guard
+      !selection.applicationTokens.isEmpty || !selection.categoryTokens.isEmpty
+        || !selection.webDomainTokens.isEmpty,
+      selection.applicationTokens.count <= Entitlements.premiumAppLimit
+    else { throw Failure.emptySelection }
+    try phone(lockTimeout: 0.2).updateSelection(
+      selection, pairingID: pairingID, expectedModeID: expectedModeID)
+  }
+
 }

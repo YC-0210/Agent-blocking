@@ -40,7 +40,7 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     var pendingCommand: FocusCommand?
     var completedCommands: [CompletedCommand]?
   }
-  enum Failure: Error { case unavailable, pairingMismatch, activeSession, busy }
+  enum Failure: Error { case unavailable, pairingMismatch, activeSession, busy, selectionChanged }
   private let emergency: AgentEmergencyStorage
   private let directory: URL
   private let now: () -> Double
@@ -77,6 +77,36 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
       record.policy = policy
       record.selection = selection
       record.state.lastReceipt = nil
+      try save(record)
+    }
+  }
+
+  func editableSelection(pairingID: String) throws -> (selection: Selection, modeID: String) {
+    try locked {
+      let record = try load()
+      guard record.pairingID == pairingID, let policy = record.policy,
+        let selection = record.selection
+      else { throw Failure.pairingMismatch }
+      guard record.state.session == nil, record.pendingCommand == nil else {
+        throw Failure.activeSession
+      }
+      return (selection, policy.modeID)
+    }
+  }
+
+  func updateSelection(_ selection: Selection, pairingID: String, expectedModeID: String) throws {
+    try locked {
+      var record = try load()
+      guard record.pairingID == pairingID, let policy = record.policy else {
+        throw Failure.pairingMismatch
+      }
+      guard record.state.session == nil, record.pendingCommand == nil else {
+        throw Failure.activeSession
+      }
+      guard policy.modeID == expectedModeID else { throw Failure.selectionChanged }
+      record.selection = selection
+      // Queued starts approved for the previous app selection must not apply to the new one.
+      record.policy = mode(policy, id: UUID().uuidString)
       try save(record)
     }
   }

@@ -124,6 +124,28 @@ final class AgentFocusRuntime: ObservableObject {
     }
   }
 
+  func editableSelection() throws -> (selection: FamilyActivitySelection, modeID: String) {
+    let pairing = try AgentFocusPairingStore.load()
+    return try AgentFocusDevice.phone(lockTimeout: 0.2).editableSelection(
+      pairingID: pairing.deviceId)
+  }
+
+  func saveSelection(_ selection: FamilyActivitySelection, expectedModeID: String) -> Bool {
+    do {
+      let pairing = try AgentFocusPairingStore.load()
+      try AgentFocusDevice.updateSelection(
+        selection, pairingID: pairing.deviceId,
+        expectedModeID: expectedModeID)
+      refreshFocusStatus(pairingID: pairing.deviceId)
+      message = String(localized: "App selection saved for future sessions.", table: "AgentFocus")
+      Task { await sync() }
+      return true
+    } catch {
+      refreshFocusStatus()
+      return false
+    }
+  }
+
   func emergencyUnlock() {
     do {
       try AgentFocusDevice.emergencyUnlock()
