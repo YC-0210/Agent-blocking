@@ -80,7 +80,7 @@ Use Codex's MCP configuration UI or your existing configuration workflow; reload
 
 Tools:
 
-- `select_focus_session`: the first action for “I need to focus” or “I need to lock in.” Omit `deviceId` to
+- `select_focus_session`: the first action for “I need to focus”, “I need to lock in”, or “我要專注”. Omit `deviceId` to
   reuse the paired phone across workspaces. Opens a suggested 30-minute draft,
   capped by the approved maximum; the user can adjust and must press Start focus.
 - `pair_phone`: reuses an existing pairing by default. Creates a private, one-use
