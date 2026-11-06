@@ -11,7 +11,7 @@ export function createFocusMcp({ relayURL, agentToken, now = Date.now, defaultDe
   }
   const server = new McpServer({ name: 'docard-focus', version: '0.1.0' }, {
     maxToolInputElements: 100,
-    instructions: 'When the user says they need to focus, immediately open select_focus_session with a suggested duration. Omit deviceId to reuse the configured paired phone; no conversation history is required. Opening only proposes a session: the user must press Start focus. Do not block the picker on Linear lookup. Do not call pair_phone merely because a new chat lacks a device ID. Only pair if no phone exists or the user explicitly requests another phone. Never start or renew automatically or change the maximum to fit a session.',
+    instructions: 'When the user says "I need to focus" or "I need to lock in", immediately open select_focus_session with a suggested duration. Omit deviceId to reuse the configured paired phone; no conversation history is required. Opening only proposes a session: the user must press Start focus. Do not block the picker on Linear lookup. Do not call pair_phone merely because a new chat lacks a device ID. Only pair if no phone exists or the user explicitly requests another phone. Never start or renew automatically or change the maximum to fit a session.',
   });
   async function request(path, body) {
     const response = await fetch(new URL(path, url), { method: body === undefined ? 'GET' : 'POST',

@@ -1,6 +1,6 @@
 # Direct focus picker across workspaces
 
-The user expects “I need to focus” to immediately open a duration selector with a
+The user expects “I need to focus” or “I need to lock in” to immediately open a duration selector with a
 suggestion, using the existing phone. A screenshot from an unrelated workspace
 showed the agent incorrectly offering a new pairing instead.
 

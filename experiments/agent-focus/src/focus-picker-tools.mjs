@@ -92,7 +92,7 @@ export function registerFocusPickers({ server, request, now = Date.now, resolveD
 
   registerAppTool(server, 'select_focus_session', {
     title: 'Choose focus duration',
-    description: 'When the user says they need to focus, call this immediately to show the time selector. Omit deviceId to use their existing paired phone across workspaces; do not ask them to pair again or wait for Linear lookup. Defaults to a suggested 30 minutes capped by their approved maximum. The user can drag or revise before explicitly starting. Never changes the saved maximum; opening or editing sends no phone command.',
+    description: 'When the user says "I need to focus" or "I need to lock in", call this immediately to show the time selector. Omit deviceId to use their existing paired phone across workspaces; do not ask them to pair again or wait for Linear lookup. Defaults to a suggested 30 minutes capped by their approved maximum. The user can drag or revise before explicitly starting. Never changes the saved maximum; opening or editing sends no phone command.',
     inputSchema: { deviceId: key.optional(), suggestedMinutes: duration.optional(), issue: z.string().max(200).optional() },
     _meta: ui,
   }, args => open('session', args));
