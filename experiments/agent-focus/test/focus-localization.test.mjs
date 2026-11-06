@@ -104,7 +104,6 @@ test('host locale changes retranslate the current picker without resetting draft
 test('app chips show the confirmed name and icon beside the slider without group controls or commands', async () => {
   const ui = await picker('zh-TW');
   ui.show({ appGroups: [{ id: 'work', name: 'Instagram', iconKey: 'instagram' }], appGroupID: 'work' });
-  assert.equal(ui.element('review-apps').textContent, '在 iPhone 檢視或變更');
   assert.equal(ui.element('refresh-groups').textContent, '重新整理 App');
   const chip = ui.element('app-options').children[0];
   assert.equal(chip['aria-pressed'], 'true');

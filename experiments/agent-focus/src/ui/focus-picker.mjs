@@ -18,7 +18,7 @@ function localize() {
   el('app-options').setAttribute('aria-label', t('Choose an app'));
   for (const [id, copy] of Object.entries({
     'app-empty': 'Choose an app on iPhone',
-    'review-apps': 'Review / change on iPhone', 'refresh-groups': 'Refresh apps',
+    'refresh-groups': 'Refresh apps',
     'review-summary': 'Open from another device',
     'review-help': 'Open this address on your paired iPhone. If your chat app cannot open it, open DO Card and tap Manage apps.',
   })) el(id).textContent = t(copy);
@@ -96,7 +96,6 @@ function render() {
     }
     el('app-empty').hidden = Boolean(chosenApp);
     el('refresh-groups').disabled = blocked;
-    el('review-apps').disabled = working || Boolean(saving);
     el('review-url').textContent = selection.reviewURL ?? '';
   }
   document.querySelector('main').setAttribute('aria-busy', String(working));
@@ -183,15 +182,6 @@ el('refresh-groups').onclick = async () => {
     await call('refresh_focus_app_groups', { selectionId: selection.id });
   } catch (error) { failure(error); }
   finally { working = false; render(); }
-};
-el('review-apps').onclick = async () => {
-  try {
-    if (!selection?.reviewURL) return;
-    const result = await app.openLink({ url: selection.reviewURL });
-    if (result.isError) throw new Error('link_denied');
-  } catch {
-    failure({ copy: 'This chat host could not open the iPhone link. Open DO Card on your paired iPhone and tap Manage apps.' });
-  }
 };
 el('confirm').onclick = async () => {
   if (working || !selection || !valid() || el('confirm').disabled) return;
