@@ -55,7 +55,7 @@ that the supplied development profile contains both Family Controls capabilities
 It does not change the account or provisioning. It does not check expiration,
 device membership or every signing constraint; Xcode signing must still succeed.
 
-The current Xcode 26.2 SDK fails this check. Install/select a newer Xcode with
+The original Xcode 26.2 SDK failed this check. Use a newer Xcode with
 these APIs, enable **Family Controls App And Website Usage** for a qualifying
 development target and regenerate its profile. Only then consider adding
 `DO_CARD_APP_DATA_ACCESS_PROBE` to that Debug target's Swift compilation conditions.
@@ -113,8 +113,16 @@ over the local rendering experiment.
 After the Xcode update: Xcode 27.2 (27B52) successfully type-checks the API and
 builds the full Debug app with `DO_CARD_APP_DATA_ACCESS_PROBE` and signing
 disabled. All 85 existing core tests also pass under the updated toolchain.
-Signing currently fails because Xcode reports **No Accounts**, and the cached
-profile lacks the usage capability. No identification build has been installed.
-Sign in to Xcode Settings → Accounts, load the developer team, and rerun the
-signed build script. Verify its embedded profile before installation. Unlock the
-paired iPhone to allow the updated development services to initialize.
+The first signed attempt failed because Xcode reported **No Accounts** and the
+cached profile lacked the usage capability.
+
+After account sign-in and phone unlock, the signed Debug identification build
+succeeded. SDK and embedded-profile preflight both passed. Independent checks
+confirmed the signed app and embedded profile include ordinary Family Controls,
+App And Website Usage and development debugging entitlements. The profile is
+unexpired and includes the target iPhone. Installed over the existing experiment
+and successfully launched with `--selected-app-icon-probe`.
+
+Device data-access authorization and selected-token identity matches still await
+the user tapping **Allow local app identification** and approving the Apple prompt.
+This installation does not establish successful identity matching or chat icons.
