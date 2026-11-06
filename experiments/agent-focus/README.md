@@ -167,7 +167,9 @@ DO_CARD_DEMO_LANGUAGE=zh-Hant npm run build:ui
 
 Use `en` instead for an English demo. To restore automatic selection, run
 `npm run build:ui` with the variable unset. The override survives host locale
-updates. Open a fresh picker; existing open pickers retain their loaded code.
+updates. Restart the MCP client after rebuilding: each build has a content-versioned
+resource URI so the host cannot reuse an older language bundle. Then open a fresh
+picker; existing open pickers retain their loaded code.
 
 Build the signed phone experiment with the matching shield-extension language:
 

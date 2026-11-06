@@ -31,6 +31,7 @@ const server = createFocusMcp({ relayURL, agentToken: token });
 const client = new Client({ name: 'DO development host', version: '0.2.0' });
 const [a, b] = InMemoryTransport.createLinkedPair();
 await server.connect(b); await client.connect(a);
+const pickerResource = (await client.listTools()).tools.find(tool => tool.name === 'select_focus_session')._meta.ui.resourceUri;
 const hostJs = (await build({ entryPoints: [new URL('./picker-host-ui.mjs', import.meta.url).pathname],
   bundle: true, write: false, platform: 'browser', format: 'iife', minify: true })).outputFiles[0].text;
 const page = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DO · MCP Apps integration check</title>
@@ -43,7 +44,7 @@ const host = createServer(async (req, res) => {
   try {
     if (req.method === 'GET' && url.pathname === '/') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(page); return; }
     if (req.method === 'GET' && url.pathname === '/view') {
-      const resource = await client.readResource({ uri: 'ui://docard/focus-timeline.html' });
+      const resource = await client.readResource({ uri: pickerResource });
       res.writeHead(200, { 'content-type': 'text/html' }); res.end(resource.contents[0].text); return;
     }
     if (req.method === 'POST' && url.pathname === '/tool') {

@@ -126,6 +126,7 @@ test('maximum picker returns the shared UI without queuing a session, then confi
   const sessionTool = tools.find(tool => tool.name === 'select_focus_session');
   assert.ok(maximumTool, 'The agent can open a separate maximum picker');
   assert.equal(maximumTool._meta.ui.resourceUri, sessionTool._meta.ui.resourceUri);
+  assert.notEqual(sessionTool._meta.ui.resourceUri, 'ui://docard/focus-timeline.html', 'A rebuilt language bundle needs a versioned cache key');
   const opened = await client.callTool({ name: 'select_focus_maximum', arguments: {
     deviceId: phone.deviceId, suggestedMinutes: 60,
   } });

@@ -19,7 +19,7 @@ a different worktree; these changes must merge without replacing that work.
   It opens its own picker. Explicit Save confirmation changes only the saved maximum
   for future sessions, including when an existing session is active. It never starts,
   stops, extends or shortens the current session, changes apps, or changes allowed hours.
-- Both tools render the SAME `ui://docard/focus-timeline.html` resource, one slider per
+- Both tools render the SAME `ui://docard/focus-timeline-<build-hash>.html` resource, one slider per
   purpose, with the same layout and interactions. There is no combined session/maximum
   form. Numeric entry and presets complement dragging.
 - `revise_focus_selection` lets the agent apply a user's chat revision to an open

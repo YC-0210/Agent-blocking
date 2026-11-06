@@ -236,7 +236,9 @@ test('restarting MCP invalidates old drafts while queued command receipts remain
   assert.equal(JSON.parse(status.content[0].text).command.id, c.id); assert.deepEqual(await f.queue(), [c]);
 });
 test('shared UI resource is bundled without fixture credentials or external script sources', async t => {
-  const f = await fixture(t); const r = await f.client.readResource({ uri: 'ui://docard/focus-timeline.html' });
+  const f = await fixture(t);
+  const uri = (await f.client.listTools()).tools.find(tool => tool.name === 'select_focus_session')._meta.ui.resourceUri;
+  const r = await f.client.readResource({ uri });
   const html = r.contents[0].text;
   assert.ok(html.length > 1000); assert.doesNotMatch(html, /__FOCUS_APP_JS__|<script\b[^>]*\bsrc\s*=/i);
   for (const secret of [f.token, f.phone.deviceToken]) assert.equal(html.includes(secret), false);

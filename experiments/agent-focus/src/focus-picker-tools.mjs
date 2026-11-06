@@ -1,16 +1,20 @@
 import { selectedApps } from './app-catalog.mjs';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import { registerAppTool, registerAppResource, RESOURCE_MIME_TYPE } from '@modelcontextprotocol/ext-apps/server';
 
-const RESOURCE = 'ui://docard/focus-timeline.html';
 const key = z.string().uuid();
 const maximum = z.number().int().min(15).max(1440);
 const duration = z.number().int().min(2).max(1440);
 const groupID = z.string().regex(/^[a-zA-Z0-9-]{1,80}$/);
 
 export function registerFocusPickers({ server, request, now = Date.now, resolveDeviceId }) {
+  // Hosts may cache a UI by URI across tool calls. Pin its bytes and address
+  // together so a language/code rebuild cannot reuse an older rendered bundle.
+  const page = readFileSync(new URL('../dist/focus-picker.html', import.meta.url), 'utf8');
+  const version = createHash('sha256').update(page).digest('hex').slice(0, 16);
+  const RESOURCE = `ui://docard/focus-timeline-${version}.html`;
   const selections = new Map();
   const ui = { ui: { resourceUri: RESOURCE } };
   const appOnly = { ui: { resourceUri: RESOURCE, visibility: ['app'] } };
@@ -87,7 +91,7 @@ export function registerFocusPickers({ server, request, now = Date.now, resolveD
     description: 'One shared draggable timeline for choosing a session OR a separate maximum change.',
     _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] }, prefersBorder: true } },
   }, async () => ({ contents: [{ uri: RESOURCE, mimeType: RESOURCE_MIME_TYPE,
-    text: readFileSync(new URL('../dist/focus-picker.html', import.meta.url), 'utf8'),
+    text: page,
     _meta: { ui: { csp: { connectDomains: [], resourceDomains: [] }, prefersBorder: true } } }] }));
 
   registerAppTool(server, 'select_focus_session', {
