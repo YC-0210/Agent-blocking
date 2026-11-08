@@ -1,0 +1,53 @@
+name: Agent Blocking CI
+
+on:
+  push:
+    branches: [main, codex/agent-blocking-release]
+  pull_request:
+    paths:
+      - .github/workflows/agent-blocking-ci.yml
+      - AgentBlocking/**
+      - AgentFocusTests/**
+      - DoCard/AgentFocus/**
+      - DoCard/AgentFocus.xcstrings
+      - DoCardNotificationService/**
+      - DoCardShieldConfig/**
+      - experiments/agent-focus/**
+      - Package.swift
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: experiments/agent-focus
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22.18.0'
+      - run: npm ci
+      - run: npm test
+      - run: docker build --tag agent-blocking-relay:ci .
+
+  ios:
+    runs-on: xcode-27
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+        with:
+          persist-credentials: false
+      - run: xcodebuild -version
+      - run: swift test
+      - name: Build standalone Release for iPhone
+        run: >-
+          xcodebuild -project AgentBlocking/AgentBlocking.xcodeproj
+          -scheme AgentBlocking -configuration Release -destination 'generic/platform=iOS'
+          CODE_SIGNING_ALLOWED=NO build

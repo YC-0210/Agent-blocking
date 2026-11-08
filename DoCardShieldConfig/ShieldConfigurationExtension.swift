@@ -27,9 +27,14 @@ final class ShieldConfigurationExtension: ShieldConfigurationDataSource {
   private func quietConfiguration() -> ShieldConfiguration {
     let ink = UIColor(red: 45 / 255, green: 40 / 255, blue: 31 / 255, alpha: 1)
     let paper = UIColor(red: 1, green: 245 / 255, blue: 230 / 255, alpha: 1)
+    #if AGENT_BLOCKING
+      let background = UIColor(red: 174 / 255, green: 208 / 255, blue: 1, alpha: 1)
+    #else
+      let background = UIColor(red: 242 / 255, green: 91 / 255, blue: 54 / 255, alpha: 1)
+    #endif
     return ShieldConfiguration(
       backgroundBlurStyle: nil,
-      backgroundColor: UIColor(red: 242 / 255, green: 91 / 255, blue: 54 / 255, alpha: 1),
+      backgroundColor: background,
       icon: nil,
       title: .init(text: copy("Go back to work."), color: ink),
       subtitle: nil,

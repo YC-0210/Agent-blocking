@@ -20,11 +20,26 @@ try {
   }
   const database = process.env.DO_CARD_DATABASE ?? new URL('../.local/agent-focus.sqlite', import.meta.url).pathname;
   mkdirSync(dirname(database), { recursive: true, mode: 0o700 });
-  const relay = createRelay({ agentToken, database, expiryIntervalMs: 1000, push: createApnsPush({ privateKey,
+  const topic = process.env.APNS_TOPIC ?? 'online.do.card.app';
+  const appName = topic === 'online.do.card.agentblocking' ? 'Agent Blocking' : 'DO Card';
+  const sendPush = createApnsPush({ privateKey,
     teamId: required('APNS_TEAM_ID'), keyId: required('APNS_KEY_ID'),
-    topic: process.env.APNS_TOPIC ?? 'online.do.card.app',
+    topic, appName,
     sandbox: apnsEnvironment !== 'production',
-  }) });
+  });
+  const relay = createRelay({ agentToken, database, phoneAppBundleID: topic, apnsEnvironment, expiryIntervalMs: 1000,
+    onDeliveryIssue: (event, count) => console.warn(JSON.stringify({ event, count })),
+    push: async message => {
+      try { return await sendPush(message); }
+      catch (error) {
+        const code = error?.code ?? error?.message;
+        const safeCode = typeof code === 'string' && /^[A-Za-z0-9_]{1,96}$/.test(code)
+          ? code : 'unknown_error';
+        console.warn(`APNs delivery failed: ${safeCode}`);
+        throw error;
+      }
+    },
+  });
   chmodSync(database, 0o600);
   const port = Number(process.env.PORT ?? 8787);
   const host = process.env.HOST ?? '127.0.0.1';

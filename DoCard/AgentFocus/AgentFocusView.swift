@@ -17,6 +17,9 @@ struct AgentFocusView: View {
   @State private var relay = ""
   @State private var code = ""
   @State private var approving = false
+  #if AGENT_BLOCKING
+    @State private var confirmDisconnect = false
+  #endif
   @State private var step = SetupStep.connection
 
   private enum SetupStep: Int, CaseIterable {
@@ -47,7 +50,11 @@ struct AgentFocusView: View {
   }
 
   private enum Palette {
-    static let orange = Color(red: 242 / 255, green: 91 / 255, blue: 54 / 255)
+    #if AGENT_BLOCKING
+      static let background = Color(red: 174 / 255, green: 208 / 255, blue: 255 / 255)
+    #else
+      static let background = Color(red: 242 / 255, green: 91 / 255, blue: 54 / 255)
+    #endif
     static let ink = Color(red: 45 / 255, green: 40 / 255, blue: 31 / 255)
     static let paper = Color(red: 1, green: 245 / 255, blue: 230 / 255)
     static let muted = Color(red: 107 / 255, green: 96 / 255, blue: 82 / 255)
@@ -77,7 +84,7 @@ struct AgentFocusView: View {
               .offset(y: geometry.safeAreaInsets.bottom)
           }
         }
-        .background(Palette.orange.ignoresSafeArea())
+        .background(Palette.background.ignoresSafeArea())
       }
       .foregroundStyle(Palette.ink)
       .tint(Palette.ink)
@@ -90,6 +97,20 @@ struct AgentFocusView: View {
     .sheet(item: $runtime.appReview) { review in
       AgentAppPickerView(runtime: runtime, initialGroupID: review.groupID)
     }
+    #if AGENT_BLOCKING
+      .confirmationDialog(
+        String(localized: "Disconnect agent?", table: "AgentFocus"),
+        isPresented: $confirmDisconnect, titleVisibility: .visible
+      ) {
+        Button(role: .destructive) {
+          Task { await runtime.disconnect() }
+        } label: {
+          Text(String(localized: "Disconnect agent", table: "AgentFocus"))
+        }
+      } message: {
+        Text(String(localized: "This ends the current session and removes this pairing.", table: "AgentFocus"))
+      }
+    #endif
     .preferredColorScheme(.light)
   }
 
@@ -109,11 +130,20 @@ struct AgentFocusView: View {
 
   private var wordmark: some View {
     HStack(alignment: .firstTextBaseline, spacing: 7) {
-      Text("do /").font(.system(.title2, design: .rounded, weight: .heavy))
-      Text("focus").font(.subheadline)
+      #if AGENT_BLOCKING
+        Image(systemName: "shield.lefthalf.filled").accessibilityHidden(true)
+        Text(AgentFocusDevice.appName).font(.system(.title2, design: .rounded, weight: .heavy))
+      #else
+        Text("do /").font(.system(.title2, design: .rounded, weight: .heavy))
+        Text("focus").font(.subheadline)
+      #endif
     }
     .accessibilityElement(children: .ignore)
-    .accessibilityLabel("DO Focus")
+    #if AGENT_BLOCKING
+      .accessibilityLabel(AgentFocusDevice.appName)
+    #else
+      .accessibilityLabel("DO Focus")
+    #endif
     .accessibilityIdentifier("agent-focus-brand")
   }
 
@@ -223,6 +253,17 @@ struct AgentFocusView: View {
         emergencyButton
         Text(String(localized: "Ends this session. Your agent stays paired.", table: "AgentFocus"))
           .font(.footnote).foregroundStyle(Palette.muted)
+        #if AGENT_BLOCKING
+          Button {
+            confirmDisconnect = true
+          } label: {
+            Label(
+              String(localized: "Disconnect agent", table: "AgentFocus"),
+              systemImage: "link.badge.minus")
+              .frame(minHeight: 44)
+          }
+          .disabled(runtime.disconnecting)
+        #endif
         runtimeMessage
       }
       .padding(26).padding(.bottom, 12)
@@ -595,7 +636,8 @@ private struct AgentAppPickerView: View {
           .disabled(
             saving || !loaded
               || (!active
-                && (!nonempty || selection.applicationTokens.count > Entitlements.premiumAppLimit))
+                && (!nonempty
+                  || selection.applicationTokens.count > AgentFocusDevice.applicationLimit))
           )
           .accessibilityIdentifier("agent-focus-picker-done")
         }

@@ -373,6 +373,17 @@ final class AgentFocusPhone<Selection: Codable>: @unchecked Sendable {
     }
   }
 
+  func disconnect(pairingID: String) throws {
+    try locked {
+      let record = try load()
+      guard record.pairingID == nil || record.pairingID == pairingID else {
+        throw Failure.pairingMismatch
+      }
+      try save(Record())
+      release()
+    }
+  }
+
   func pendingReceipts(pairingID: String) throws -> [FocusReceipt] {
     try locked {
       let record = try load()

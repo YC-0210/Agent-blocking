@@ -1,3 +1,21 @@
+# 2026-11-08 — Agent Blocking release preparation
+
+The standalone app checks the relay topic and APNs environment before redeeming
+an invitation. The separate production relay volume keeps TestFlight credentials
+and phone registrations isolated from the Sandbox service. Operator-issued agent
+credentials scope discovery and commands to their own phones. Disconnect revokes
+the native approval under the command lock before asking the relay to delete its
+pairing. DO Card's app, App Group and relay remain separate from this rollout.
+
+# 2026-11-08 — Standalone Agent Blocking app
+
+Added a separate iPhone app and notification, expiry monitor, and shield extensions.
+The app compiles the shared agent focus engine with its own bundle identity,
+App Group, Keychain scope, and shield store. It keeps the three-step setup and
+free Emergency Unlock. The new MCP mode emits Agent Blocking links. A separate
+relay can use the new APNs topic and database. The iPhone verifies the relay topic
+before redeeming an invitation. See AgentBlocking/README.md for setup and signing.
+
 # 2026-11-06 — Ten-case Railway physical regression suite
 
 Passed 10/10 actual cloud command/phone/X scenarios with the local relay/tunnel

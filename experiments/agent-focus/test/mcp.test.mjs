@@ -5,12 +5,12 @@ import { InMemoryTransport } from '@modelcontextprotocol/sdk/inMemory.js';
 import { createFocusMcp } from '../src/mcp.mjs';
 import { createRelay } from '../src/relay.mjs';
 
-async function fixture(t, { defaultDeviceId, paired = true } = {}) {
+async function fixture(t, { defaultDeviceId, paired = true, phoneApp } = {}) {
   const token = 'test-agent-secret-at-least-32-characters';
   const relay = createRelay({ agentToken: token, database: ':memory:' });
   await new Promise(resolve => relay.server.listen(0, '127.0.0.1', resolve));
   const url = `http://127.0.0.1:${relay.server.address().port}`;
-  const server = createFocusMcp({ relayURL: url, agentToken: token, defaultDeviceId });
+  const server = createFocusMcp({ relayURL: url, agentToken: token, defaultDeviceId, phoneApp });
   const client = new Client({ name: 'test-codex', version: '1.0.0' });
   const [a, b] = InMemoryTransport.createLinkedPair();
   await server.connect(b);
@@ -65,6 +65,25 @@ test('an explicit additional-phone request creates a setup link without exposing
   assert.equal(new URL(invite.setupURL).protocol, 'docard-agent:');
   assert.equal(new URL(invite.setupURL).searchParams.get('code'), invite.code);
   assert.equal(JSON.stringify(invite).includes('test-agent-secret'), false);
+});
+
+test('standalone MCP links open Agent Blocking for pairing and app review', async t => {
+  const { client, request, phone } = await fixture(t, { phoneApp: 'agent-blocking' });
+  const invite = value(await client.callTool({ name: 'pair_phone', arguments: { newPhone: true } }));
+  assert.equal(new URL(invite.setupURL).protocol, 'agent-blocking:');
+  assert.equal(new URL(invite.setupURL).host, 'setup');
+
+  await request('/v1/device/snapshot', { modeID: 'work', requiresRenewalApproval: false,
+    maximumMinutes: 45 }, phone.deviceToken);
+  const review = value(await client.callTool({ name: 'review_focus_apps',
+    arguments: { deviceId: phone.deviceId } }));
+  assert.equal(new URL(review.reviewURL).protocol, 'agent-blocking:');
+  assert.equal(new URL(review.reviewURL).searchParams.get('deviceId'), phone.deviceId);
+
+  const picker = value(await client.callTool({ name: 'select_focus_session',
+    arguments: { deviceId: phone.deviceId } }));
+  assert.equal(new URL(picker.selection.reviewURL).protocol, 'agent-blocking:');
+  assert.equal(picker.selection.phoneAppName, 'Agent Blocking');
 });
 
 test('Codex sees phone-approved limits with an observation timestamp', async t => {

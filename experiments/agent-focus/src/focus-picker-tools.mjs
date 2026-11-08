@@ -9,7 +9,7 @@ const maximum = z.number().int().min(15).max(1440);
 const duration = z.number().int().min(2).max(1440);
 const groupID = z.string().regex(/^[a-zA-Z0-9-]{1,80}$/);
 
-export function registerFocusPickers({ server, request, now = Date.now, resolveDeviceId }) {
+export function registerFocusPickers({ server, request, now = Date.now, resolveDeviceId, phoneScheme, appName }) {
   // Hosts may cache a UI by URI across tool calls. Pin its bytes and address
   // together so a language/code rebuild cannot reuse an older rendered bundle.
   const page = readFileSync(new URL('../dist/focus-picker.html', import.meta.url), 'utf8');
@@ -20,7 +20,7 @@ export function registerFocusPickers({ server, request, now = Date.now, resolveD
   const appOnly = { ui: { resourceUri: RESOURCE, visibility: ['app'] } };
   const output = (selection, extra = {}) => {
     if (selection.kind === 'session') {
-      const url = new URL('docard-agent://apps');
+      const url = new URL(phoneScheme + '://apps');
       url.searchParams.set('deviceId', selection.deviceId);
       if (selection.appGroupID) url.searchParams.set('groupId', selection.appGroupID);
       if (selection.submission) url.searchParams.set('sessionId', `session-${selection.id}`);
@@ -41,7 +41,7 @@ export function registerFocusPickers({ server, request, now = Date.now, resolveD
     const snapshot = observed.snapshot;
     if (!snapshot || !Number.isInteger(snapshot.maximumMinutes) || snapshot.maximumMinutes < 15 ||
       snapshot.maximumMinutes > 1440 || !snapshot.modeID) {
-      throw new Error('phone_setup_required: open DO Card to sync its approved settings');
+      throw new Error(`phone_setup_required: open ${appName} to sync its approved settings`);
     }
     return observed;
   }
@@ -71,9 +71,10 @@ export function registerFocusPickers({ server, request, now = Date.now, resolveD
     if (selections.size >= 100) throw new Error('too_many_open_pickers');
     const observed = await phone(deviceId);
     const snapshot = observed.snapshot;
-    if (kind === 'session' && snapshot.sessionID) throw new Error('session_active: open DO Card to sync if this is outdated');
+    if (kind === 'session' && snapshot.sessionID) throw new Error(`session_active: open ${appName} to sync if this is outdated`);
     const id = randomUUID();
     const selection = { id, revision: 1, kind, deviceId, modeID: snapshot.modeID,
+      ...(appName === 'DO Card' ? {} : { phoneAppName: appName }),
       currentMaximumMinutes: snapshot.maximumMinutes,
       minutes: suggestedMinutes ?? (kind === 'maximum' ? snapshot.maximumMinutes : Math.min(30, snapshot.maximumMinutes)),
       minMinutes: kind === 'maximum' ? 15 : 2,

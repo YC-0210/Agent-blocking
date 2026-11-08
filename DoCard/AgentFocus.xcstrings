@@ -1,6 +1,37 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "Agent disconnected.": {
+      "localizations": { "zh-Hant": { "stringUnit": { "state": "translated", "value": "已中斷與 AI 助理的連結。" } } }
+    },
+    "Disconnect agent": {
+      "localizations": { "zh-Hant": { "stringUnit": { "state": "translated", "value": "中斷助理連結" } } }
+    },
+    "Disconnect agent?": {
+      "localizations": { "zh-Hant": { "stringUnit": { "state": "translated", "value": "要中斷助理連結嗎？" } } }
+    },
+    "Disconnect could not finish. Check your connection and try again.": {
+      "localizations": { "zh-Hant": { "stringUnit": { "state": "translated", "value": "無法完成解除配對。請確認網路連線後再試一次。" } } }
+    },
+    "Enable notification alerts for remote commands": {
+      "localizations": { "zh-Hant": { "stringUnit": { "state": "translated", "value": "開啟通知提示以接收遠端指令" } } }
+    },
+    "Privacy Policy": {
+      "localizations": { "zh-Hant": { "stringUnit": { "state": "translated", "value": "隱私權政策" } } }
+    },
+    "This ends the current session and removes this pairing.": {
+      "localizations": { "zh-Hant": { "stringUnit": { "state": "translated", "value": "這會結束目前的專注時段並解除配對。" } } }
+    },
+    "Use a relay configured for this Agent Blocking build." : {
+      "localizations" : {
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請使用與此 Agent Blocking 版本相符的伺服器。"
+          }
+        }
+      }
+    },
     "MEET YOUR\nAGENT.": {
       "localizations": {
         "en": {

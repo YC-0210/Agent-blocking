@@ -7,7 +7,8 @@ const el = id => document.getElementById(id);
 const demoLanguage = typeof __DO_CARD_DEMO_LANGUAGE__ === 'string' ? __DO_CARD_DEMO_LANGUAGE__ : '';
 let locale = resolveLocale(undefined, navigator.languages ?? [navigator.language], demoLanguage);
 let lastFailure;
-const t = (message, values) => translate(locale, message, values);
+const t = (message, values) => translate(locale, message, values)
+  .replaceAll('DO Card', selection?.phoneAppName ?? 'DO Card');
 function localize() {
   document.documentElement.lang = locale;
   document.title = t('DO · Focus timeline');

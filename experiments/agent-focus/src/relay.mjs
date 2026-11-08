@@ -39,7 +39,8 @@ async function readBody(req) {
   try { return JSON.parse(body || '{}'); } catch { fail(400, 'invalid_json'); }
 }
 export function createRelay({ agentToken, database = 'agent-focus.sqlite', now = Date.now,
-  push = async () => ({ status: 'unconfigured' }), expiryIntervalMs = null }) {
+  push = async () => ({ status: 'unconfigured' }), expiryIntervalMs = null, phoneAppBundleID,
+  apnsEnvironment, onDeliveryIssue = () => {} }) {
   if (!agentToken || agentToken.length < 32) throw new Error('Agent token must contain at least 32 characters');
   if (expiryIntervalMs !== null && (!Number.isInteger(expiryIntervalMs) || expiryIntervalMs < 1)) {
     throw new Error('Expiry worker interval must be a positive integer or null');
@@ -49,12 +50,20 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
     CREATE TABLE IF NOT EXISTS devices (id TEXT PRIMARY KEY, tokenHash TEXT, pushToken TEXT,
       snapshot TEXT, observedAt REAL, sequence INTEGER NOT NULL DEFAULT 0);
     CREATE TABLE IF NOT EXISTS pairings (codeHash TEXT PRIMARY KEY, deviceId TEXT, expiresAt REAL);
+    CREATE TABLE IF NOT EXISTS agents (id TEXT PRIMARY KEY, tokenHash TEXT NOT NULL UNIQUE);
     CREATE TABLE IF NOT EXISTS commands (deviceId TEXT, id TEXT, command TEXT, request TEXT,
       status TEXT NOT NULL, reason TEXT, alertSent INTEGER NOT NULL DEFAULT 0, PRIMARY KEY(deviceId, id));
     CREATE TABLE IF NOT EXISTS expiryJobs (deviceId TEXT, commandId TEXT, sessionId TEXT,
       dueAt REAL NOT NULL, status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
       nextAttemptAt REAL NOT NULL, PRIMARY KEY(deviceId, commandId));
     CREATE INDEX IF NOT EXISTS expiryJobs_due ON expiryJobs(status, nextAttemptAt);`);
+  for (const table of ['devices', 'pairings']) {
+    if (!db.prepare(`PRAGMA table_info(${table})`).all().some(column => column.name === 'agentId')) {
+      db.exec(`ALTER TABLE ${table} ADD COLUMN agentId TEXT`);
+    }
+  }
+  const expireCommands = db.prepare("UPDATE commands SET status = 'expired', reason = 'delivery_expired' WHERE status = 'pending' AND json_extract(command, '$.expiresAt') <= ?");
+  let nextCleanupAt = 0;
   let closed = false;
   let expiryRunning = false;
   async function deliverExpiries() {
@@ -62,7 +71,17 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
     expiryRunning = true;
     try {
       const tick = now();
-      db.prepare("UPDATE expiryJobs SET status = 'expired' WHERE status = 'pending' AND dueAt + 86400000 <= ?").run(tick);
+      const expired = db.prepare("UPDATE expiryJobs SET status = 'expired' WHERE status = 'pending' AND dueAt + 86400000 <= ?").run(tick);
+      if (expired.changes) onDeliveryIssue('expiry_delivery_exhausted', expired.changes);
+      if (tick >= nextCleanupAt) {
+        nextCleanupAt = tick + 60000;
+        const overdue = expireCommands.run(tick);
+        if (overdue.changes) onDeliveryIssue('command_receipt_missing', overdue.changes);
+        db.prepare('DELETE FROM pairings WHERE expiresAt <= ?').run(tick);
+        const cutoff = tick - 30 * 86400000;
+        db.prepare("DELETE FROM expiryJobs WHERE status != 'pending' AND dueAt <= ?").run(cutoff);
+        db.prepare("DELETE FROM commands WHERE status != 'pending' AND json_extract(command, '$.expiresAt') <= ? AND NOT EXISTS (SELECT 1 FROM expiryJobs WHERE deviceId = commands.deviceId AND commandId = commands.id)").run(cutoff);
+      }
       const jobs = db.prepare("SELECT * FROM expiryJobs WHERE status = 'pending' AND dueAt <= ? AND nextAttemptAt <= ? ORDER BY nextAttemptAt LIMIT 10").all(tick, tick);
       for (const job of jobs) {
         if (closed) return;
@@ -88,7 +107,7 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
   }
   const expiryTimer = expiryIntervalMs === null ? null : setInterval(() => {
     // A failed database operation leaves the persisted lease for a later tick/restart.
-    void deliverExpiries().catch(() => {});
+    void deliverExpiries().catch(() => onDeliveryIssue('expiry_worker_failed', 1));
   }, expiryIntervalMs);
   expiryTimer?.unref();
   async function notify(device, command, kind) {
@@ -102,29 +121,47 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
       res.end(JSON.stringify(value));
     };
     try {
-      db.prepare("UPDATE commands SET status = 'expired', reason = 'delivery_expired' WHERE status = 'pending' AND json_extract(command, '$.expiresAt') <= ?").run(now());
+      const overdue = expireCommands.run(now());
+      if (overdue.changes) onDeliveryIssue('command_receipt_missing', overdue.changes);
       const path = new URL(req.url, 'http://localhost').pathname;
       if (req.method === 'GET' && path === '/healthz') {
         db.prepare('SELECT 1').get();
         return send(200, { status: 'ok' });
       }
-      const isAgent = matches(req.headers.authorization, `Bearer ${agentToken}`);
+      if (req.method === 'GET' && path === '/v1/phone-app' && phoneAppBundleID) {
+        return send(200, { bundleID: phoneAppBundleID, apnsEnvironment });
+      }
+      const credential = (req.headers.authorization ?? '').replace(/^Bearer /, '');
+      const isLegacyAgent = matches(req.headers.authorization, `Bearer ${agentToken}`);
       if (req.method === 'POST' && path === '/v1/pairings/redeem') {
         const { code } = await readBody(req);
         if (typeof code !== 'string' || code.length > 128) fail(400, 'invalid_code');
         const pairing = db.prepare('SELECT * FROM pairings WHERE codeHash = ?').get(hash(code));
         if (!pairing || pairing.expiresAt <= now()) fail(410, 'pairing_expired_or_used');
         const secret = randomBytes(32).toString('hex');
-        db.prepare('INSERT INTO devices (id, tokenHash) VALUES (?, ?)').run(pairing.deviceId, hash(secret));
+        db.prepare('INSERT INTO devices (id, tokenHash, agentId) VALUES (?, ?, ?)')
+          .run(pairing.deviceId, hash(secret), pairing.agentId);
         db.prepare('DELETE FROM pairings WHERE codeHash = ?').run(hash(code));
         return send(200, { deviceId: pairing.deviceId, deviceToken: `${pairing.deviceId}.${secret}` });
       }
-      const credential = (req.headers.authorization ?? '').replace(/^Bearer /, '');
       const [deviceId, secret] = credential.split('.');
       const device = secret && db.prepare('SELECT * FROM devices WHERE id = ?').get(deviceId);
       const isDevice = device && matches(device.tokenHash, hash(secret));
       if (path.startsWith('/v1/device/')) {
         if (!isDevice) fail(401, 'unauthorized');
+        if (req.method === 'DELETE' && path === '/v1/device/pairing') {
+          db.exec('BEGIN IMMEDIATE');
+          try {
+            db.prepare('DELETE FROM expiryJobs WHERE deviceId = ?').run(deviceId);
+            db.prepare('DELETE FROM commands WHERE deviceId = ?').run(deviceId);
+            db.prepare('DELETE FROM devices WHERE id = ?').run(deviceId);
+            db.exec('COMMIT');
+          } catch (error) {
+            if (db.isTransaction) db.exec('ROLLBACK');
+            throw error;
+          }
+          return send(200, { disconnected: true });
+        }
         if (req.method === 'POST' && path === '/v1/device/push') {
           const { token } = await readBody(req);
           if (typeof token !== 'string' || !/^[a-f0-9]{64,200}$/.test(token)) fail(400, 'invalid_push_token');
@@ -136,6 +173,7 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
           if (!parsed.success) fail(400, 'invalid_snapshot');
           const next = parsed.data;
           const current = db.prepare('SELECT snapshot FROM devices WHERE id = ?').get(deviceId);
+          if (!current) fail(401, 'unauthorized');
           const previous = JSON.parse(current.snapshot ?? 'null');
           // A background process may confirm the same selection without access to
           // identities. Preserve only a matching random selection marker, never counts alone.
@@ -194,21 +232,30 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
         }
         fail(404, 'not_found');
       }
-      if (!isAgent) fail(401, 'unauthorized');
+      if (req.method === 'POST' && path === '/v1/agents') {
+        if (!isLegacyAgent) fail(401, 'unauthorized');
+        const agentId = randomUUID(), token = `agent_${randomBytes(32).toString('hex')}`;
+        db.prepare('INSERT INTO agents VALUES (?, ?)').run(agentId, hash(token));
+        return send(201, { agentId, token });
+      }
+      const scopedAgent = /^Bearer agent_[a-f0-9]{64}$/.test(req.headers.authorization ?? '')
+        ? db.prepare('SELECT id FROM agents WHERE tokenHash = ?').get(hash(credential)) : null;
+      if (!isLegacyAgent && !scopedAgent) fail(401, 'unauthorized');
+      const agentId = isLegacyAgent ? null : scopedAgent.id;
       if (req.method === 'GET' && path === '/v1/devices') {
-        const devices = db.prepare('SELECT id, observedAt FROM devices ORDER BY id').all()
+        const devices = db.prepare('SELECT id, observedAt FROM devices WHERE agentId IS ? ORDER BY id').all(agentId)
           .map(row => ({ deviceId: row.id, observedAt: row.observedAt ?? null }));
         return send(200, { devices });
       }
       const statusRoute = path.match(/^\/v1\/devices\/([a-f0-9-]+)$/);
       if (req.method === 'GET' && statusRoute) {
-        const target = db.prepare('SELECT * FROM devices WHERE id = ?').get(statusRoute[1]);
+        const target = db.prepare('SELECT * FROM devices WHERE id = ? AND agentId IS ?').get(statusRoute[1], agentId);
         if (!target) fail(404, 'unknown_device');
         return send(200, { snapshot: target.snapshot ? JSON.parse(target.snapshot) : null, observedAt: target.observedAt });
       }
       const route = path.match(/^\/v1\/devices\/([a-f0-9-]+)\/commands(?:\/([^/]+))?$/);
       if (route) {
-        const target = db.prepare('SELECT * FROM devices WHERE id = ?').get(route[1]);
+        const target = db.prepare('SELECT * FROM devices WHERE id = ? AND agentId IS ?').get(route[1], agentId);
         if (!target) fail(404, 'unknown_device');
         if (req.method === 'GET' && route[2]) {
           const row = db.prepare('SELECT * FROM commands WHERE deviceId = ? AND id = ?').get(target.id, decodeURIComponent(route[2]));
@@ -230,6 +277,7 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
                 { command: JSON.parse(existing.command), status: existing.status, reason: existing.reason });
             }
             const allocated = db.prepare('UPDATE devices SET sequence = sequence + 1 WHERE id = ? RETURNING sequence').get(target.id);
+            if (!allocated) fail(404, 'unknown_device');
             command = { ...request, sequence: allocated.sequence, issuedAt: now(), expiresAt: now() + 120000 };
             db.prepare('INSERT INTO commands (deviceId, id, command, request, status, reason) VALUES (?, ?, ?, ?, ?, ?)')
               .run(target.id, request.id, JSON.stringify(command), JSON.stringify(request), 'pending', null);
@@ -245,7 +293,8 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
       if (req.method === 'POST' && path === '/v1/pairings') {
         const deviceId = randomUUID(), code = randomBytes(16).toString('hex');
         const expiresAt = now() + 600000;
-        db.prepare('INSERT INTO pairings VALUES (?, ?, ?)').run(hash(code), deviceId, expiresAt);
+        db.prepare('INSERT INTO pairings (codeHash, deviceId, expiresAt, agentId) VALUES (?, ?, ?, ?)')
+          .run(hash(code), deviceId, expiresAt, agentId);
         return send(201, { deviceId, code, expiresAt });
       }
       fail(404, 'not_found');

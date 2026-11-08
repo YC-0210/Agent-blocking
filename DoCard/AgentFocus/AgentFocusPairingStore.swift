@@ -9,7 +9,7 @@ enum AgentFocusPairingStore {
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: "online.do.card.agent",
       kSecAttrAccount as String: "docard-agent-pairing-v1",
-      kSecAttrAccessGroup as String: KeychainHelper.sharedAccessGroup,
+      kSecAttrAccessGroup as String: AgentFocusDevice.keychainGroup,
     ]
   }
   static func load() throws -> AgentFocusPairing {
@@ -36,4 +36,12 @@ enum AgentFocusPairingStore {
       throw Failure.keychain(status)
     }
   }
+  #if AGENT_BLOCKING
+    static func remove() throws {
+      let status = SecItemDelete(query as CFDictionary)
+      guard status == errSecSuccess || status == errSecItemNotFound else {
+        throw Failure.keychain(status)
+      }
+    }
+  #endif
 }

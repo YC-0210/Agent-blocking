@@ -7,8 +7,26 @@ import Security
 
 /// Native adapter at the persisted phone interface. Agent shields never clear a legacy store.
 enum AgentFocusDevice {
-  static let storeName = ManagedSettingsStore.Name("doCardAgentRestrictions")
-  static let activityPrefix = "doCardAgentExpiry_"
+  #if AGENT_BLOCKING
+    static let appGroup = "group.online.do.card.agentblocking"
+    static let keychainGroup = appGroup
+    static let urlScheme = "agent-blocking"
+    static let appName = "Agent Blocking"
+    static let applicationLimit = 50
+    static let storeName = ManagedSettingsStore.Name("agentBlockingRestrictions")
+    static let activityPrefix = "agentBlockingExpiry_"
+  #else
+    static let appGroup = "group.DO.version3"
+    static var keychainGroup: String { KeychainHelper.sharedAccessGroup }
+    static let urlScheme = "docard-agent"
+    static let appName = "DO Card"
+    static let storeName = ManagedSettingsStore.Name("doCardAgentRestrictions")
+    static let activityPrefix = "doCardAgentExpiry_"
+  #endif
+
+  static func phoneCopy(_ message: String) -> String {
+    message.replacingOccurrences(of: "DO Card", with: appName)
+  }
   typealias Phone = AgentFocusPhone<FamilyActivitySelection>
 
   enum Failure: Error {
@@ -53,13 +71,10 @@ enum AgentFocusDevice {
   // Only an explicit denial invalidates the persisted phone approval.
   private static var authorizationDecision: Bool? {
     let read = { () -> Bool? in
-      if AuthorizationCenter.shared.authorizationStatus.grantsScreenTimeAccess { return true }
-      switch AuthorizationCenter.shared.authorizationStatus {
-      case .approved: return true
-      case .denied: return false
-      case .notDetermined: return nil
-      @unknown default: return nil
-      }
+      let status = AuthorizationCenter.shared.authorizationStatus
+      if status.grantsScreenTimeAccess { return true }
+      if status == .denied { return false }
+      return nil
     }
     return Thread.isMainThread ? read() : DispatchQueue.main.sync(execute: read)
   }
@@ -105,7 +120,7 @@ enum AgentFocusDevice {
   ) {
     guard
       let directory = FileManager.default.containerURL(
-        forSecurityApplicationGroupIdentifier: "group.DO.version3")
+        forSecurityApplicationGroupIdentifier: AgentFocusDevice.appGroup)
     else { return }
     let next = schedule?.nextInterval
     let entry = ExpiryEvent(
@@ -122,7 +137,7 @@ enum AgentFocusDevice {
   static func phone(lockTimeout: TimeInterval? = nil, expiryOnly: Bool = false) throws -> Phone {
     guard
       let directory = FileManager.default.containerURL(
-        forSecurityApplicationGroupIdentifier: "group.DO.version3")
+        forSecurityApplicationGroupIdentifier: AgentFocusDevice.appGroup)
     else { throw Failure.unavailable }
     // Read on the main queue before taking the phone lock. A cold extension's
     // unknown status cannot override the owner's persisted approval.
@@ -167,7 +182,7 @@ enum AgentFocusDevice {
       kSecClass as String: kSecClassGenericPassword,
       kSecAttrService as String: "online.do.card.agent.emergency",
       kSecAttrAccount as String: "cancellation-v1",
-      kSecAttrAccessGroup as String: KeychainHelper.sharedAccessGroup,
+      kSecAttrAccessGroup as String: keychainGroup,
     ]
   }
 
@@ -271,7 +286,8 @@ enum AgentSelectedAppMetadata {
   }
 
   private static var file: URL? {
-    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.DO.version3")?
+    FileManager.default.containerURL(
+      forSecurityApplicationGroupIdentifier: AgentFocusDevice.appGroup)?
       .appendingPathComponent("agent-selected-app-identities.json")
   }
 

@@ -4,6 +4,34 @@ import XCTest
 @testable import AgentFocusCore
 
 final class AgentFocusPhoneTests: XCTestCase {
+  func testDisconnectReleasesShieldsAndRejectsCommandsFromTheOldPairing() throws {
+    let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+    defer { try? FileManager.default.removeItem(at: directory) }
+    let now = 1_793_836_800_000.0
+    var shielded = false
+    let phone = AgentFocusPhone<String>(
+      directory: directory,
+      emergency: .init(read: { nil }, write: { _ in }), now: { now },
+      apply: { _, _ in shielded = true }, release: { shielded = false })
+    let policy = AgentFocusPolicy(
+      modeID: "approved", maximumMinutes: 45, startMinute: 0,
+      endMinute: 1440, timeZone: "Asia/Taipei")
+    try phone.approve(policy: policy, selection: "private", pairingID: "old")
+    let start = FocusCommand(
+      id: "start", sequence: 1, action: .start, modeID: "approved", durationMinutes: 2,
+      sessionID: "session", issuedAt: now, expiresAt: now + 60_000)
+    XCTAssertEqual(try phone.receive(start, pairingID: "old").status, "applied")
+    XCTAssertTrue(shielded)
+    try phone.disconnect(pairingID: "old")
+    XCTAssertFalse(shielded)
+    XCTAssertNil(try phone.status())
+    XCTAssertThrowsError(try phone.receive(start, pairingID: "old"))
+    try phone.disconnect(pairingID: "old")
+    try phone.approve(policy: policy, selection: "new", pairingID: "new")
+    XCTAssertThrowsError(try phone.disconnect(pairingID: "old"))
+    XCTAssertNotNil(try phone.status(pairingID: "new"))
+  }
+
   func testSelectionCountsFollowTheSavedDefaultWithoutIdentifyingTheApps() throws {
     let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
     defer { try? FileManager.default.removeItem(at: directory) }

@@ -1,0 +1,138 @@
+name: AgentBlocking
+options:
+  deploymentTarget:
+    iOS: "18.0"
+  developmentLanguage: en
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) AGENT_BLOCKING"
+    DEVELOPMENT_TEAM: L546HV5KY7
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    AGENT_BLOCKING_APP_ID: online.do.card.agentblocking
+    AGENT_BLOCKING_GROUP: group.online.do.card.agentblocking
+  configs:
+    Debug:
+      APS_ENVIRONMENT: development
+    Release:
+      APS_ENVIRONMENT: production
+targets:
+  AgentBlocking:
+    type: application
+    platform: iOS
+    sources:
+      - App
+      - path: ../DoCard/AgentFocus
+        excludes:
+          - AgentSelectedAppIconProbe.swift
+      - ../DoCard/AgentFocus.xcstrings
+    info:
+      path: Configuration/App.plist
+      properties:
+        CFBundleDisplayName: Agent Blocking
+        AgentBlockingAPNSEnvironment: $(APS_ENVIRONMENT)
+        CFBundleURLTypes:
+          - CFBundleURLName: $(AGENT_BLOCKING_APP_ID)
+            CFBundleURLSchemes: [agent-blocking]
+        UIBackgroundModes: [remote-notification]
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UILaunchScreen: {}
+    entitlements:
+      path: Configuration/App.entitlements
+      properties:
+        aps-environment: $(APS_ENVIRONMENT)
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [$(AGENT_BLOCKING_GROUP)]
+    settings:
+      TARGETED_DEVICE_FAMILY: "1"
+      PRODUCT_BUNDLE_IDENTIFIER: $(AGENT_BLOCKING_APP_ID)
+      ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    dependencies:
+      - target: FocusNotification
+      - target: FocusMonitor
+      - target: FocusShield
+
+  FocusNotification:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ../DoCardNotificationService/NotificationService.swift
+      - ../DoCardNotificationService/AgentFocus.xcstrings
+      - ../DoCard/AgentFocus/Core
+      - ../DoCard/AgentFocus/AgentFocusDevice.swift
+      - ../DoCard/AgentFocus/AgentFocusPairingStore.swift
+    info:
+      path: Configuration/Notification.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.usernotifications.service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
+    entitlements:
+      path: Configuration/Notification.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [$(AGENT_BLOCKING_GROUP)]
+    settings:
+      TARGETED_DEVICE_FAMILY: "1"
+      PRODUCT_BUNDLE_IDENTIFIER: $(AGENT_BLOCKING_APP_ID).FocusNotification
+      APPLICATION_EXTENSION_API_ONLY: YES
+
+  FocusMonitor:
+    type: app-extension
+    platform: iOS
+    sources:
+      - Monitor
+      - ../DoCard/AgentFocus/Core/AgentFocusController.swift
+      - ../DoCard/AgentFocus/Core/AgentFocusPhone.swift
+      - ../DoCard/AgentFocus/AgentFocusDevice.swift
+    info:
+      path: Configuration/Monitor.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ExpiryMonitor
+    entitlements:
+      path: Configuration/Monitor.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+        com.apple.security.application-groups: [$(AGENT_BLOCKING_GROUP)]
+    settings:
+      TARGETED_DEVICE_FAMILY: "1"
+      PRODUCT_BUNDLE_IDENTIFIER: $(AGENT_BLOCKING_APP_ID).FocusMonitor
+      APPLICATION_EXTENSION_API_ONLY: YES
+
+  FocusShield:
+    type: app-extension
+    platform: iOS
+    sources:
+      - ../DoCardShieldConfig/ShieldConfigurationExtension.swift
+      - ../DoCardShieldConfig/AgentFocus.xcstrings
+    info:
+      path: Configuration/Shield.plist
+      properties:
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
+    entitlements:
+      path: Configuration/Shield.entitlements
+      properties:
+        com.apple.developer.family-controls: true
+    settings:
+      TARGETED_DEVICE_FAMILY: "1"
+      PRODUCT_BUNDLE_IDENTIFIER: $(AGENT_BLOCKING_APP_ID).FocusShield
+      APPLICATION_EXTENSION_API_ONLY: YES
+
+schemes:
+  AgentBlocking:
+    build:
+      targets:
+        AgentBlocking: all
+    run:
+      config: Debug
+    archive:
+      config: Release

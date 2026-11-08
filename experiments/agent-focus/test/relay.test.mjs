@@ -40,6 +40,30 @@ async function pair(request) {
 }
 const start = { id: 'request-1', action: 'start', modeID: 'work', durationMinutes: 30, sessionID: 's1' };
 
+test('scoped agents see only their phones and a phone can revoke its pairing', async t => {
+  const { request } = await fixture(t);
+  const first = await request('/v1/agents', {});
+  const second = await request('/v1/agents', {});
+  assert.equal(first.status, 201);
+  assert.equal(second.status, 201);
+  assert.equal((await request('/v1/agents', {}, first.body.token)).status, 401);
+  const invitation = await request('/v1/pairings', {}, first.body.token);
+  assert.equal(invitation.status, 201);
+  const { body: phone } = await request('/v1/pairings/redeem', { code: invitation.body.code }, null);
+  const { body: own } = await request('/v1/devices', undefined, first.body.token);
+  assert.deepEqual(own.devices.map(device => device.deviceId), [phone.deviceId]);
+  assert.deepEqual((await request('/v1/devices')).body.devices, []);
+  assert.deepEqual((await request('/v1/devices', undefined, second.body.token)).body.devices, []);
+  const path = `/v1/devices/${phone.deviceId}`;
+  assert.equal((await request(path, undefined, second.body.token)).status, 404);
+  assert.equal((await request(`${path}/commands`, start, second.body.token)).status, 404);
+  assert.equal((await request(`${path}/commands`, start, first.body.token)).status, 202);
+  assert.equal((await request('/v1/device/pairing', undefined, first.body.token, 'DELETE')).status, 401);
+  assert.equal((await request('/v1/device/pairing', undefined, phone.deviceToken, 'DELETE')).status, 200);
+  assert.equal((await request('/v1/device/commands', undefined, phone.deviceToken)).status, 401);
+  assert.equal((await request(`${path}/commands/${start.id}`, undefined, first.body.token)).status, 404);
+});
+
 test('push acceptance stays pending until the paired phone acknowledges execution', async t => {
   const { request } = await fixture(t);
   const phone = await pair(request);

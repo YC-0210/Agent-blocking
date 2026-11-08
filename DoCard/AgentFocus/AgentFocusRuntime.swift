@@ -23,6 +23,9 @@ final class AgentFocusRuntime: ObservableObject {
   @Published var setupCode = ""
   @Published private(set) var focusStatus: AgentFocusDevice.Phone.Status?
   @Published private(set) var connectionPending = false
+  #if AGENT_BLOCKING
+    @Published private(set) var disconnecting = false
+  #endif
   @Published var appReview: AppReview?
   struct AppReview: Identifiable {
     let id = UUID()
@@ -54,8 +57,14 @@ final class AgentFocusRuntime: ObservableObject {
     let deviceToken: String
   }
   private struct Code: Encodable { let code: String }
+  #if AGENT_BLOCKING
+    private struct PhoneApp: Decodable {
+      let bundleID: String
+      let apnsEnvironment: String?
+    }
+  #endif
   enum Failure: Error {
-    case invalidRelay, requestFailed, missingPairing
+    case invalidRelay, requestFailed, missingPairing, wrongPhoneApp
     case keychain(OSStatus)
   }
 
@@ -78,7 +87,10 @@ final class AgentFocusRuntime: ObservableObject {
   }
 
   func openSetup(_ url: URL) -> Bool {
-    guard url.scheme == "docard-agent" else { return false }
+    guard url.scheme == AgentFocusDevice.urlScheme else { return false }
+    #if AGENT_BLOCKING
+      guard !disconnecting else { return false }
+    #endif
     if url.host == "apps" {
       do {
         let pairing = try AgentFocusPairingStore.load()
@@ -98,24 +110,27 @@ final class AgentFocusRuntime: ObservableObject {
         presentAppReview(groupID: query.first(where: { $0.name == "groupId" })?.value)
         return true
       } catch {
-        message = String(
-          localized: "Cannot review this phone’s apps right now. Open DO Card and try again.",
-          table: "AgentFocus")
+        message = AgentFocusDevice.phoneCopy(
+          String(
+            localized: "Cannot review this phone’s apps right now. Open DO Card and try again.",
+            table: "AgentFocus"))
         return false
       }
     }
     guard url.host == "setup" else { return false }
-    guard !StrategyManager.shared.activeSessionStatus.isBlocking,
-      !SharedData.profileSnapshots.values.contains(where: {
-        $0.schedules.contains(where: { $0.isActive })
+    #if !AGENT_BLOCKING
+      guard !StrategyManager.shared.activeSessionStatus.isBlocking,
+        !SharedData.profileSnapshots.values.contains(where: {
+          $0.schedules.contains(where: { $0.isActive })
+        }
+        )
+      else {
+        message = String(
+          localized: "End existing sessions and disable scheduled modes before agent setup.",
+          table: "AgentFocus")
+        return false
       }
-      )
-    else {
-      message = String(
-        localized: "End existing sessions and disable scheduled modes before agent setup.",
-        table: "AgentFocus")
-      return false
-    }
+    #endif
     let query = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []
     if configured {
       if (try? AgentFocusDevice.status()?.session) != nil {
@@ -142,6 +157,17 @@ final class AgentFocusRuntime: ObservableObject {
         !code.isEmpty, (15...1440).contains(maximumMinutes),
         startMinute >= 0, endMinute <= 1440, startMinute < endMinute
       else { throw Failure.invalidRelay }
+      #if AGENT_BLOCKING
+        // Older standalone relays only support development builds.
+        guard
+          let data = try? await request(relay: url, path: "v1/phone-app", token: nil, data: nil),
+          let phoneApp = try? JSONDecoder().decode(PhoneApp.self, from: data),
+          phoneApp.bundleID == Bundle.main.bundleIdentifier,
+          let expectedEnvironment = Bundle.main.object(
+            forInfoDictionaryKey: "AgentBlockingAPNSEnvironment") as? String,
+          (phoneApp.apnsEnvironment ?? "development") == expectedEnvironment
+        else { throw Failure.wrongPhoneApp }
+      #endif
       let policy = AgentFocusPolicy(
         modeID: UUID().uuidString, maximumMinutes: maximumMinutes,
         startMinute: startMinute, endMinute: endMinute, timeZone: TimeZone.current.identifier)
@@ -160,6 +186,9 @@ final class AgentFocusRuntime: ObservableObject {
       ])
       UIApplication.shared.registerForRemoteNotifications()
       await sync()
+    } catch Failure.wrongPhoneApp {
+      message = String(
+        localized: "Use a relay configured for this Agent Blocking build.", table: "AgentFocus")
     } catch {
       message =
         String(
@@ -203,14 +232,47 @@ final class AgentFocusRuntime: ObservableObject {
       message = String(
         localized: "Agent session ended. Your agent remains connected.", table: "AgentFocus")
     } catch {
-      message = String(
-        localized:
-          "Agent shields cleared. Could not save the session ending; reopen DO Card to retry.",
-        table: "AgentFocus")
+      message = AgentFocusDevice.phoneCopy(
+        String(
+          localized:
+            "Agent shields cleared. Could not save the session ending; reopen DO Card to retry.",
+          table: "AgentFocus"))
     }
     refreshFocusStatus()
     Task { await sync() }
   }
+
+  #if AGENT_BLOCKING
+    func disconnect() async {
+      guard !disconnecting else { return }
+      disconnecting = true
+      defer { disconnecting = false }
+      do {
+        let pairing = try AgentFocusPairingStore.load()
+        // Revoke the native approval under the same lock used to apply commands.
+        try AgentFocusDevice.phone().disconnect(pairingID: pairing.deviceId)
+        focusStatus = nil
+        var request = URLRequest(url: pairing.relay.appendingPathComponent("v1/device/pairing"))
+        request.httpMethod = "DELETE"
+        request.timeoutInterval = 10
+        request.setValue("Bearer \(pairing.deviceToken)", forHTTPHeaderField: "Authorization")
+        let (_, response) = try await transport.data(for: request)
+        guard let status = (response as? HTTPURLResponse)?.statusCode,
+          status == 200 || status == 401
+        else { throw Failure.requestFailed }
+        try AgentFocusPairingStore.remove()
+        configured = false
+        connectionPending = false
+        setupRelay = ""
+        setupCode = ""
+        message = String(localized: "Agent disconnected.", table: "AgentFocus")
+      } catch {
+        message = String(
+          localized: "Disconnect could not finish. Check your connection and try again.",
+          table: "AgentFocus")
+      }
+    }
+  #endif
 
   func registered(token: Data) {
     pushToken = token.map { String(format: "%02x", $0) }.joined()
@@ -240,6 +302,9 @@ final class AgentFocusRuntime: ObservableObject {
   }
 
   private func performSync() async {
+    #if AGENT_BLOCKING
+      guard !disconnecting else { return }
+    #endif
     do {
       try await AgentFocusDevice.prepareAuthorization()
       try AgentFocusDevice.reconcile()
@@ -260,6 +325,9 @@ final class AgentFocusRuntime: ObservableObject {
       let worker = AgentFocusDelivery(
         phone: phone, pairing: pairing, allowIdentities: AgentFocusDevice.permitsSelectedAppSharing)
       let result = await worker.run(pushToken: pushToken)
+      #if AGENT_BLOCKING
+        guard !disconnecting, configured else { return }
+      #endif
       if result == .synced {
         if connectionPending { message = "" }
         connectionPending = false
@@ -309,7 +377,13 @@ final class AgentFocusAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
     didFinishLaunchingWithOptions options: [UIApplication.LaunchOptionsKey: Any]? = nil
   ) -> Bool {
     UNUserNotificationCenter.current().delegate = self
-    application.registerForRemoteNotifications()
+    #if AGENT_BLOCKING
+      if AgentFocusRuntime.shared.configured {
+        application.registerForRemoteNotifications()
+      }
+    #else
+      application.registerForRemoteNotifications()
+    #endif
     return true
   }
   func application(
@@ -322,9 +396,10 @@ final class AgentFocusAppDelegate: NSObject, UIApplicationDelegate, UNUserNotifi
   ) {
     Task { @MainActor in
       AgentFocusRuntime.shared.message =
-        String(
-          localized: "Push registration failed. Open DO Card to receive pending commands.",
-          table: "AgentFocus")
+        AgentFocusDevice.phoneCopy(
+          String(
+            localized: "Push registration failed. Open DO Card to receive pending commands.",
+            table: "AgentFocus"))
     }
   }
   func application(

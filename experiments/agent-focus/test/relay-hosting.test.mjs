@@ -49,13 +49,17 @@ async function start(t, configuration, overrides = {}) {
 
 test('hosted runner accepts environment secrets, protects APIs and preserves pairing across restart', async t => {
   const config = await configuration(t);
-  const first = await start(t, config);
+  const topic = 'online.do.card.agentblocking';
+  const first = await start(t, config, { APNS_TOPIC: topic, APNS_ENVIRONMENT: 'production' });
   const health = await fetch(`${first.base}/healthz`);
   assert.equal(health.status, 200);
   assert.equal(health.headers.get('cache-control'), 'no-store');
   assert.deepEqual(await health.json(), { status: 'ok' });
   assert.equal((await fetch(`${first.base}/v1/pairings`, { method: 'POST' })).status, 401);
   assert.equal((await fetch(`${first.base}/healthz`, { method: 'POST' })).status, 401);
+  const phoneApp = await fetch(`${first.base}/v1/phone-app`);
+  assert.equal(phoneApp.status, 200);
+  assert.deepEqual(await phoneApp.json(), { bundleID: topic, apnsEnvironment: 'production' });
   const invitation = await fetch(`${first.base}/v1/pairings`, { method: 'POST',
     headers: { authorization: `Bearer ${config.token}`, 'content-type': 'application/json' }, body: '{}' });
   assert.equal(invitation.status, 201);
@@ -65,7 +69,9 @@ test('hosted runner accepts environment secrets, protects APIs and preserves pai
   assert.equal(redemption.status, 200);
   const { deviceToken } = await redemption.json();
   await first.stop();
-  const second = await start(t, config);
+  const second = await start(t, config, { APNS_TOPIC: topic });
+  assert.deepEqual(await (await fetch(`${second.base}/v1/phone-app`)).json(),
+    { bundleID: topic, apnsEnvironment: 'development' });
   const commands = await fetch(`${second.base}/v1/device/commands`, {
     headers: { authorization: `Bearer ${deviceToken}` } });
   assert.equal(commands.status, 200);

@@ -63,8 +63,8 @@ final class NotificationService: UNNotificationServiceExtension, @unchecked Send
     lock.lock()
     let callback = handler
     let best = content
-    best?.title = "DO Card"
-    best?.body = body
+    best?.title = AgentFocusDevice.appName
+    best?.body = AgentFocusDevice.phoneCopy(body)
     handler = nil
     content = nil
     let task = work
