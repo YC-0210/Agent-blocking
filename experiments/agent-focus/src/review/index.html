@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent Blocking review console</title>
+<link rel="stylesheet" href="/review/style.css">
+<main>
+  <h1>Agent Blocking review console</h1>
+  <p>Use the review credential provided with the build. This console controls only phones paired to that credential.</p>
+  <label for="credential">Review credential</label>
+  <input id="credential" type="password" autocomplete="off" spellcheck="false">
+  <section>
+    <h2>1. Pair an iPhone</h2>
+    <button type="button" id="pair">Generate a pairing code</button>
+    <p id="invitation" hidden>In Agent Blocking, enter the relay address and code below. Grant Screen Time and notifications, then select an app and approve your limits.</p>
+    <pre id="code" hidden></pre>
+  </section>
+  <section>
+    <h2>2. Test a focus session</h2>
+    <p>Close Agent Blocking after pairing. Start a two-minute session and open a selected app to check the Screen Time shield. End the session here or wait for automatic expiry.</p>
+    <button type="button" id="status">Refresh phone status</button>
+    <button type="button" id="start">Start a two-minute session</button>
+    <button type="button" id="stop">End session</button>
+    <output id="result" aria-live="polite"></output>
+  </section>
+</main>
+<script type="module" src="/review/console.mjs"></script>
+</html>

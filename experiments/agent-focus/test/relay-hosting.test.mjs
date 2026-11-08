@@ -22,7 +22,7 @@ async function configuration(t) {
 async function start(t, configuration, overrides = {}) {
   const env = { ...process.env };
   for (const name of Object.keys(env)) {
-    if (/^(DO_CARD_|APNS_|RAILWAY_)/.test(name)) delete env[name];
+    if (/^(DO_CARD_|APNS_|RAILWAY_|AGENT_BLOCKING_)/.test(name)) delete env[name];
   }
   Object.assign(env, { PORT: '0', HOST: '0.0.0.0',
     DO_CARD_DATABASE: join(configuration.directory, 'relay.sqlite'),
@@ -89,4 +89,22 @@ test('local runner still accepts credential files', async t => {
   const response = await fetch(`${relay.base}/v1/pairings`, { method: 'POST',
     headers: { authorization: `Bearer ${config.token}`, 'content-type': 'application/json' }, body: '{}' });
   assert.equal(response.status, 201);
+});
+
+test('the standalone review console is opt-in and does not expose privileged APIs', async t => {
+  const config = await configuration(t);
+  const relay = await start(t, config, {
+    APNS_TOPIC: 'online.do.card.agentblocking', AGENT_BLOCKING_REVIEW_ENABLED: '1',
+  });
+  const page = await fetch(`${relay.base}/review`);
+  assert.equal(page.status, 200);
+  assert.equal(page.headers.get('cache-control'), 'no-store');
+  assert.match(page.headers.get('content-security-policy'), /frame-ancestors 'none'/);
+  assert.match(await page.text(), /Agent Blocking review console/);
+  assert.equal((await fetch(`${relay.base}/review/console.mjs`)).status, 200);
+  assert.equal((await fetch(`${relay.base}/v1/agents`, { method: 'POST' })).status, 401);
+  assert.equal((await fetch(`${relay.base}/v1/devices`)).status, 401);
+  await relay.stop();
+  const disabled = await start(t, config, { APNS_TOPIC: 'online.do.card.agentblocking' });
+  assert.equal((await fetch(`${disabled.base}/review`)).status, 401);
 });

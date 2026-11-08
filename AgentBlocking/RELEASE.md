@@ -39,6 +39,8 @@ Set daily backups, verify backup creation, and rehearse restoring to a non-live 
 
 ## App Review preparation
 
-Describe the app as an individual focus tool that uses Screen Time to restrict only the apps and sites the user selected, within the approved hours and maximum duration. Explain the opt-in relay, visible notification results, automatic expiry, Emergency Unlock and Disconnect. Provide a reviewer-specific scoped credential and a simple way to issue a fresh pairing invitation and run start and stop. The review path must be available throughout review because pairing codes expire in ten minutes.
+Describe the app as an individual focus tool that uses Screen Time to restrict only the apps and sites the user selected, within the approved hours and maximum duration. Explain the opt-in relay, visible notification results, automatic expiry, Emergency Unlock and Disconnect.
+
+Set `AGENT_BLOCKING_REVIEW_ENABLED=1` on the standalone review relay and verify `/review` is available. Give App Review the console URL and a dedicated scoped credential in the private App Review Information field. The console can generate a fresh pairing code, show phone status, and run two-minute start and stop commands without a personal Codex setup. Keep it available throughout review because pairing codes expire in ten minutes.
 
 Use the [privacy policy](PRIVACY.md) for the metadata URL after verifying the public link. The manifest records device identifiers, product interaction, and app group labels for app functionality. Confirm the final disclosures against the deployed service and any integrated agent or SDK. Use the product support contact `do-card@do-card.online` and confirm the support URL. Capture current App Store screenshots showing app selection, approved limits, an active session and Emergency Unlock.

@@ -40,7 +40,7 @@ async function readBody(req) {
 }
 export function createRelay({ agentToken, database = 'agent-focus.sqlite', now = Date.now,
   push = async () => ({ status: 'unconfigured' }), expiryIntervalMs = null, phoneAppBundleID,
-  apnsEnvironment, onDeliveryIssue = () => {} }) {
+  apnsEnvironment, reviewPages, onDeliveryIssue = () => {} }) {
   if (!agentToken || agentToken.length < 32) throw new Error('Agent token must contain at least 32 characters');
   if (expiryIntervalMs !== null && (!Number.isInteger(expiryIntervalMs) || expiryIntervalMs < 1)) {
     throw new Error('Expiry worker interval must be a positive integer or null');
@@ -124,6 +124,15 @@ export function createRelay({ agentToken, database = 'agent-focus.sqlite', now =
       const overdue = expireCommands.run(now());
       if (overdue.changes) onDeliveryIssue('command_receipt_missing', overdue.changes);
       const path = new URL(req.url, 'http://localhost').pathname;
+      const page = req.method === 'GET' && reviewPages?.get(path);
+      if (page) {
+        res.writeHead(200, {
+          'content-type': page.type, 'cache-control': 'no-store', 'x-content-type-options': 'nosniff',
+          'referrer-policy': 'no-referrer',
+          'content-security-policy': "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+        });
+        return res.end(page.body);
+      }
       if (req.method === 'GET' && path === '/healthz') {
         db.prepare('SELECT 1').get();
         return send(200, { status: 'ok' });

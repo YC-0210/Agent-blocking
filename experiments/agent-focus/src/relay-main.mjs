@@ -22,12 +22,19 @@ try {
   mkdirSync(dirname(database), { recursive: true, mode: 0o700 });
   const topic = process.env.APNS_TOPIC ?? 'online.do.card.app';
   const appName = topic === 'online.do.card.agentblocking' ? 'Agent Blocking' : 'DO Card';
+  const reviewPages = appName === 'Agent Blocking' && process.env.AGENT_BLOCKING_REVIEW_ENABLED === '1'
+    ? new Map([
+      ['/review', ['text/html; charset=utf-8', 'index.html']],
+      ['/review/style.css', ['text/css; charset=utf-8', 'style.css']],
+      ['/review/console.mjs', ['text/javascript; charset=utf-8', 'console.mjs']],
+    ].map(([path, [type, file]]) => [path, { type, body: readFileSync(new URL(`review/${file}`, import.meta.url)) }]))
+    : undefined;
   const sendPush = createApnsPush({ privateKey,
     teamId: required('APNS_TEAM_ID'), keyId: required('APNS_KEY_ID'),
     topic, appName,
     sandbox: apnsEnvironment !== 'production',
   });
-  const relay = createRelay({ agentToken, database, phoneAppBundleID: topic, apnsEnvironment, expiryIntervalMs: 1000,
+  const relay = createRelay({ agentToken, database, phoneAppBundleID: topic, apnsEnvironment, reviewPages, expiryIntervalMs: 1000,
     onDeliveryIssue: (event, count) => console.warn(JSON.stringify({ event, count })),
     push: async message => {
       try { return await sendPush(message); }
