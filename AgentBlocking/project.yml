@@ -69,6 +69,7 @@ targets:
     info:
       path: Configuration/Notification.plist
       properties:
+        CFBundleDisplayName: Agent Blocking Notifications
         NSExtension:
           NSExtensionPointIdentifier: com.apple.usernotifications.service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).NotificationService
@@ -93,6 +94,7 @@ targets:
     info:
       path: Configuration/Monitor.plist
       properties:
+        CFBundleDisplayName: Agent Blocking Expiry Monitor
         NSExtension:
           NSExtensionPointIdentifier: com.apple.deviceactivity.monitor-extension
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ExpiryMonitor
@@ -115,6 +117,7 @@ targets:
     info:
       path: Configuration/Shield.plist
       properties:
+        CFBundleDisplayName: Agent Blocking Shield
         NSExtension:
           NSExtensionPointIdentifier: com.apple.ManagedSettingsUI.shield-configuration-service
           NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShieldConfigurationExtension
