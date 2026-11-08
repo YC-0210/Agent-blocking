@@ -1,105 +1,39 @@
-<p align="center">
-  <img src="./DoCard/Assets.xcassets/AppIcon.appiconset/AppIcon~ios-marketing.png" width="250" style="border-radius: 40px;">
-</p>
+# Agent Blocking
 
-<h1 align="center">DO</h1>
+Agent Blocking is an iPhone app that lets you start a focus session from Codex
+and block the apps and websites you choose. You pick what to block on your phone,
+set a maximum session length and allowed hours, and confirm when a session starts.
 
-<p align="center">
-  <strong>DO, the physical way</strong>
-</p>
+- **Choose what to block.** Select apps, categories, and websites with the native
+  Screen Time picker.
+- **Start and stop from Codex.** Pair your iPhone with the `agent_blocking` MCP
+  server. A Railway relay delivers commands through Apple Push Notification
+  service, so the iPhone can apply them while Agent Blocking is closed.
+- **Stay in control.** Blocks clear automatically when a session expires. You can
+  also end the session on your phone at any time with Emergency Unlock.
 
-<p align="center">
-  DO helps you put your most distracting apps behind a quick tap of your DO Card (NFC) so you can stay in the zone and build better digital habits.
-</p>
+## Getting started
 
----
+Agent Blocking is being tested as an Xcode development build on iPhone with
+iOS 18 or later. The standalone app project and setup guide are in the local
+development checkout under `AgentBlocking/`.
 
-## Features
+1. In the development checkout, open `AgentBlocking/AgentBlocking.xcodeproj`
+   and run the **AgentBlocking** scheme on your iPhone.
+2. Follow `AgentBlocking/README.md` to configure signing, the Railway relay,
+   and the Codex MCP server.
+3. In Codex, use `pair_phone` to generate a one-time pairing link. Open it on
+   your iPhone, grant Screen Time and notification permissions, then choose what
+   to block and set your session limits.
+4. Tell Codex “I need to focus,” choose a duration, and confirm the session.
 
-- **NFC Card Blocking** — Start or stop focus sessions by tapping your DO Card
-- **Multiple Strategies** — Manual, NFC, NFC + Manual, NFC + Timer
-- **Timer-Based Blocking** — Block for a set duration, then unblock with your DO Card
-- **Physical Unblock** — Optionally require a specific card to stop a session
-- **Profiles** — Create profiles for work, study, sleep, or whatever you need
-- **Habit Tracking** — See your focus streaks and session history at a glance
-- **Smart Breaks** — Take a breather without stopping your session
-- **Live Activities** — Real-time status on your Lock Screen and Dynamic Island
-- **Widgets** — Home Screen widgets for quick profile control
+## Repository layout
 
-## Requirements
-
-- iOS 17.6+
-- iPhone with NFC capability
-- Screen Time permissions (for app blocking)
-
-## Getting Started
-
-### Setting Up Your DO Card
-
-1. Get a DO Card or any NFC tag (NTAG213 or similar)
-2. Create a profile in the app
-3. Write the tag from within the app
-4. Tap your DO Card to start or stop a focus session
-
-## Development
-
-### Prerequisites
-
-- Xcode 15.0+
-- iOS 17.0+ SDK
-- Swift 5.9+
-- Apple Developer Account (for Screen Time and NFC entitlements)
-
-### Building the Project
-
-```bash
-git clone <your-repo-url>
-cd DO.1
-open DoCard.xcodeproj
-```
-
-### Project Structure
-
-```
-DO.1/
-├── DoCard/                    # Main app target
-│   ├── Views/                 # SwiftUI views
-│   ├── Models/                # Data models
-│   │   └── Strategies/        # Blocking strategies
-│   ├── Components/            # Reusable UI components
-│   ├── Utils/                 # Utility functions
-│   └── Intents/               # App Intents & Shortcuts
-├── DoCardWidget/              # Widget extension
-└── DoCardDeviceMonitor/       # Device monitoring extension
-```
-
-### Key Technologies
-
-- **SwiftUI** — Declarative UI
-- **SwiftData** — Local persistence
-- **Family Controls** — App blocking
-- **Core NFC** — DO Card reading/writing
-- **BackgroundTasks** — Background processing
-- **Live Activities** — Dynamic Island + Lock Screen updates
-- **WidgetKit** — Home Screen widgets
-- **App Intents** — Shortcuts and automation
-
-## Blocking Strategies
-
-All strategies live in `DoCard/Models/Strategies/` and are orchestrated by `DoCard/Utils/StrategyManager.swift`.
-
-- **NFC (`NFCBlockingStrategy`)** — Scan any NFC tag to start; scan the same tag to stop. Optionally set `physicalUnblockNFCTagId` to require a specific tag to stop.
-
-- **Manual (`ManualBlockingStrategy`)** — Start and stop entirely from within the app.
-
-- **NFC + Manual (`NFCManualBlockingStrategy`)** — Start manually from within the app; stop by scanning an NFC tag.
-
-- **NFC + Timer (`NFCTimerBlockingStrategy`)** — Select a duration to block; scan an NFC tag to end early.
+- [DoCard/AgentFocus/](DoCard/AgentFocus/) contains the shared focus engine.
+- [experiments/agent-focus/](experiments/agent-focus/) contains the MCP server,
+  Railway relay, and tests.
 
 ## License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-This project is based on [Foqos](https://github.com/awaseem/foqos) by [Ali Waseem](https://github.com/awaseem), licensed under the MIT License.
+[MIT](LICENSE). The project builds on [Foqos](https://github.com/awaseem/foqos)
+by [Ali Waseem](https://github.com/awaseem).
